@@ -12,9 +12,9 @@ namespace GhostDeck;
 /// card holding a higher clock under the same load, and a clock sitting well under its ceiling
 /// while the card is busy is the firmware limiting it. That is the same story a wattage would tell.
 ///
-/// Deliberately absent: watts. The power field Windows exposes is a share of the adapter's own
-/// limit rather than a wattage, and on the driver this was measured against it reads zero, so
-/// offering a number in watts would mean offering one we cannot actually produce. Adapter fan RPM
+/// Deliberately absent here: watts. The power field Windows exposes is a share of the adapter's own
+/// limit rather than a wattage, and on the driver this was measured against it reads zero. Watts
+/// come from NVIDIA's own library instead, on NVIDIA cards only (NvPower, TECHNICAL §80). Adapter fan RPM
 /// is in the same position, and that we already read from the laptop's own controller.
 /// </summary>
 internal static class GpuTelemetry

@@ -50,6 +50,8 @@ public sealed class OverlaySettingsPanel : Panel
         AddMetric("ov_m_fps", OverlayMetric.Fps);
         AddMetric("ov_m_frametime", OverlayMetric.FrameTime);
         AddMetric("ov_m_temp", OverlayMetric.CpuTemp | OverlayMetric.GpuTemp);
+        if (Perf.HasCpuPower) AddMetric("ov_m_cpupower", OverlayMetric.CpuPower);   // Windows energy meter present
+        if (NvPower.Available) AddMetric("ov_m_gpupower", OverlayMetric.GpuPower);  // NVIDIA discrete card
         AddMetric("ov_m_ssd", OverlayMetric.SsdTemp);
         AddMetric("ov_m_rpm", OverlayMetric.CpuRpm | OverlayMetric.GpuRpm);
         AddMetric("ov_m_profile", OverlayMetric.Profile);

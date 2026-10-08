@@ -3387,3 +3387,28 @@ RTX 4060 is gone from Windows (not present), the panel runs on Intel Arc. Integr
 restart: the RTX and the external monitor on it are back. After each boot EC `0xD1` and
 `Get_AP(0)` byte 2 read `00` again - the firmware consumes the arm. The card, the display warning
 and Cancel were also exercised. MsiGT verified the same sequence on a Creator Z16HX Studio B13VGTO.
+
+## 80. Overlay: CPU and GPU power in watts
+
+Two optional overlay cells, **CPU W** and **GPU W** (Settings → Overlay; offered only where the
+source exists). Both keep the "no kernel driver" rule (§21):
+
+- **CPU W** is the processor package power from Windows' own energy meter (Energy Metering
+  Interface), read through PDH like the rest of `Perf`: `\Energy Meter(rapl_package0_pkg)\Power`,
+  in milliwatts - the RAPL package domain HWiNFO also shows. No meter on the machine (no
+  `rapl_package0_pkg` instance) = the item is not offered.
+- **GPU W** is the discrete card's board power from NVIDIA's management library (`nvml.dll`,
+  installed with every NVIDIA driver; `nvmlDeviceGetPowerUsage`), `NvPower`. GpuTelemetry's objection to
+  watts was about Windows' own adapter power field (a share of the limit, reading zero); NVML
+  reports actual milliwatts. NVIDIA only.
+
+**Never wake the card.** An NVML call can pull a sleeping discrete GPU out of D3cold and hold it
+there, costing battery on a hybrid laptop. So NVML is initialised and asked only while
+`GpuTelemetry` already sees the card clocked (a powered-down card reports no clock) and only while
+the GPU W cell is switched on; otherwise the cell shows `--`, like the GPU temperature. Checking
+whether to offer the item does not touch NVML at all (an NVIDIA discrete adapter in the roles and
+`nvml.dll` on disk). In Integrated-only mode (§79) the discrete card is gone from Windows and the
+cell is dropped.
+
+Measured on the Prestige 16 AI Studio B1VFG: idle CPU W 9-11 W, GPU W 2 W; under the power test's
+compute load GPU W 39 W against `nvidia-smi`'s 38.8 W.

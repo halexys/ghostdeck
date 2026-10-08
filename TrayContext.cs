@@ -1917,7 +1917,9 @@ public sealed class TrayContext : ApplicationContext
             Perf.GpuUsage(), Perf.VramUsedMb(), Perf.CpuClockMhz(),
             FpsMonitor.Current?.Fps ?? -1, FpsMonitor.Current?.FrameTimeMs ?? -1,
             Perf.DiskTemps2().First, Perf.BatteryMinutesLeft(), Perf.DiskTemps2().Second,
-            Perf.IgpuUsage(), SysInfo.CpuShortName());
+            Perf.IgpuUsage(), SysInfo.CpuShortName(),
+            _settings.HasMetric(OverlayMetric.CpuPower) ? Perf.CpuPackageWatts() : -1,
+            _settings.HasMetric(OverlayMetric.GpuPower) ? NvPower.Watts() : -1);   // NVML only when asked for
     }
 
     private void ShowOsd(ProfileId id)

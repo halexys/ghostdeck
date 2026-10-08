@@ -16,7 +16,8 @@ public readonly record struct OverlaySample(
     int Fps = -1, double FrameMs = -1,    // foreground game via FpsMonitor; -1 = no game / monitor off
     int SsdTemp = -1, int BattMinutes = -1,    // NVMe S.M.A.R.T. temp (disk 0); Windows' battery-time estimate
     int SsdTemp2 = -1,                         // second disk's temp (dual-SSD laptops), -1 = none
-    int IgpuUsage = -1, string CpuName = "");  // integrated card's load (-1 = no such card); processor model
+    int IgpuUsage = -1, string CpuName = "",   // integrated card's load (-1 = no such card); processor model
+    double CpuWatts = -1, double GpuWatts = -1);   // package W (RAPL), discrete-GPU W (NVML, -1 while it sleeps)
 
 /// <summary>
 /// Detachable, always-on-top mini status panel for gaming: temps / fan RPM / profile / load, in a
@@ -167,6 +168,10 @@ public sealed class OverlayForm : Form
         // temps are also valid in telemetry-only mode (#48), where Known is false
         Add(OverlayMetric.CpuTemp, IconKind.Cpu, "CPU", _s.CpuTemp > 0 ? $"{_s.CpuTemp}°" : "--");
         Add(OverlayMetric.GpuTemp, IconKind.Gpu, "GPU", _s.GpuTemp > 0 ? $"{_s.GpuTemp}°" : "--");
+        Add(OverlayMetric.CpuPower, IconKind.Charge, "CPU W", _s.CpuWatts >= 0 ? $"{_s.CpuWatts:0} W" : "--");
+        // the discrete card is gone from Windows in Integrated-only mode: drop the cell rather than show a dash forever
+        if (GpuTelemetry.GetRoles().Main is { Integrated: false })
+            Add(OverlayMetric.GpuPower, IconKind.Charge, "GPU W", _s.GpuWatts >= 0 ? $"{_s.GpuWatts:0} W" : "--");
         // both disks like the Fans metric ("x/y") - dual-SSD laptops throttle independently
         Add(OverlayMetric.SsdTemp, IconKind.Ram, "SSD",
             _s.SsdTemp2 > 0 && _s.SsdTemp > 0 ? $"{_s.SsdTemp}/{_s.SsdTemp2}°"

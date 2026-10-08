@@ -34,12 +34,13 @@ internal static class Perf
 
     private static readonly object _lock = new();
     private static bool _init, _ok;
-    private static IntPtr _query, _cpuPerf, _gpu3d, _vram, _shared;
+    private static IntPtr _query, _cpuPerf, _gpu3d, _vram, _shared, _pkgPower;
     private static int _baseMhz;
     private static DateTime _lastTick = DateTime.MinValue;
 
     // last sampled values (-1 = unavailable)
     private static int _gpuUsage = -1, _vramMb = -1, _cpuClock = -1, _igpuUsage = -1, _igpuSharedMb = -1;
+    private static double _pkgWatts = -1;
 
     // Counter instance names carry the adapter as "luid_0x<high>_0x<low>" (the same identifier
     // DXGI reports), so each card's readings are picked out by that prefix. Null keys = the
@@ -61,6 +62,9 @@ internal static class Perf
             PdhAddEnglishCounter(_query, @"\GPU Engine(*engtype_3D)\Utilization Percentage", IntPtr.Zero, out _gpu3d);
             PdhAddEnglishCounter(_query, @"\GPU Adapter Memory(*)\Dedicated Usage", IntPtr.Zero, out _vram);
             PdhAddEnglishCounter(_query, @"\GPU Adapter Memory(*)\Shared Usage", IntPtr.Zero, out _shared);
+            // Windows' own energy meter (Energy Metering Interface): where the platform exposes it
+            // carries the processor's RAPL package domain, in milliwatts. Absent elsewhere -> -1.
+            if (PdhAddEnglishCounter(_query, @"\Energy Meter(rapl_package0_pkg)\Power", IntPtr.Zero, out _pkgPower) != 0) _pkgPower = IntPtr.Zero;
             LoadRoles();
             PdhCollectQueryData(_query);   // prime (rate counters need two samples)
             _ok = true;
@@ -83,6 +87,9 @@ internal static class Perf
 
                 if (_cpuPerf != IntPtr.Zero && PdhGetFormattedCounterValue(_cpuPerf, PDH_FMT_DOUBLE | PDH_FMT_NOCAP100, out _, out var cv) == 0 && cv.CStatus == 0)
                     _cpuClock = _baseMhz > 0 ? (int)Math.Round(_baseMhz * cv.doubleValue / 100.0) : -1;
+
+                _pkgWatts = _pkgPower != IntPtr.Zero && PdhGetFormattedCounterValue(_pkgPower, PDH_FMT_DOUBLE | PDH_FMT_NOCAP100, out _, out var pw) == 0 && pw.CStatus == 0
+                    ? pw.doubleValue / 1000.0 : -1;
 
                 bool unknownAdapter = false;
                 var load = EngineLoadByAdapter(_gpu3d, ref unknownAdapter);
@@ -197,6 +204,10 @@ internal static class Perf
     public static int CpuClockMhz() { Tick(); return _cpuClock; }
     /// <summary>Load % of the integrated card; -1 when the laptop has none (or it cannot be read).</summary>
     public static int IgpuUsage() { Tick(); return _igpuUsage; }
+    /// <summary>Processor package power in W from Windows' RAPL energy meter; -1 = no meter on this machine.</summary>
+    public static double CpuPackageWatts() { Tick(); return _pkgWatts; }
+    /// <summary>True when the energy meter has a package domain (the overlay item is offered only then).</summary>
+    public static bool HasCpuPower { get { Tick(); return _pkgPower != IntPtr.Zero; } }
     /// <summary>System memory the integrated card is using, in MB (it has no memory of its own); -1 = none.</summary>
     public static int IgpuSharedMb() { Tick(); return _igpuSharedMb; }
     /// <summary>True on a two-card laptop whose integrated card Windows currently lists.</summary>
