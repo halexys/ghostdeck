@@ -18,7 +18,62 @@ public sealed class HotkeyManager : NativeWindow, IDisposable
     private readonly Dictionary<int, Action> _actions = new();
     private int _nextId = 1;
 
-    public HotkeyManager() => CreateHandle(new CreateParams());
+    // MSI scenario key (Fn+F7 on the Prestige 16 AI Studio): not a normal key, so RegisterHotKey
+    // never sees it. Measured on 15A2EMS1: each press arrives as raw keyboard input from MSI's
+    // hotkey device ACPI\MSNB1001 with scan code E0 11 and vk 0xFF (plus an MSI_Event WMI
+    // event). Raw input with INPUTSINK reads it without blocking it for anyone else.
+    private const int WM_INPUT = 0x00FF;
+    private const uint RIDEV_INPUTSINK = 0x100, RID_INPUT = 0x10000003, RIDI_DEVICENAME = 0x20000007;
+    private const ushort RI_KEY_BREAK = 1, RI_KEY_E0 = 2;
+    [StructLayout(LayoutKind.Sequential)] private struct RAWINPUTDEVICE { public ushort Page, Usage; public uint Flags; public IntPtr Target; }
+    [DllImport("user32.dll", SetLastError = true)] private static extern bool RegisterRawInputDevices(RAWINPUTDEVICE[] d, uint n, uint size);
+    [DllImport("user32.dll")] private static extern uint GetRawInputData(IntPtr h, uint cmd, IntPtr data, ref uint size, uint headerSize);
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)] private static extern uint GetRawInputDeviceInfo(IntPtr dev, uint cmd, IntPtr data, ref uint size);
+    private readonly Dictionary<IntPtr, bool> _msiKeyDevice = new();
+
+    /// <summary>Called on each press of the MSI scenario key; null = ignore the key.</summary>
+    public Action? ScenarioKey { get; set; }
+
+    public HotkeyManager()
+    {
+        CreateHandle(new CreateParams());
+        var rid = new[] { new RAWINPUTDEVICE { Page = 0x01, Usage = 0x06, Flags = RIDEV_INPUTSINK, Target = Handle } };
+        RegisterRawInputDevices(rid, 1, (uint)Marshal.SizeOf<RAWINPUTDEVICE>());   // best effort: failure = no scenario key
+    }
+
+    private bool IsMsiHotkeyDevice(IntPtr dev)
+    {
+        if (_msiKeyDevice.TryGetValue(dev, out var known)) return known;
+        uint chars = 0;
+        GetRawInputDeviceInfo(dev, RIDI_DEVICENAME, IntPtr.Zero, ref chars);
+        var buf = Marshal.AllocHGlobal((int)chars * 2 + 2);
+        try
+        {
+            GetRawInputDeviceInfo(dev, RIDI_DEVICENAME, buf, ref chars);
+            var name = Marshal.PtrToStringUni(buf) ?? "";
+            return _msiKeyDevice[dev] = name.Contains("MSNB1001", StringComparison.OrdinalIgnoreCase);
+        }
+        finally { Marshal.FreeHGlobal(buf); }
+    }
+
+    private void OnRawInput(IntPtr hRawInput)
+    {
+        uint header = (uint)(8 + IntPtr.Size * 2), size = 0;
+        GetRawInputData(hRawInput, RID_INPUT, IntPtr.Zero, ref size, header);
+        if (size == 0) return;
+        var buf = Marshal.AllocHGlobal((int)size);
+        try
+        {
+            if (GetRawInputData(hRawInput, RID_INPUT, buf, ref size, header) != size) return;
+            if (Marshal.ReadInt32(buf) != 1) return;                       // RIM_TYPEKEYBOARD
+            IntPtr dev = Marshal.ReadIntPtr(buf, 8);
+            ushort make = (ushort)Marshal.ReadInt16(buf, (int)header);
+            ushort flags = (ushort)Marshal.ReadInt16(buf, (int)header + 2);
+            if (make == 0x11 && (flags & RI_KEY_E0) != 0 && (flags & RI_KEY_BREAK) == 0 && IsMsiHotkeyDevice(dev))
+                ScenarioKey?.Invoke();
+        }
+        finally { Marshal.FreeHGlobal(buf); }
+    }
 
     public bool Register(uint mods, uint vk, Action onPressed)
     {
@@ -42,6 +97,8 @@ public sealed class HotkeyManager : NativeWindow, IDisposable
     {
         if (m.Msg == WM_HOTKEY && _actions.TryGetValue((int)m.WParam, out var act))
             act();
+        else if (m.Msg == WM_INPUT && ScenarioKey != null)
+            OnRawInput(m.LParam);
         base.WndProc(ref m);
     }
 

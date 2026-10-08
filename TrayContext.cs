@@ -1861,6 +1861,8 @@ public sealed class TrayContext : ApplicationContext
     {
         _hotkeys.UnregisterAll();
         HotkeysRefused.Clear();
+        // the laptop's own scenario key (Fn+F7) cycles profiles like MSI Center does
+        _hotkeys.ScenarioKey = Writable && _settings.HotkeysEnabled ? () => Cycle(ChangeSource.Hotkey) : null;
         Reg("Overlay", ToggleOverlay);       // read-only, so both work even when EC writes are disabled
         Reg("OverlayLock", ToggleOverlayLock);
         Reg("EcView", ShowEcViewer);         // live EC dump viewer - read-only diagnostics
