@@ -4,7 +4,7 @@ using System.Text.Json;
 
 namespace GhostDeck;
 
-public enum CliKind { Profile, Cycle, FanBoost, Overlay, Curve, Panic, Status, Help, Kbd, Webcam, Scene, FnSwap, Brightness, WinLock, Refresh, Charge, Travel, Diag, HdrSwitch, Touchpad, Mic, Turbo, DumpModels, VerifyModels, DumpSupportedMd }
+public enum CliKind { Profile, Cycle, FanBoost, Overlay, Curve, Panic, Status, Help, Kbd, Webcam, Scene, FnSwap, Brightness, WinLock, Refresh, Charge, Travel, Diag, HdrSwitch, Touchpad, Mic, Turbo, Gpu, DumpModels, VerifyModels, DumpSupportedMd }
 
 public sealed record CliCommand(CliKind Kind, string Arg = "", string Arg2 = "");
 
@@ -41,6 +41,7 @@ public static class Cli
           GhostDeck.exe --touchpad <on|off>     enable/disable the precision touchpad (device level)
           GhostDeck.exe --mic <on|off>          unmute/mute the default Windows recording device (works on any machine)
           GhostDeck.exe --turbo <on|off|status>   CPU turbo boost via the Windows power plan (works on any machine)
+          GhostDeck.exe --gpu <hybrid|integrated|status>   MSI graphics mode for the next restart (models with the MSI GPU switch)
           GhostDeck.exe --winlock <on|off>      block both Windows keys (needs the app running)
           GhostDeck.exe --scene "<name>"        apply a saved scene (needs the app running)
           GhostDeck.exe --panic                 safe state: Fan Boost off, Balanced, fans auto
@@ -126,6 +127,8 @@ public static class Cli
                 return Arg1().ToLowerInvariant() is "on" or "off" ? new CliCommand(CliKind.Mic, Arg1().ToLowerInvariant()) : null;
             case "--turbo":
                 return Arg1().ToLowerInvariant() is "on" or "off" or "status" ? new CliCommand(CliKind.Turbo, Arg1().ToLowerInvariant()) : null;
+            case "--gpu":
+                return Arg1().ToLowerInvariant() is "hybrid" or "integrated" or "status" ? new CliCommand(CliKind.Gpu, Arg1().ToLowerInvariant()) : null;
             case "--scene":
                 return Arg1().Length > 0 ? new CliCommand(CliKind.Scene, Arg1()) : null;
             case "--panic": return new CliCommand(CliKind.Panic);
@@ -302,6 +305,7 @@ public static class Cli
                     bool noBatt = (ps.BatteryChargeStatus & BatteryChargeStatus.NoSystemBattery) != 0;
                     int battMin = Perf.BatteryMinutesLeft();
                     int wear = BatteryHealth.Read().WearPct;
+                    var gsw = GpuSwitch.Read();
                     Console.WriteLine(JsonSerializer.Serialize(new
                     {
                         running = false,
@@ -322,6 +326,8 @@ public static class Cli
                         hdr = Hdr.Supported() ? Hdr.Enabled() : (bool?)null,
                         touchpad = Touchpad.State() is >= 0 and var tps ? tps == 1 : (bool?)null,
                         mic = Microphone.State() is >= 0 and var mcs ? mcs == 1 : (bool?)null,
+                        gpuMode = gsw?.Current.ToString().ToLowerInvariant(),
+                        gpuModeNext = gsw?.Requested.ToString().ToLowerInvariant(),
                         batteryPercent = noBatt || batt < 0 ? (int?)null : batt,
                         batteryCharging = noBatt ? (bool?)null : ps.PowerLineStatus == PowerLineStatus.Online,
                         batteryMinutesLeft = battMin > 0 ? battMin : (int?)null,
@@ -372,6 +378,13 @@ public static class Cli
                     ChangeLog.Add(ChangeSource.Cli, $"Brightness: {pct} %");
                     Console.WriteLine($"brightness: {pct}");
                     return 0;
+                }
+                case CliKind.Gpu:
+                {
+                    var (code, msg) = RunGpu(cmd.Arg, writable);
+                    if (code == 0 && cmd.Arg != "status") { ChangeLog.Load(); ChangeLog.Add(ChangeSource.Cli, "GPU mode: " + msg); }
+                    Console.WriteLine(msg);
+                    return code;
                 }
                 case CliKind.Turbo:
                 {
@@ -593,5 +606,21 @@ public static class Cli
             Ec.SetFanMode(dev, fc.AdvancedModeValue);
         }
         catch { }
+    }
+
+    // ---------------- --gpu (TECHNICAL.md §79) ----------------
+    /// <summary>Shared by the one-shot path and the running app. Never restarts: the mode applies at the next restart.</summary>
+    internal static (int Code, string Msg) RunGpu(string arg, bool writable)
+    {
+        var s = GpuSwitch.Read();
+        if (s is not { IntegratedSupported: true }) return (1, "no MSI GPU switch with an integrated mode on this machine");
+        static string N(GpuMode m) => m.ToString().ToLowerInvariant();
+        string Now(GpuSwitchState st) => st.Pending ? $"gpu mode: {N(st.Current)} (switches to {N(st.Requested)} at the next restart)" : $"gpu mode: {N(st.Current)}";
+        if (arg == "status") return (0, Now(s));
+        if (!writable) return (1, "model is experimental - enable Experimental writes in Settings");
+        var mode = arg == "integrated" ? GpuMode.Integrated : GpuMode.Hybrid;
+        try { GpuSwitch.Request(mode); }
+        catch (Exception ex) { return (1, "gpu switch failed: " + ex.Message); }
+        return (0, Now(GpuSwitch.Read() ?? s));
     }
 }

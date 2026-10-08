@@ -58,6 +58,8 @@ public sealed class TrayContext : ApplicationContext
     private DateTime _lastSsdSampleAt = DateTime.MinValue;   // gap detection: a pause restarts the dwell
     private int _ssdBusy;                      // 1 while a background disk-temperature read is in flight
     private ToolStripMenuItem? _coolerItem;
+    private GpuSwitchState? _gpu;              // MSI graphics-mode switch (TECHNICAL §79), null = none / no Integrated mode
+    private bool _gpuBusy;                     // a request is running on a worker thread
     private OverlayForm? _overlay;             // gaming status overlay (lazy)
     private ToolStripMenuItem? _overlayItem;
     private ToolStripMenuItem? _overlayLockItem;
@@ -144,6 +146,7 @@ public sealed class TrayContext : ApplicationContext
 
         DetectFirmwareChange();
         if (Known && !_simulate) { try { _coolerBoost = Ec.GetCoolerBoost(_device!); } catch { } }
+        ReadGpuSwitch();
 
         // A trip that ended while the app was off reverts before the first apply. The card
         // comes up with the rest of the start-up state, below.
@@ -292,6 +295,7 @@ public sealed class TrayContext : ApplicationContext
                     int wear = BatteryHealth.Read().WearPct;
                     int kbdLvl = KbdLevel();
                     int fnl = FnLeftState();
+                    var gsw = GpuSwitch.Read();
                     return "0|" + JsonSerializer.Serialize(new
                     {
                         running = true,
@@ -315,6 +319,8 @@ public sealed class TrayContext : ApplicationContext
                         hdr = Hdr.Supported() ? Hdr.Enabled() : (bool?)null,
                         touchpad = Touchpad.State() is >= 0 and var tps ? tps == 1 : (bool?)null,
                         mic = Microphone.State() is >= 0 and var mcs ? mcs == 1 : (bool?)null,
+                        gpuMode = gsw?.Current.ToString().ToLowerInvariant(),
+                        gpuModeNext = gsw?.Requested.ToString().ToLowerInvariant(),
                         batteryPercent = noBatt || batt < 0 ? (int?)null : batt,
                         batteryCharging = noBatt ? (bool?)null : ps.PowerLineStatus == PowerLineStatus.Online,
                         batteryMinutesLeft = battMin > 0 ? battMin : (int?)null,
@@ -379,6 +385,13 @@ public sealed class TrayContext : ApplicationContext
                         ChangeLog.Add(ChangeSource.Display, $"{before} Hz → {hz} Hz");
                     }
                     return "0|refresh rate: " + hz + " Hz";
+                }
+                case CliKind.Gpu:
+                {
+                    // firmware variable + one EC byte; the write path keeps the usual Writable gate
+                    var (code, msg) = Cli.RunGpu(cmd.Arg, Writable && !_simulate);
+                    if (code == 0 && cmd.Arg != "status") { ChangeLog.Add(ChangeSource.Cli, "GPU mode: " + msg); GpuSwitchChanged(); }
+                    return code + "|" + msg;
                 }
                 case CliKind.Turbo:
                 {
@@ -722,6 +735,29 @@ public sealed class TrayContext : ApplicationContext
         SetDot(_coolerItem, _coolerBoost);
         _coolerItem.Click += (_, _) => ToggleCoolerBoost();
         menu.Items.Add(_coolerItem);
+
+        if (_gpu is { } gpu)   // graphics mode (TECHNICAL §79): only where the firmware offers Integrated
+        {
+            var gm = new ToolStripMenuItem(string.Format(Lang.T("gpu_menu"), GpuModeLabel(gpu.Current))) { Enabled = GpuWritable };
+            foreach (var mode in new[] { GpuMode.Hybrid, GpuMode.Integrated })
+            {
+                var m = mode;
+                var it = new ToolStripMenuItem(GpuModeLabel(m) + (m != gpu.Current ? "…" : "")) { Checked = gpu.Requested == m };
+                it.Click += (_, _) => RequestGpuMode(m);
+                gm.DropDownItems.Add(it);
+            }
+            gm.DropDownItems.Add(new ToolStripSeparator());
+            if (gpu.Pending)
+            {
+                var rs = new ToolStripMenuItem(Lang.T("gpu_restart"));
+                rs.Click += (_, _) => RestartForGpu();
+                gm.DropDownItems.Add(rs);
+            }
+            gm.DropDownItems.Add(new ToolStripLabel(gpu.Pending
+                ? string.Format(Lang.T("gpu_sub_pending"), GpuModeLabel(gpu.Requested))
+                : Lang.T("gpu_menu_note")) { ForeColor = Color.Gray, Font = new Font("Segoe UI", 8) });
+            menu.Items.Add(gm);
+        }
 
         _overlayItem = new ToolStripMenuItem(Lang.T("overlay_title")) { CheckOnClick = false };
         SetDot(_overlayItem, OverlayVisible);
@@ -1494,6 +1530,68 @@ public sealed class TrayContext : ApplicationContext
         }
     }
 
+    // ---------------- graphics mode (TECHNICAL §79) ----------------
+    // Writes go through the same gate as every EC write (known model + experimental opt-in, not
+    // simulating): arming the switch is an EC byte, and the request lives in a firmware variable.
+    private bool GpuWritable => Writable && !_simulate && !_gpuBusy;
+
+    private void ReadGpuSwitch()
+    {
+        var s = _simulate ? null : GpuSwitch.Read();
+        _gpu = s is { IntegratedSupported: true } ? s : null;
+    }
+
+    public static string GpuModeLabel(GpuMode m) => Lang.T(m == GpuMode.Integrated ? "gpu_integrated" : "gpu_hybrid");
+
+    private void GpuSwitchChanged()
+    {
+        ReadGpuSwitch();
+        BuildMenu();
+        if (_main is { IsDisposed: false }) _main.RefreshActive();
+    }
+
+    /// <summary>
+    /// UI entry (Scenarios brick, tray). The mode the machine booted in cancels a pending switch
+    /// straight away; the other one asks first (GpuSwitchCard), naming any display on the
+    /// discrete card, then requests it and restarts now or leaves it for the next restart.
+    /// </summary>
+    private async void RequestGpuMode(GpuMode target)
+    {
+        if (_gpu is not { } gpu || !GpuWritable || gpu.Requested == target) return;
+        GpuSwitchCard.Pick? pick = null;
+        if (target != gpu.Current)
+        {
+            var owner = _main is { IsDisposed: false, Visible: true } ? _main : null;
+            pick = GpuSwitchCard.Ask(owner, target, GpuSwitch.DisplaysOnDiscrete());
+            if (pick == null) { if (_main is { IsDisposed: false }) _main.RefreshActive(); return; }
+        }
+        _gpuBusy = true;
+        string? error = null;
+        try { await Task.Run(() => GpuSwitch.Request(target)); }
+        catch (Exception ex) { error = ex.Message; }
+        _gpuBusy = false;
+        if (error != null)
+        {
+            GpuSwitchChanged();
+            ShowCard("//GPU", Lang.T("gpu_fail_title"), error);
+            return;
+        }
+        ChangeLog.Add(ChangeSource.Panel, target == gpu.Current
+            ? string.Format(Lang.T("gpu_cancelled"), GpuModeLabel(gpu.Current))
+            : string.Format(Lang.T("gpu_sub_pending"), GpuModeLabel(target)));
+        GpuSwitchChanged();
+        if (pick == GpuSwitchCard.Pick.RestartNow) RestartForGpu();
+        else _osd.ShowProfile(OsdPrefix + Lang.T("gpu_title"), target == gpu.Current
+            ? string.Format(Lang.T("gpu_cancelled"), GpuModeLabel(gpu.Current))
+            : string.Format(Lang.T("gpu_sub_pending"), GpuModeLabel(target)), Theme.Amber);
+    }
+
+    private void RestartForGpu()
+    {
+        if (!GpuSwitch.RestartNow())
+            ShowCard("//GPU", Lang.T("gpu_title"), Lang.T("gpu_restart_fail"));
+    }
+
     // ---------------- cooler boost (max fans) ----------------
     private void ToggleCoolerBoost() => SetCoolerBoostState(!_coolerBoost);
 
@@ -2025,6 +2123,10 @@ public sealed class TrayContext : ApplicationContext
         },
         CoolerBoost = () => _coolerBoost,
         SetCoolerBoost = on => SetCoolerBoostState(on),
+        GpuState = () => _gpu,
+        GpuWritable = () => GpuWritable,
+        RequestGpuMode = RequestGpuMode,
+        RestartForGpu = RestartForGpu,
         KbdLevel = KbdLevel,                                        // (#26) -1 = no support on this model
         SetKbdLevel = l => SetKbdLight(l, ChangeSource.Panel),
         WebcamState = () => !_webcamSupported || !Writable ? -1 : _webcamOn ? 1 : 0,   // (#27)

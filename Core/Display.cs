@@ -173,6 +173,31 @@ public static class Display
     }
 
     /// <summary>
+    /// EDID names of the active displays whose output belongs to the adapter
+    /// <paramref name="luid"/> ("display" when a monitor reports no name). Used to warn
+    /// before the discrete card is switched off (GpuSwitch).
+    /// </summary>
+    public static List<string> ActiveTargetsOn(long luid)
+    {
+        var list = new List<string>();
+        try
+        {
+            if (GetDisplayConfigBufferSizes(QDC_ONLY_ACTIVE_PATHS, out uint np, out uint nm) != 0 || np == 0) return list;
+            var paths = new PathInfo[np];
+            var modes = new ModeInfo[Math.Max(1u, nm)];
+            if (QueryDisplayConfig(QDC_ONLY_ACTIVE_PATHS, ref np, paths, ref nm, modes, IntPtr.Zero) != 0) return list;
+            for (int i = 0; i < np; i++)
+            {
+                var a = paths[i].Target.AdapterId;
+                if ((((long)a.HighPart << 32) | a.LowPart) != luid) continue;
+                list.Add(TargetInfo(a, paths[i].Target.Id).Name ?? "display");
+            }
+        }
+        catch { }
+        return list;
+    }
+
+    /// <summary>
     /// Which display the refresh controls act on, for the Settings label:
     /// Internal = an active built-in panel was found (Name = its EDID name when reported);
     /// false = the primary-display fallback is in effect.

@@ -19,6 +19,9 @@ public sealed class ScenariosPage : ThemedPage
     private readonly SegControl? _refreshSeg;      // panel refresh rate (SegControl when few modes...)
     private readonly ThemedComboBox? _refreshCombo; // ...combo when the panel reports many
     private readonly List<int> _rates;
+    private readonly SegControl? _gpuSeg;           // graphics mode (TECHNICAL §79): Hybrid | Integrated only
+    private readonly Button? _gpuRestart;           // shown while a switch waits for the restart
+    private readonly Control? _gpuHost;
     private readonly (string key, FeatureBrick b)[] _bricks;   // key -> Settings visibility (ScenHidden)
     private readonly List<SceneCard> _sceneCards = new();   // (#21)
     private readonly Button _addScene = new(), _addExamples = new();
@@ -89,8 +92,31 @@ public sealed class ScenariosPage : ThemedPage
             ("overlay", new FeatureBrick("overlay_title", "▦", "overlay_hint",
                              () => D.OverlayOn(), v => D.SetOverlay(v))),
             ("charge", new FeatureBrick("st_charge", "⚡", _charge)),
-            ("autoswitch", new FeatureBrick("scen_autoswitch", "⇄", _auto)),
         };
+        if (D.GpuState() is { } gpu)   // only where the firmware offers an Integrated-only mode
+        {
+            _gpuSeg = new SegControl(new[] { TrayContext.GpuModeLabel(GpuMode.Hybrid), TrayContext.GpuModeLabel(GpuMode.Integrated) },
+                                     gpu.Requested == GpuMode.Integrated ? 1 : 0) { Size = new Size(280, 34) };
+            _gpuSeg.SelectedChanged += i =>
+            {
+                if (!D.GpuWritable()) { SyncGpuBrick(); return; }
+                D.RequestGpuMode(i == 1 ? GpuMode.Integrated : GpuMode.Hybrid);
+            };
+            _gpuRestart = new Button { AutoSize = true, Padding = new Padding(10, 2, 10, 2), Text = Lang.T("gpu_restart") };
+            Ui.StyleGhost(_gpuRestart);
+            _gpuRestart.Click += (_, _) => D.RestartForGpu();
+            _gpuHost = new Control { BackColor = Theme.Card };
+            _gpuHost.Controls.Add(_gpuRestart);
+            _gpuHost.Controls.Add(_gpuSeg);
+            bricks.Add(("gpumode", new FeatureBrick("gpu_title", "▥", _gpuHost)
+            {
+                Span = 2,
+                Subtitle = GpuSubtitle,
+                Warn = () => D.GpuState() is { Pending: true },
+            }));
+            SyncGpuBrick();
+        }
+        bricks.Add(("autoswitch", new FeatureBrick("scen_autoswitch", "⇄", _auto)));
         // panel refresh rate: works on every laptop (pure Windows display API, no EC)
         _rates = Display.SupportedRates();
         if (_rates.Count > 1)
@@ -201,6 +227,27 @@ public sealed class ScenariosPage : ThemedPage
         RebuildScenes();
 
         Resize += (_, _) => Relayout();
+    }
+
+    // ---------------- graphics mode (TECHNICAL §79) ----------------
+    private string GpuSubtitle()
+    {
+        if (D.GpuState() is not { } g) return "";
+        if (g.Pending) return string.Format(Lang.T("gpu_sub_pending"), TrayContext.GpuModeLabel(g.Requested));
+        return Lang.T(g.Current == GpuMode.Integrated ? "gpu_sub_integrated" : "gpu_sub_hybrid");
+    }
+
+    private void SyncGpuBrick()
+    {
+        if (_gpuSeg == null || _gpuRestart == null || _gpuHost == null || D.GpuState() is not { } g) return;
+        _gpuSeg.Selected = g.Requested == GpuMode.Integrated ? 1 : 0;   // silent setter: a cancelled card snaps back
+        _gpuSeg.Enabled = D.GpuWritable();
+        _gpuRestart.Visible = g.Pending;
+        _gpuRestart.Text = Lang.T("gpu_restart");
+        int bx = g.Pending ? _gpuRestart.Width + 10 : 0;
+        _gpuHost.Size = new Size(bx + _gpuSeg.Width, Math.Max(_gpuSeg.Height, _gpuRestart.Height));
+        _gpuRestart.Location = new Point(0, (_gpuHost.Height - _gpuRestart.Height) / 2);
+        _gpuSeg.Location = new Point(bx, (_gpuHost.Height - _gpuSeg.Height) / 2);
     }
 
     // ---------------- profile order (discussion #101) ----------------
@@ -353,6 +400,7 @@ public sealed class ScenariosPage : ThemedPage
         _auto.Checked = D.Settings.AutoSwitchEnabled;
         if (_kbd != null && D.KbdLevel() is >= 0 and var kl) _kbd.Selected = kl;   // follows the Fn key too
         SyncRefreshBrick();
+        SyncGpuBrick();
         foreach (var (_, b) in _bricks) b.SyncState();
         Relayout();
         Invalidate();
@@ -367,6 +415,7 @@ public sealed class ScenariosPage : ThemedPage
         _auto.Checked = D.Settings.AutoSwitchEnabled;
         if (_kbd != null && D.KbdLevel() is >= 0 and var kl) _kbd.Selected = kl;
         SyncRefreshBrick();
+        SyncGpuBrick();
         foreach (var (_, b) in _bricks) b.SyncState();
         Relayout();
         Invalidate(true);
@@ -380,6 +429,8 @@ public sealed class ScenariosPage : ThemedPage
         _kbd?.Invalidate();
         _refreshSeg?.Invalidate();
         _refreshCombo?.Invalidate();
+        if (_gpuHost != null) _gpuHost.BackColor = Theme.Card;
+        _gpuSeg?.Invalidate();
         foreach (var (_, b) in _bricks) b.ApplyTheme();
         foreach (var c in _sceneCards) c.Invalidate();
         _gear.BackColor = Theme.Surface;
@@ -441,12 +492,15 @@ public sealed class ScenariosPage : ThemedPage
             if (b.Visible != vis) b.Visible = vis;
             if (vis) visBricks.Add(b);
         }
-        int rows = 0;
-        for (int i = 0; i < visBricks.Count; i++)
+        int rows = 0, row = 0, col = 0;
+        foreach (var b in visBricks)
         {
-            int r = i / cols, c = i % cols;
-            visBricks[i].SetBounds(Pad + c * (bw + Gap) + ox, _bricksTop + r * (brickH + Gap) + oy, bw, brickH);
-            rows = r + 1;
+            int span = Math.Min(b.Span, cols);   // a wide brick (graphics mode) starts a new row when it doesn't fit
+            if (col + span > cols) { row++; col = 0; }
+            b.SetBounds(Pad + col * (bw + Gap) + ox, _bricksTop + row * (brickH + Gap) + oy, span * bw + (span - 1) * Gap, brickH);
+            rows = row + 1;
+            col += span;
+            if (col >= cols) { row++; col = 0; }
         }
         int bricksBottom = _bricksTop + rows * (brickH + Gap);
 
@@ -917,7 +971,14 @@ public sealed class ScenariosPage : ThemedPage
             Resize += (_, _) => LayoutInner();
         }
 
-        public void SyncState() { if (_toggle != null && _get != null) _toggle.Checked = _get(); }
+        /// <summary>Columns the brick spans (clamped to the row); 2 = the wide graphics-mode brick.</summary>
+        public int Span { get; init; } = 1;
+        /// <summary>Optional second line under the label (state description).</summary>
+        public Func<string>? Subtitle { get; init; }
+        /// <summary>Amber border + subtitle while true (a change waits for a restart).</summary>
+        public Func<bool>? Warn { get; init; }
+
+        public void SyncState() { if (_toggle != null && _get != null) _toggle.Checked = _get(); Invalidate(); }
         public void ApplyTheme() { BackColor = Theme.Card; _right.Invalidate(); _help?.Invalidate(); Invalidate(); }
 
         private void LayoutInner()
@@ -939,7 +1000,7 @@ public sealed class ScenariosPage : ThemedPage
             {
                 using var b = new SolidBrush(Theme.Card);
                 g.FillPath(b, path);
-                using var pen = new Pen(_hover ? Theme.BorderStrong : Theme.Border, 1f);
+                using var pen = new Pen(Warn?.Invoke() == true ? Theme.Amber : _hover ? Theme.BorderStrong : Theme.Border, 1f);
                 g.DrawPath(pen, path);
             }
             // icon box (outlined square + glyph, like the MSI Center feature cards)
@@ -951,9 +1012,21 @@ public sealed class ScenariosPage : ThemedPage
                 Ui.CenterGlyph(g, _glyph, gf, Theme.Accent, new RectangleF(bx, by, box, box));
             // label (stops before the help dot + toggle)
             int lx = bx + box + 14, rightPad = _right.Width + 14 + (_help != null ? _help.Width + 14 : 0) + 12;
-            Ui.DrawText(g, Lang.T(_labelKey), new Font("Segoe UI", 11.5f, FontStyle.Bold),
-                new Rectangle(lx, 0, Math.Max(20, Width - lx - rightPad), Height), Theme.Text,
-                TextFormatFlags.VerticalCenter | TextFormatFlags.Left | TextFormatFlags.EndEllipsis);
+            int tw = Math.Max(20, Width - lx - rightPad);
+            string sub = Subtitle?.Invoke() ?? "";
+            if (sub.Length == 0)
+                Ui.DrawText(g, Lang.T(_labelKey), new Font("Segoe UI", 11.5f, FontStyle.Bold),
+                    new Rectangle(lx, 0, tw, Height), Theme.Text,
+                    TextFormatFlags.VerticalCenter | TextFormatFlags.Left | TextFormatFlags.EndEllipsis);
+            else
+            {
+                Ui.DrawText(g, Lang.T(_labelKey), new Font("Segoe UI", 11.5f, FontStyle.Bold),
+                    new Rectangle(lx, 8, tw, 30), Theme.Text,
+                    TextFormatFlags.VerticalCenter | TextFormatFlags.Left | TextFormatFlags.EndEllipsis);
+                Ui.DrawText(g, sub, new Font("Segoe UI", 9f),
+                    new Rectangle(lx, 38, tw, Height - 44), Warn?.Invoke() == true ? Theme.Amber : Theme.Muted,
+                    TextFormatFlags.Left | TextFormatFlags.WordBreak | TextFormatFlags.EndEllipsis);
+            }
         }
 
     }

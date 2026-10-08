@@ -1205,6 +1205,7 @@ public sealed class SettingsPage : ThemedPage
             VisRow("winlock", Lang.T("winlock_title"));
             if (D.TouchpadState() >= 0) VisRow("touchpad", Lang.T("tp_title"));
             if (D.MicState() >= 0) VisRow("mic", Lang.T("mic_title"));
+            if (D.GpuState() != null) VisRow("gpumode", Lang.T("gpu_title"));
             VisRow("panic", Lang.T("hk_panic"));
             VisRow("scenes", Lang.T("scene_title"));
             return scenVis;

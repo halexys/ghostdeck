@@ -194,6 +194,44 @@ public static class Ec
 
     public static byte ReadByte(byte addr) => ReadRaw(addr);
 
+    // ---------------- GPU switch arming (TECHNICAL.md §79) ----------------
+    // MSI Center's "GraphicsSwithc" command (API_NB_Base Module, as reverse-engineered by
+    // tim-rue/MsiGT): read Get_AP(0), set the low two bits of its byte 1 to 01 and write the
+    // result to EC 0xD1. Without it the firmware ignores the mode stored in MsiDCVarData. The
+    // firmware acknowledges by turning Get_AP(0) byte 2 into 2. Other bits of 0xD1 (bit 3 =
+    // Battery Boost) are preserved because they come from the same Get_AP byte.
+    private const byte GpuSwitchActionAddr = 0xD1;
+
+    /// <summary>Raw Get_AP(0) answer (byte 0 = success flag). Read-only.</summary>
+    public static byte[] ReadActionStatus() => WithSession((inst, pkg) =>
+    {
+        using var p = pkg.CreateInstance();
+        p["Bytes"] = new byte[32];
+        using var inParams = inst.GetMethodParameters("Get_AP");
+        inParams["Data"] = p;
+        using var outParams = inst.InvokeMethod("Get_AP", inParams, null);
+        var b = (byte[])((ManagementBaseObject)outParams["Data"])["Bytes"];
+        if (b.Length < 3 || b[0] == 0) throw new InvalidOperationException("MSI_ACPI.Get_AP failed.");
+        return b;
+    });
+
+    /// <summary>Arms the firmware to apply the stored GPU mode at the next boot; throws when it does not acknowledge within 4 s.</summary>
+    public static void ArmGpuSwitch()
+    {
+        lock (_wmiLock)
+        {
+            byte v = (byte)((ReadActionStatus()[1] & 0xFC) | 0x01);
+            WriteRaw(GpuSwitchActionAddr, v);
+        }
+        var deadline = DateTime.UtcNow.AddSeconds(4);
+        while (DateTime.UtcNow < deadline)
+        {
+            if (ReadActionStatus()[2] == 2) return;
+            Thread.Sleep(250);
+        }
+        throw new InvalidOperationException("The firmware did not acknowledge the GPU switch request.");
+    }
+
     // READ-ONLY: read several EC addresses in one WMI session (for the Status byte matrix).
     public static byte[] ReadMany(byte[] addrs)
     {

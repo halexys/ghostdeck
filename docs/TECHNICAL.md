@@ -3339,3 +3339,51 @@ in-game choice, the card alone the desk one. And the update card's accent button
 but "Install vX": `MainForm.InstallUpdate` shows the Updates tab and `UpdatesPage.InstallRelease`
 takes the tray's find as the page's own and starts the same download the page's Install button
 does, progress bar and restart included - one click from the card to the end.
+
+## 79. Graphics mode: Hybrid / Integrated only (MSI GPU switch)
+
+MSI Center's *GPU Switch* on recent laptops offers MSHybrid and **Integrated graphics**, the
+latter powering the discrete GPU off completely for battery life. It is not an EC register like
+the profiles. The mechanism, reverse-engineered from the MSI NBFoundation Service
+(`OmApSvcBroker.exe`) and MSI Center's `API_NB_Base Module.dll` by
+[tim-rue/MsiGT](https://github.com/tim-rue/MsiGT) (MIT), and matching the Linux tools
+[ege-adam/msi-gpu-mode](https://github.com/ege-adam/msi-gpu-mode) and
+[ElXreno/msi-gpu-switcher](https://github.com/ElXreno/msi-gpu-switcher), has three steps:
+
+1. **The request lives in a UEFI variable.** Byte 5 of `MsiDCVarData`
+   `{DD96BAAF-145E-4F56-B1CF-193256298E99}`: bits 0-1 = mode for the next boot (0 Hybrid,
+   1 Discrete, 2 Integrated), bits 2-3 = the mode the machine booted in, bit 4 = switch
+   supported, bit 5 = Integrated supported, bit 6 = Discrete *not* supported. Only bits 0-1 are
+   ever written; the rest of the variable goes back as it was read. With MSI Center installed
+   its service owns the variable (it watches `GPUswitchCH` under
+   `HKLM\SOFTWARE\WOW6432Node\MSI\MSI Center\Component\Base Module\GeneralSetting`), so the
+   request goes through that value first, keeping MSI Center's UI in sync; when the variable
+   has not changed after 4 s (no MSI Center, or its watcher died after sleep) GhostDeck makes the
+   same edit itself with `SetFirmwareEnvironmentVariableEx` (needs `SeSystemEnvironmentPrivilege`,
+   which the elevated app holds).
+2. **The switch is armed in the EC.** Without it the firmware ignores the stored request:
+   `Get_AP(0)` is read, the low two bits of its byte 1 become `01`, the result goes to EC
+   `0xD1` (`Set_Data`; other bits such as Battery Boost ride along unchanged), and the firmware
+   acknowledges by turning `Get_AP(0)` byte 2 into `2` (`Ec.ArmGpuSwitch`, 4 s timeout). If
+   arming fails the stored request is reset to the current mode - a half-done switch is never
+   left behind. Choosing the mode the machine booted in cancels a pending switch the same way.
+3. **The firmware switches during the next boot.** There is no way around the restart.
+
+**What the app shows.** `GpuSwitch.Read()` decides: the brick (Scenarios, two columns wide,
+key `gpumode`), the tray submenu and `--gpu` exist only where bit 4 and bit 5 are set. Writes go
+through the usual Writable gate (known model + experimental opt-in, not simulating). Picking the
+other mode opens a `GpuSwitchCard` (Restart now / Cancel, "On next restart" on the left); for
+Integrated it names every active display whose output belongs to the discrete adapter
+(`Display.ActiveTargetsOn` against `GpuTelemetry` roles), since those go dark - on the
+Prestige 16 AI Studio B1VFG an external monitor on HDMI is driven by the RTX. While a switch is
+pending the brick's border and subtitle turn amber and a "Restart now" button sits next to the
+segments. Discrete-only (a MUX) is not offered: none of the sources has verified it on Windows,
+and the boards seen so far report it unsupported.
+
+**Verified on hardware**: Prestige 16 AI Studio B1VFG (`15A2EMS1.114`, no MSI Center
+installed, so the direct UEFI write path). Before: byte 5 = `0x70` (switch + Integrated
+supported, Discrete not, booted Hybrid). Hybrid -> Integrated -> restart: byte 5 = `0x7A`, the
+RTX 4060 is gone from Windows (not present), the panel runs on Intel Arc. Integrated -> Hybrid ->
+restart: the RTX and the external monitor on it are back. After each boot EC `0xD1` and
+`Get_AP(0)` byte 2 read `00` again - the firmware consumes the arm. The card, the display warning
+and Cancel were also exercised. MsiGT verified the same sequence on a Creator Z16HX Studio B13VGTO.

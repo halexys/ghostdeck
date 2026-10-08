@@ -2487,6 +2487,110 @@ public static class Lang
         m["po_power"] = new[] { "By power", "Według mocy", "Nach Leistung", "Par puissance", "Por potencia", "按性能", "Por potência", "По мощности", "パワー順", "성능순", "依效能", "Güce göre", "Theo công suất", "Menurut daya", "Per potenza" };
         m["po_custom"] = new[] { "You are using your own order.", "Używasz własnej kolejności.", "Du verwendest eine eigene Reihenfolge.", "Vous utilisez votre propre ordre.", "Estás usando tu propio orden.", "当前使用的是自定义顺序。", "Você está usando sua própria ordem.", "Используется ваш собственный порядок.", "独自の順序を使用しています。", "사용자 지정 순서를 사용 중입니다.", "目前使用的是自訂順序。", "Kendi sıralamanızı kullanıyorsunuz.", "Bạn đang dùng thứ tự riêng.", "Anda memakai urutan sendiri.", "Stai usando un ordine personalizzato." };
         m["po_edit_tip"] = new[] { "Change the order of the profiles", "Zmień kolejność profili", "Reihenfolge der Profile ändern", "Changer l'ordre des profils", "Cambiar el orden de los perfiles", "更改情景模式顺序", "Alterar a ordem dos perfis", "Изменить порядок профилей", "プロファイルの順序を変更", "프로필 순서 변경", "變更設定檔順序", "Profil sırasını değiştir", "Đổi thứ tự hồ sơ", "Ubah urutan profil", "Cambia l'ordine dei profili" };
+        // graphics mode (TECHNICAL §79) - order: en pl de fr es zh pt ru ja ko zh-TW tr vi id it
+        m["gpu_title"] = new[] { "Graphics mode", "Tryb grafiki", "Grafikmodus", "Mode graphique", "Modo gráfico", "显卡模式", "Modo gráfico", "Режим графики", "グラフィックモード", "그래픽 모드", "顯示卡模式", "Grafik modu", "Chế độ đồ họa", "Mode grafis", "Modalità grafica" };
+        m["gpu_hybrid"] = new[] { "Hybrid", "Hybrydowy", "Hybrid", "Hybride", "Híbrido", "混合", "Híbrido", "Гибридный", "ハイブリッド", "하이브리드", "混合", "Hibrit", "Lai", "Hibrida", "Ibrida" };
+        m["gpu_integrated"] = new[] { "Integrated only", "Tylko zintegrowana", "Nur integriert", "Intégré seul", "Solo integrada", "仅集成显卡", "Só integrada", "Только встроенная", "内蔵のみ", "내장 그래픽만", "僅內建顯示卡", "Yalnızca dahili", "Chỉ tích hợp", "Hanya terintegrasi", "Solo integrata" };
+        m["gpu_sub_hybrid"] = new[]
+        {
+            "Now: Hybrid · the integrated GPU drives the screen, the discrete one wakes when an app asks for it. Integrated only switches the discrete GPU off for longer battery life. Applies at the next restart.",
+            "Teraz: hybrydowy · ekran obsługuje zintegrowana karta, dedykowana budzi się, gdy aplikacja jej potrzebuje. Tylko zintegrowana całkiem wyłącza kartę dedykowaną, by bateria starczyła na dłużej. Zmiana działa po ponownym uruchomieniu.",
+            "Jetzt: Hybrid · die integrierte GPU steuert den Bildschirm, die dedizierte wacht auf, wenn eine App sie anfordert. Nur integriert schaltet die dedizierte GPU ganz ab, für längere Akkulaufzeit. Wirkt nach dem nächsten Neustart.",
+            "Actuel : hybride · le GPU intégré gère l'écran, le GPU dédié se réveille quand une application le demande. Intégré seul éteint le GPU dédié pour prolonger l'autonomie. S'applique au prochain redémarrage.",
+            "Ahora: Híbrido · la gráfica integrada dibuja la pantalla y la dedicada se enciende cuando una app la pide. Solo integrada apaga la dedicada por completo para alargar la batería. Se aplica al reiniciar.",
+            "当前：混合 · 集成显卡驱动屏幕，独立显卡在应用需要时唤醒。仅集成显卡会完全关闭独立显卡以延长续航。重启后生效。",
+            "Agora: híbrido · a GPU integrada controla a tela e a dedicada acorda quando um app pede. Só integrada desliga a GPU dedicada por completo para a bateria durar mais. Vale após reiniciar.",
+            "Сейчас: гибридный · экран выводит встроенная видеокарта, дискретная просыпается, когда она нужна приложению. «Только встроенная» полностью выключает дискретную ради автономности. Применяется после перезагрузки.",
+            "現在：ハイブリッド · 画面は内蔵 GPU が描画し、アプリが必要とすると専用 GPU が起動します。「内蔵のみ」は専用 GPU を完全に停止してバッテリーを長持ちさせます。次回の再起動で適用されます。",
+            "현재: 하이브리드 · 내장 GPU가 화면을 담당하고 앱이 요청하면 외장 GPU가 깨어납니다. 내장 그래픽만은 배터리 수명을 위해 외장 GPU를 완전히 끕니다. 다시 시작하면 적용됩니다.",
+            "目前：混合 · 內建顯示卡驅動螢幕，獨立顯示卡在應用程式需要時喚醒。僅內建顯示卡會完全關閉獨立顯示卡以延長續航。重新啟動後生效。",
+            "Şu an: Hibrit · ekranı dahili GPU sürer, harici GPU bir uygulama istediğinde uyanır. Yalnızca dahili, pil ömrü için harici GPU'yu tamamen kapatır. Yeniden başlatınca uygulanır.",
+            "Hiện tại: Lai · GPU tích hợp điều khiển màn hình, GPU rời thức dậy khi ứng dụng cần. Chỉ tích hợp tắt hẳn GPU rời để pin dùng lâu hơn. Áp dụng sau khi khởi động lại.",
+            "Sekarang: Hibrida · GPU terintegrasi menangani layar, GPU diskret bangun saat aplikasi memintanya. Hanya terintegrasi mematikan GPU diskret sepenuhnya agar baterai lebih awet. Berlaku setelah mulai ulang.",
+            "Ora: ibrida · la GPU integrata gestisce lo schermo, quella dedicata si attiva quando un'app la richiede. Solo integrata spegne del tutto la GPU dedicata per una batteria più lunga. Si applica al riavvio.",
+        };
+        m["gpu_sub_integrated"] = new[]
+        {
+            "Now: Integrated only · the discrete GPU is switched off. Hybrid brings it back after a restart.",
+            "Teraz: tylko zintegrowana · karta dedykowana jest wyłączona. Hybrydowy przywraca ją po ponownym uruchomieniu.",
+            "Jetzt: nur integriert · die dedizierte GPU ist abgeschaltet. Hybrid holt sie nach einem Neustart zurück.",
+            "Actuel : intégré seul · le GPU dédié est éteint. Hybride le rétablit après un redémarrage.",
+            "Ahora: Solo integrada · la gráfica dedicada está apagada. Híbrido la recupera al reiniciar.",
+            "当前：仅集成显卡 · 独立显卡已关闭。切回混合并重启即可恢复。",
+            "Agora: só integrada · a GPU dedicada está desligada. Híbrido a traz de volta após reiniciar.",
+            "Сейчас: только встроенная · дискретная видеокарта выключена. «Гибридный» вернёт её после перезагрузки.",
+            "現在：内蔵のみ · 専用 GPU はオフです。ハイブリッドに戻すと再起動後に復帰します。",
+            "현재: 내장 그래픽만 · 외장 GPU가 꺼져 있습니다. 하이브리드로 바꾸면 다시 시작 후 돌아옵니다.",
+            "目前：僅內建顯示卡 · 獨立顯示卡已關閉。切回混合並重新啟動即可恢復。",
+            "Şu an: Yalnızca dahili · harici GPU kapalı. Hibrit, yeniden başlatınca onu geri getirir.",
+            "Hiện tại: Chỉ tích hợp · GPU rời đã tắt. Chế độ Lai sẽ bật lại sau khi khởi động lại.",
+            "Sekarang: Hanya terintegrasi · GPU diskret mati. Hibrida mengembalikannya setelah mulai ulang.",
+            "Ora: solo integrata · la GPU dedicata è spenta. Ibrida la riattiva dopo un riavvio.",
+        };
+        m["gpu_sub_pending"] = new[] { "Switches to {0} at the next restart.", "Przełączy na: {0} przy następnym uruchomieniu.", "Wechselt beim nächsten Neustart zu {0}.", "Passe à {0} au prochain redémarrage.", "Cambia a {0} al reiniciar.", "下次重启时切换为{0}。", "Muda para {0} no próximo reinício.", "Переключится на «{0}» при следующей перезагрузке.", "次回の再起動で「{0}」に切り替わります。", "다음에 다시 시작할 때 {0}(으)로 바뀝니다.", "下次重新啟動時切換為{0}。", "Bir sonraki yeniden başlatmada {0} moduna geçer.", "Chuyển sang {0} ở lần khởi động lại tới.", "Beralih ke {0} saat mulai ulang berikutnya.", "Passa a {0} al prossimo riavvio." };
+        m["gpu_restart"] = new[] { "Restart now", "Uruchom ponownie", "Jetzt neu starten", "Redémarrer", "Reiniciar ahora", "立即重启", "Reiniciar agora", "Перезагрузить", "今すぐ再起動", "지금 다시 시작", "立即重新啟動", "Şimdi yeniden başlat", "Khởi động lại ngay", "Mulai ulang sekarang", "Riavvia ora" };
+        m["gpu_next"] = new[] { "On next restart", "Przy następnym uruchomieniu", "Beim nächsten Neustart", "Au prochain redémarrage", "Al próximo reinicio", "下次重启时", "No próximo reinício", "При следующей перезагрузке", "次回の再起動時", "다음 다시 시작 시", "下次重新啟動時", "Sonraki yeniden başlatmada", "Lần khởi động lại tới", "Saat mulai ulang berikutnya", "Al prossimo riavvio" };
+        m["gpu_card_title_int"] = new[] { "Switch to integrated graphics only", "Przełączyć na samą grafikę zintegrowaną", "Nur auf integrierte Grafik umschalten", "Passer au GPU intégré seul", "Cambiar a solo gráfica integrada", "切换为仅集成显卡", "Mudar para só a gráfica integrada", "Переключиться только на встроенную графику", "内蔵グラフィックのみに切り替え", "내장 그래픽만 사용으로 전환", "切換為僅內建顯示卡", "Yalnızca dahili grafiğe geç", "Chuyển sang chỉ đồ họa tích hợp", "Beralih ke grafis terintegrasi saja", "Passa alla sola grafica integrata" };
+        m["gpu_card_title_hyb"] = new[] { "Switch back to hybrid graphics", "Wrócić do grafiki hybrydowej", "Zurück zur Hybridgrafik", "Revenir au mode hybride", "Volver a gráfica híbrida", "切回混合显卡模式", "Voltar à gráfica híbrida", "Вернуться к гибридной графике", "ハイブリッドに戻す", "하이브리드 그래픽으로 되돌리기", "切回混合顯示卡模式", "Hibrit grafiğe geri dön", "Quay lại đồ họa lai", "Kembali ke grafis hibrida", "Torna alla grafica ibrida" };
+        m["gpu_card_body_int"] = new[]
+        {
+            "The discrete GPU will be switched off completely and the integrated GPU will drive the screen. Apps that need the discrete GPU (games, CUDA) can't use it until you switch back to Hybrid. The change happens when you restart.",
+            "Karta dedykowana zostanie całkiem wyłączona, a ekran obsłuży zintegrowana. Aplikacje, które jej potrzebują (gry, CUDA), nie skorzystają z niej, dopóki nie wrócisz do trybu hybrydowego. Zmiana nastąpi po ponownym uruchomieniu.",
+            "Die dedizierte GPU wird ganz abgeschaltet, die integrierte steuert den Bildschirm. Apps, die die dedizierte GPU brauchen (Spiele, CUDA), können sie erst nach dem Wechsel zurück zu Hybrid nutzen. Die Umschaltung erfolgt beim Neustart.",
+            "Le GPU dédié sera complètement éteint et le GPU intégré gérera l'écran. Les applications qui en ont besoin (jeux, CUDA) ne pourront pas l'utiliser avant le retour au mode hybride. Le changement a lieu au redémarrage.",
+            "La gráfica dedicada se apagará por completo y la pantalla la dibujará la integrada. Las apps que la necesiten (juegos, CUDA) no podrán usarla hasta volver a Híbrido. El cambio se hace al reiniciar.",
+            "独立显卡将被完全关闭，由集成显卡驱动屏幕。需要独立显卡的应用（游戏、CUDA）在切回混合模式前无法使用它。重启后完成切换。",
+            "A GPU dedicada será desligada por completo e a integrada controlará a tela. Apps que precisam dela (jogos, CUDA) não poderão usá-la até voltar ao híbrido. A troca acontece ao reiniciar.",
+            "Дискретная видеокарта будет полностью выключена, экран будет выводить встроенная. Приложения, которым она нужна (игры, CUDA), не смогут её использовать, пока вы не вернётесь к гибридному режиму. Переключение произойдёт при перезагрузке.",
+            "専用 GPU は完全に停止し、画面は内蔵 GPU が描画します。専用 GPU が必要なアプリ（ゲーム、CUDA）はハイブリッドに戻すまで使えません。切り替えは再起動時に行われます。",
+            "외장 GPU가 완전히 꺼지고 내장 GPU가 화면을 담당합니다. 외장 GPU가 필요한 앱(게임, CUDA)은 하이브리드로 되돌릴 때까지 사용할 수 없습니다. 다시 시작할 때 전환됩니다.",
+            "獨立顯示卡將被完全關閉，由內建顯示卡驅動螢幕。需要獨立顯示卡的應用程式（遊戲、CUDA）在切回混合模式前無法使用。重新啟動後完成切換。",
+            "Harici GPU tamamen kapatılacak, ekranı dahili GPU sürecek. Harici GPU'ya ihtiyaç duyan uygulamalar (oyunlar, CUDA) Hibrit'e dönene kadar onu kullanamaz. Değişiklik yeniden başlatınca olur.",
+            "GPU rời sẽ bị tắt hẳn và GPU tích hợp sẽ điều khiển màn hình. Ứng dụng cần GPU rời (game, CUDA) không dùng được cho tới khi bạn quay lại chế độ Lai. Thay đổi diễn ra khi khởi động lại.",
+            "GPU diskret akan dimatikan sepenuhnya dan GPU terintegrasi menangani layar. Aplikasi yang membutuhkannya (game, CUDA) tidak bisa memakainya sampai kembali ke Hibrida. Perubahan terjadi saat mulai ulang.",
+            "La GPU dedicata verrà spenta del tutto e lo schermo sarà gestito dalla integrata. Le app che ne hanno bisogno (giochi, CUDA) non potranno usarla finché non torni a Ibrida. Il cambio avviene al riavvio.",
+        };
+        m["gpu_card_body_hyb"] = new[]
+        {
+            "The discrete GPU comes back and wakes whenever an app asks for it. The change happens when you restart.",
+            "Karta dedykowana wróci i będzie się budzić, gdy aplikacja jej potrzebuje. Zmiana nastąpi po ponownym uruchomieniu.",
+            "Die dedizierte GPU kommt zurück und wacht auf, wenn eine App sie anfordert. Die Umschaltung erfolgt beim Neustart.",
+            "Le GPU dédié revient et se réveille dès qu'une application le demande. Le changement a lieu au redémarrage.",
+            "La gráfica dedicada vuelve y se enciende cuando una app la pide. El cambio se hace al reiniciar.",
+            "独立显卡将恢复，并在应用需要时唤醒。重启后完成切换。",
+            "A GPU dedicada volta e acorda quando um app pede. A troca acontece ao reiniciar.",
+            "Дискретная видеокарта вернётся и будет просыпаться, когда она нужна приложению. Переключение произойдёт при перезагрузке.",
+            "専用 GPU が戻り、アプリが必要とすると起動します。切り替えは再起動時に行われます。",
+            "외장 GPU가 돌아오고 앱이 요청하면 깨어납니다. 다시 시작할 때 전환됩니다.",
+            "獨立顯示卡將恢復，並在應用程式需要時喚醒。重新啟動後完成切換。",
+            "Harici GPU geri gelir ve bir uygulama istediğinde uyanır. Değişiklik yeniden başlatınca olur.",
+            "GPU rời sẽ trở lại và thức dậy khi ứng dụng cần. Thay đổi diễn ra khi khởi động lại.",
+            "GPU diskret kembali dan bangun saat aplikasi memintanya. Perubahan terjadi saat mulai ulang.",
+            "La GPU dedicata torna e si attiva quando un'app la richiede. Il cambio avviene al riavvio.",
+        };
+        m["gpu_card_warn"] = new[]
+        {
+            "{0} is connected to the discrete GPU and will go dark. Connect it over USB-C / Thunderbolt or use the laptop screen.",
+            "{0} jest podłączony do karty dedykowanej i zgaśnie. Podłącz go przez USB-C / Thunderbolt albo użyj ekranu laptopa.",
+            "{0} hängt an der dedizierten GPU und bleibt dann dunkel. Schließe ihn über USB-C / Thunderbolt an oder nutze den Laptop-Bildschirm.",
+            "{0} est relié au GPU dédié et restera noir. Branchez-le en USB-C / Thunderbolt ou utilisez l'écran du portable.",
+            "{0} está conectado a la gráfica dedicada y dejará de dar imagen. Conéctalo por USB-C / Thunderbolt o usa la pantalla del portátil.",
+            "{0} 连接在独立显卡上，切换后将黑屏。请改用 USB-C / 雷电接口连接，或使用笔记本屏幕。",
+            "{0} está ligado à GPU dedicada e vai ficar sem imagem. Conecte-o por USB-C / Thunderbolt ou use a tela do notebook.",
+            "{0} подключён к дискретной видеокарте и погаснет. Подключите его через USB-C / Thunderbolt или используйте экран ноутбука.",
+            "{0} は専用 GPU に接続されているため映らなくなります。USB-C / Thunderbolt で接続するか、ノートPCの画面を使ってください。",
+            "{0}은(는) 외장 GPU에 연결되어 있어 화면이 꺼집니다. USB-C / Thunderbolt로 연결하거나 노트북 화면을 사용하세요.",
+            "{0} 連接在獨立顯示卡上，切換後將黑屏。請改用 USB-C / Thunderbolt 連接，或使用筆電螢幕。",
+            "{0} harici GPU'ya bağlı ve görüntü vermeyecek. USB-C / Thunderbolt ile bağlayın ya da dizüstü ekranını kullanın.",
+            "{0} đang nối với GPU rời và sẽ mất hình. Hãy nối qua USB-C / Thunderbolt hoặc dùng màn hình laptop.",
+            "{0} terhubung ke GPU diskret dan akan padam. Sambungkan lewat USB-C / Thunderbolt atau pakai layar laptop.",
+            "{0} è collegato alla GPU dedicata e resterà spento. Collegalo tramite USB-C / Thunderbolt o usa lo schermo del portatile.",
+        };
+        m["gpu_fail_title"] = new[] { "Graphics mode not changed", "Nie zmieniono trybu grafiki", "Grafikmodus nicht geändert", "Mode graphique inchangé", "No se cambió el modo gráfico", "显卡模式未更改", "Modo gráfico não alterado", "Режим графики не изменён", "グラフィックモードは変更されていません", "그래픽 모드가 바뀌지 않았습니다", "顯示卡模式未變更", "Grafik modu değişmedi", "Chưa đổi chế độ đồ họa", "Mode grafis tidak berubah", "Modalità grafica non cambiata" };
+        m["gpu_restart_fail"] = new[] { "Windows didn't restart. The switch happens when you restart it yourself.", "Windows nie uruchomił się ponownie. Przełączenie nastąpi, gdy zrobisz to sam.", "Windows wurde nicht neu gestartet. Die Umschaltung erfolgt beim nächsten Neustart von Hand.", "Windows n'a pas redémarré. Le changement aura lieu quand vous redémarrerez vous-même.", "Windows no se reinició. El cambio se hará cuando reinicies tú.", "Windows 未能重启。手动重启后即会切换。", "O Windows não reiniciou. A troca acontece quando você reiniciar.", "Windows не перезагрузился. Переключение произойдёт, когда вы перезагрузите его сами.", "Windows は再起動しませんでした。手動で再起動すると切り替わります。", "Windows가 다시 시작되지 않았습니다. 직접 다시 시작하면 전환됩니다.", "Windows 未能重新啟動。手動重新啟動後即會切換。", "Windows yeniden başlamadı. Kendiniz yeniden başlattığınızda geçiş olur.", "Windows không khởi động lại. Việc chuyển sẽ diễn ra khi bạn tự khởi động lại.", "Windows tidak memulai ulang. Peralihan terjadi saat Anda memulai ulang sendiri.", "Windows non si è riavviato. Il cambio avverrà quando lo riavvierai tu." };
+        m["gpu_cancelled"] = new[] { "Switch cancelled - staying in {0}.", "Anulowano - zostaje: {0}.", "Umschaltung abgebrochen - bleibt bei {0}.", "Changement annulé - reste en {0}.", "Cambio cancelado: sigues en {0}.", "已取消切换，保持{0}。", "Troca cancelada - continua em {0}.", "Переключение отменено - остаётся «{0}».", "切り替えを取り消しました。「{0}」のままです。", "전환을 취소했습니다. {0} 유지.", "已取消切換，維持{0}。", "Geçiş iptal edildi - {0} olarak kalıyor.", "Đã hủy chuyển - giữ {0}.", "Peralihan dibatalkan - tetap {0}.", "Cambio annullato - resta {0}." };
+        m["gpu_menu"] = new[] { "Graphics mode: {0}", "Tryb grafiki: {0}", "Grafikmodus: {0}", "Mode graphique : {0}", "Modo gráfico: {0}", "显卡模式：{0}", "Modo gráfico: {0}", "Режим графики: {0}", "グラフィックモード：{0}", "그래픽 모드: {0}", "顯示卡模式：{0}", "Grafik modu: {0}", "Chế độ đồ họa: {0}", "Mode grafis: {0}", "Modalità grafica: {0}" };
+        m["gpu_menu_note"] = new[] { "Applies after a restart", "Działa po ponownym uruchomieniu", "Wirkt nach einem Neustart", "S'applique après redémarrage", "Se aplica al reiniciar", "重启后生效", "Vale após reiniciar", "Применяется после перезагрузки", "再起動後に適用", "다시 시작 후 적용", "重新啟動後生效", "Yeniden başlatınca uygulanır", "Áp dụng sau khi khởi động lại", "Berlaku setelah mulai ulang", "Si applica dopo il riavvio" };
         m["mic_title"] = new[] { "Microphone", "Mikrofon", "Mikrofon", "Microphone", "Micrófono", "麦克风", "Microfone", "Микрофон", "マイク", "마이크", "麥克風", "Mikrofon", "Micrô", "Mikrofon", "Microfono" };
         m["mic_hint"] = new[]
         {

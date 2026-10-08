@@ -93,6 +93,25 @@ version 0.5.0 it states that device support depends on the msi-ec kernel driver.
 
 ---
 
+## MsiGT
+
+| | |
+|---|---|
+| **Project** | tim-rue/MsiGT (MSI GPU Tools), a Windows tool that switches MSI laptops between hybrid and integrated graphics |
+| **Upstream** | https://github.com/tim-rue/MsiGT |
+| **Source files referenced** | `MsiGpuSwitch.cs`, `MsiAcpi.cs` |
+| **Repository license** | MIT (copy in [`licenses/MsiGT-MIT-LICENSE.txt`](licenses/MsiGT-MIT-LICENSE.txt)) |
+
+### What was used
+
+The graphics-mode switch (TECHNICAL.md §79) follows MsiGT's documented reverse engineering of
+MSI Center: the layout of byte 5 of the `MsiDCVarData` UEFI variable, the `GPUswitchCH`
+registry request with its direct-write fallback, and the EC `0xD1` arming step acknowledged
+through `Get_AP(0)`. GhostDeck's implementation (`Core/GpuSwitch.cs`, `Ec.ArmGpuSwitch`) was
+written for this project and follows the same sequence.
+
+---
+
 ## Origin and validation are tracked separately
 
 Entries in GhostDeck carry two independent properties, and later verification does not change
