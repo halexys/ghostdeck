@@ -72,6 +72,12 @@ public static class Autostart
             var m = System.Text.RegularExpressions.Regex.Match(xml, @"<Command>\s*""?([^""<]+?)""?\s*</Command>");
             if (m.Success && !string.Equals(m.Groups[1].Value.Trim(), ExePath, StringComparison.OrdinalIgnoreCase))
                 Set(true);
+            // Tasks made by older versions carry the scheduler's laptop-hostile defaults (see Set):
+            // no start on battery, killed when unplugged, killed after 72 h. Recreate them once.
+            else if (!xml.Contains("<DisallowStartIfOnBatteries>false", StringComparison.OrdinalIgnoreCase)
+                     || !xml.Contains("<StopIfGoingOnBatteries>false", StringComparison.OrdinalIgnoreCase)
+                     || !xml.Contains("<ExecutionTimeLimit>PT0S", StringComparison.OrdinalIgnoreCase))
+                Set(true);
         }
         catch { }
     }
@@ -96,10 +102,52 @@ public static class Autostart
 
     public static void Set(bool enabled)
     {
-        if (enabled)
-            Run($"/Create /TN \"{TaskName}\" /TR \"\\\"{ExePath}\\\"\" /SC ONLOGON /RL HIGHEST /F");
-        else
-            Run($"/Delete /TN \"{TaskName}\" /F");
+        if (enabled) Create();
+        else Run($"/Delete /TN \"{TaskName}\" /F");
         IsEnabled();   // remember what the scheduler really holds now
+    }
+
+    /// <summary>
+    /// The task is created from a full definition, not from /SC ONLOGON flags: the flags leave the
+    /// scheduler's defaults in place, and those are wrong for a laptop tray app - it would not
+    /// start at a logon on battery, be killed the moment the charger is pulled, and be killed
+    /// after 72 hours. Same trigger, user and elevation as before (logon of the current user,
+    /// highest privileges, so no UAC prompt).
+    /// </summary>
+    private static void Create()
+    {
+        string user = System.Security.SecurityElement.Escape(System.Security.Principal.WindowsIdentity.GetCurrent().Name);
+        string exe = System.Security.SecurityElement.Escape(ExePath);
+        string xml = $"""
+            <?xml version="1.0" encoding="UTF-16"?>
+            <Task version="1.2" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
+              <Triggers>
+                <LogonTrigger><Enabled>true</Enabled><UserId>{user}</UserId></LogonTrigger>
+              </Triggers>
+              <Principals>
+                <Principal id="Author"><UserId>{user}</UserId><LogonType>InteractiveToken</LogonType><RunLevel>HighestAvailable</RunLevel></Principal>
+              </Principals>
+              <Settings>
+                <MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy>
+                <DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries>
+                <StopIfGoingOnBatteries>false</StopIfGoingOnBatteries>
+                <ExecutionTimeLimit>PT0S</ExecutionTimeLimit>
+                <AllowStartOnDemand>true</AllowStartOnDemand>
+                <Enabled>true</Enabled>
+                <Priority>7</Priority>
+              </Settings>
+              <Actions Context="Author">
+                <Exec><Command>"{exe}"</Command></Exec>
+              </Actions>
+            </Task>
+            """;
+        string file = Path.Combine(Path.GetTempPath(), $"ghostdeck-task-{Environment.ProcessId}.xml");
+        try
+        {
+            File.WriteAllText(file, xml, System.Text.Encoding.Unicode);
+            if (Run($"/Create /TN \"{TaskName}\" /XML \"{file}\" /F") != 0)   // fallback: the old flags rather than no autostart
+                Run($"/Create /TN \"{TaskName}\" /TR \"\\\"{ExePath}\\\"\" /SC ONLOGON /RL HIGHEST /F");
+        }
+        finally { try { File.Delete(file); } catch { } }
     }
 }
