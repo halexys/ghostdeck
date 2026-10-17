@@ -18,9 +18,22 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   PNG and SVG export, and a live preview on a dark and a light background. Switch it with a
   hotkey (`Ctrl+Alt+F12`, shipped disabled), the tile on Scenarios, the tray menu, a tray-click
   action, the taskbar jump list, a scene field (off / on / on with a preset), `--crosshair
-  on|off|preset|code` and `ghostdeck://crosshair/...`. Settings → Gaming now has two views,
-  *Gaming overlay* and *Crosshair*, behind one switch. The settings backup carries the
-  presets and the custom picture.
+  on|off|preset|code` and `ghostdeck://crosshair/...`. Settings → Gaming now opens on a
+  *Start* view with a tile per feature (its state and a quick switch, like the Settings Start
+  page) and has the *Gaming overlay* and *Crosshair* views behind the same switch. A preset
+  stays selected while you edit it, marked "(modified)", with *Save* writing the look back
+  and *Save as...* adding or overwriting a preset. The settings backup carries the presets
+  and the custom picture.
+- **Sliders take the mouse wheel, the arrow keys and a double-click** - one step per wheel
+  notch or arrow (ten with Ctrl), a double-click puts the slider back to its default, and a
+  slider with a natural zero (the crosshair offsets and rotation) snaps to it when dragged
+  close. The value column is as wide as the longest value, so "100%" is no longer clipped.
+
+### Fixed
+- **Settings cards laid out for the width before the scrollbar** - when a Settings view grew
+  tall enough for a vertical scrollbar on entry, the two card columns kept the width they
+  had without it until the next rebuild, which then shifted them by half the scrollbar.
+  The layout pass now runs again at the settled width.
 - **MSI Vector GP66 12UGS (`1544EMS1`): fan curve verified, fan RPM on** ([#249](../../issues/249),
   [#250](../../issues/250), thanks @TheOriginalBabu) - his test curve sits byte-for-byte at the
   shipped addresses on both fans, and both tachometers are live. Recipes confirmed in all four

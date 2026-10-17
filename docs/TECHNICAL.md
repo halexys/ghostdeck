@@ -3445,7 +3445,12 @@ is held.
 
 Presets are `CrosshairStyle` copies with a `Name` in `AppSettings.CrosshairPresets`, with no
 limit; `EnsureDefaults` drops nameless or duplicate ones and clamps their fields, and a scene
-whose preset was deleted falls back to "on with the current look". The share code is
+whose preset was deleted falls back to "on with the current look". The preset the live look
+came from is remembered by name (`CrosshairActivePreset`), so an edit does not detach it: the
+list keeps its name with a "(modified)" mark, *Save* writes the look back into it, *Save as...*
+adds a preset or overwrites the one whose name is typed (the prompt says so), and *Delete* is
+two-step (the first click arms the button for three seconds). Loading a preset from the CLI or
+a scene sets the active name; a pasted share code clears it. The share code is
 `"GDX1." + base64url` of 20 bytes: kind, RGB, size (2), thickness, rim, opacity, offset X and
 Y (2 each, biased by 32768), rotation (2), softness, click effect, aim-hide, flags, and a
 checksum byte - 32 characters, pasteable in a chat; a later layout gets a new prefix and this
@@ -3460,14 +3465,34 @@ the limits (512 × 512 px, 1 MB) and re-encodes BMP / JPG as PNG, the next impor
 The settings export carries it as base64 in `CrosshairImageBase64`, a property written only
 when not null, so `settings.json` never holds the picture; the import writes it back.
 
-### 79.5 Where it lives
+### 79.5 Three fixes the owner's test turned up
+
+*Card widths after the scrollbar.* On entering a Settings view tall enough for a vertical
+scrollbar, the two card columns were laid out for the client width without the scrollbar and
+stayed so until the next card rebuild, which then moved them by half the scrollbar's width.
+`ThemedPage.LayoutAndSyncScroll` drops the re-entrant Resize its own pass raises (the v1.34
+rule), and that Resize was the one reporting the new client width; the helper now compares
+the client width before and after the pass and runs the pass once more when it changed.
+
+*Spread on shapes without arms.* The click effect's spread moved arms apart, so a dot, a
+circle, a square or the picture did nothing on a click; those now grow their ring, box or
+picture by up to 30 % and come back, with a centre dot staying put.
+
+*Exact slider values.* The offset sliders put a thousand values on about 190 pixels of
+track, five units a pixel, so zero could not be hit by dragging. `Slider` takes the mouse
+wheel (one step, ten with Ctrl; the event is marked handled so the page does not scroll
+underneath), the arrow, Page and Home / End keys after a click, a double-click back to a
+`DefaultValue`, and an optional `SnapTo` value reached when the drag lands within half a
+percent of the range; the help dot by the first slider says so.
+
+### 79.6 Where it lives
 
 | Piece | Place |
 |---|---|
 | Style, painter, codec, SVG, picture import | `Core/Crosshair.cs` |
 | Mouse hook | `Core/MouseWatch.cs` |
 | Window | `Forms/CrosshairForm.cs` |
-| Settings → Gaming → Crosshair (two cards, tiles, preview) | `UI/SettingsCrosshair.cs` (partial `SettingsPage`), the overlay / crosshair switch in `SettingsPage` |
+| Settings → Gaming: the Start view (a tile per feature), the overlay / crosshair switch, the three crosshair cards (crosshair, look, sharing), tiles, preview | `UI/SettingsCrosshair.cs` (partial `SettingsPage`), the switch and the Gaming layout in `SettingsPage` |
 | Tray: menu entry, hotkey `Crosshair` (`Ctrl+Alt+F12`, shipped disabled), tray-click action, jump list, scene field, `--crosshair`, status JSON | `TrayContext.cs`, `Core/TrayWheel.cs`, `Core/Cli.cs`, `Core/Protocol.cs` |
 | Scenarios tile (`crosshair`, hideable), scene editor row (on / off / on with a preset) | `UI/ScenariosPage.cs`, `Forms/SceneEditForm.cs` |
 | Harness: `crosshair` mode (shape sheets at 100 % and 140 %, effect frames, picture, code and SVG round trip, glyph sheet), `GAMINGSUB=1` and `CROSSHAIR=<code>` for the page mode | private render harness |
