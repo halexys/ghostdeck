@@ -174,6 +174,18 @@ public sealed class AppSettings
         OverlayMetric.CpuRpm | OverlayMetric.GpuRpm | OverlayMetric.Profile | OverlayMetric.CpuLoad | OverlayMetric.Ram |
         OverlayMetric.Fps);
     public bool OverlayBoldText { get; set; } = true;                  // pogrubione etykiety (Segoe UI Semibold) dla czytelnosci przy malej skali
+
+    // ---- Crosshair (roadmap #118, discussion #247) ----
+    public bool CrosshairEnabled { get; set; }                          // last visibility, restored at start like the overlay
+    public CrosshairStyle Crosshair { get; set; } = new();              // the live look
+    public List<CrosshairStyle> CrosshairPresets { get; set; } = new(); // named copies of the look, no limit
+    // The custom picture travels inside an EXPORTED settings file only: the export fills this
+    // from crosshair\custom.png, the import writes it back and clears it. Never saved to
+    // settings.json (null is skipped), so the picture is not duplicated on every save.
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? CrosshairImageBase64 { get; set; }
+    // Settings -> Gaming: 0 = the overlay, 1 = the crosshair (machine-local UI state, like SettingsSubTab)
+    public int SettingsGamingSub { get; set; }
     public bool FpsMetricSeeded { get; set; }                          // one-time: dosianie metryki FPS istniejacym uzytkownikom (bitmaska sprzed v1.23)
 
     // ---- game-session report (Status -> Gaming + popup) ----
@@ -401,6 +413,7 @@ public sealed class AppSettings
         DefOff("WinLock",  0x77, "Ctrl+Alt+F8");   // F8 — Windows-key lock (gaming)
         DefOff("Touchpad", 0x78, "Ctrl+Alt+F9");   // F9 — touchpad on/off (keyboard escape hatch)
         DefOff("Mic",      0x7A, "Ctrl+Alt+F11");  // F11 — microphone mute (discussion #231); F10 is the panic reset
+        DefOff("Crosshair", 0x7B, "Ctrl+Alt+F12"); // F12 - crosshair on/off (roadmap #118)
 
         // migrate the earlier dev defaults (Ctrl+Alt+O/G, Win+Alt+G/L) to the new Ctrl+Shift ones
         void MigrateTo(string k, uint vk, string disp, (uint mods, uint vk)[] olds)
@@ -451,7 +464,18 @@ public sealed class AppSettings
             if (s.RefreshHz is null) s.RefreshTarget = null;   // the identity travels with the rate
             if (s.BrightnessPct is { } bp && bp is < 0 or > 100) s.BrightnessPct = null;
             if (s.Profile is { } p && !Enum.TryParse<ProfileId>(p, out _)) s.Profile = null;
+            if (s.Crosshair is null or false) s.CrosshairPreset = null;   // a preset only goes with "on"
         }
+        // Crosshair sanity: every value in range, presets named and unique, a scene's preset
+        // that no longer exists falls back to "on with the current look".
+        Crosshair ??= new CrosshairStyle();
+        Crosshair.Normalize();
+        CrosshairPresets.RemoveAll(p => p == null || string.IsNullOrWhiteSpace(p.Name));
+        var seenCh = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        CrosshairPresets.RemoveAll(p => !seenCh.Add(p.Name.Trim()));
+        foreach (var p in CrosshairPresets) { p.Name = p.Name.Trim(); p.Normalize(); }
+        foreach (var s in Scenes)
+            if (s.CrosshairPreset is { } cp && FindCrosshairPreset(cp) == null) s.CrosshairPreset = null;
         foreach (var k in Hotkeys.Keys.Where(k => k.StartsWith("Scene:", StringComparison.OrdinalIgnoreCase)
                                                   && !Scenes.Any(s => s.HotkeyKey.Equals(k, StringComparison.OrdinalIgnoreCase))).ToList())
             Hotkeys.Remove(k);
@@ -589,8 +613,26 @@ public sealed class AppSettings
         TempTrayColorHot = src.TempTrayColorHot;
         TempTrayMarkStyle = src.TempTrayMarkStyle; TempTrayMarkCpu = src.TempTrayMarkCpu;
         TempTrayMarkGpu = src.TempTrayMarkGpu; TempTrayMarkSsd = src.TempTrayMarkSsd;
+        CrosshairEnabled = src.CrosshairEnabled;
+        Crosshair = (src.Crosshair ?? new CrosshairStyle()).Clone();
+        CrosshairPresets.Clear();
+        foreach (var p in src.CrosshairPresets) CrosshairPresets.Add(p.Clone());
+        // the picture carried by the file replaces the stored one; a file without one leaves it alone
+        if (!string.IsNullOrEmpty(src.CrosshairImageBase64))
+        {
+            try
+            {
+                Directory.CreateDirectory(CrosshairPainter.ImageDir);
+                File.WriteAllBytes(CrosshairPainter.ImagePath, Convert.FromBase64String(src.CrosshairImageBase64));
+            }
+            catch { }
+        }
+        CrosshairImageBase64 = null;
         EnsureDefaults();
     }
+
+    public CrosshairStyle? FindCrosshairPreset(string name) =>
+        CrosshairPresets.FirstOrDefault(p => p.Name.Equals(name.Trim(), StringComparison.OrdinalIgnoreCase));
 
     public Color ColorFor(ProfileId id)
     {
@@ -693,6 +735,10 @@ public sealed class AppSettings
         c.TempTrayColorHot = TempTrayColorHot;
         c.TempTrayMarkStyle = TempTrayMarkStyle; c.TempTrayMarkCpu = TempTrayMarkCpu;
         c.TempTrayMarkGpu = TempTrayMarkGpu; c.TempTrayMarkSsd = TempTrayMarkSsd;
+        c.CrosshairEnabled = CrosshairEnabled;
+        c.Crosshair = Crosshair.Clone();
+        foreach (var p in CrosshairPresets) c.CrosshairPresets.Add(p.Clone());
+        c.SettingsGamingSub = SettingsGamingSub;
         return c;
     }
 }

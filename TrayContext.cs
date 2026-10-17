@@ -61,6 +61,8 @@ public sealed class TrayContext : ApplicationContext
     private OverlayForm? _overlay;             // gaming status overlay (lazy)
     private ToolStripMenuItem? _overlayItem;
     private ToolStripMenuItem? _overlayLockItem;
+    private CrosshairForm? _crosshair;         // the crosshair window (roadmap #118; lazy)
+    private ToolStripMenuItem? _crosshairItem;
     private bool _statusWantsFps;              // Status → Gaming sub-tab visible (keeps FpsMonitor running)
     private TrayWheel? _wheel;                 // (#23) wheel-over-tray hook, installed only while a wheel mode is set
     private int _wheelAccum;                   // raw wheel delta accumulator (one step per ±120)
@@ -185,6 +187,7 @@ public sealed class TrayContext : ApplicationContext
 
         _ui = SynchronizationContext.Current;
         ApplyTrayWheel();   // (#23) needs _ui for cross-thread posting, so after it is captured
+        if (_settings.CrosshairEnabled) SetCrosshair(true, osd: false);   // its mouse hook posts to _ui too
         MaybeCheckForUpdates();
         MaybeCheckModelDb();     // own cadence: cheap static file, checked at every start
 
@@ -303,6 +306,7 @@ public sealed class TrayContext : ApplicationContext
                         profile = Known ? _current.ToString() : null,
                         fanBoost = _coolerBoost,
                         overlay = OverlayVisible,
+                        crosshair = CrosshairVisible,
                         winLock = _winLock.Enabled,
                         cpuTemp = hw.CpuTemp, gpuTemp = hw.GpuTemp,
                         cpuFan = hw.CpuFan, gpuFan = hw.GpuFan,
@@ -328,6 +332,24 @@ public sealed class TrayContext : ApplicationContext
                 case CliKind.Overlay:
                     SetOverlay(cmd.Arg == "on", osd: false);
                     return "0|overlay: " + cmd.Arg;
+                case CliKind.Crosshair:
+                {
+                    // on / off, or on with a preset or a shared code (roadmap #118)
+                    if (cmd.Arg == "preset")
+                    {
+                        if (!LoadCrosshairPreset(cmd.Arg2)) return "1|crosshair preset not found: " + cmd.Arg2;
+                        SetCrosshair(true, osd: false);
+                        return "0|crosshair: on (preset " + cmd.Arg2 + ")";
+                    }
+                    if (cmd.Arg == "code")
+                    {
+                        if (!ApplyCrosshairCode(cmd.Arg2)) return "1|not a GhostDeck crosshair code";
+                        SetCrosshair(true, osd: false);
+                        return "0|crosshair: on (code applied)";
+                    }
+                    SetCrosshair(cmd.Arg == "on", osd: false);
+                    return "0|crosshair: " + cmd.Arg;
+                }
                 case CliKind.Brightness:
                 {
                     // Windows-level (WMI), independent of EC writability.
@@ -733,6 +755,11 @@ public sealed class TrayContext : ApplicationContext
         _overlayLockItem.Click += (_, _) => ToggleOverlayLock();
         menu.Items.Add(_overlayLockItem);
 
+        _crosshairItem = new ToolStripMenuItem(Lang.T("ch_title")) { CheckOnClick = false };
+        SetDot(_crosshairItem, CrosshairVisible);
+        _crosshairItem.Click += (_, _) => ToggleCrosshair();
+        menu.Items.Add(_crosshairItem);
+
         menu.Items.Add(new ToolStripSeparator());
 
         var panel = new ToolStripMenuItem(Lang.T("menu_panel"));
@@ -884,6 +911,9 @@ public sealed class TrayContext : ApplicationContext
             tasks.Add(new(Lang.T("jl_boost_off"), "--fanboost off", Taskbar.AppIconFile));
             tasks.Add(new(Lang.T("hk_panic"), "--panic", Taskbar.AppIconFile));
         }
+        // the crosshair is a screen-only feature: offered on every machine
+        tasks.Add(new(Lang.T("jl_ch_on"), "--crosshair on", Taskbar.AppIconFile));
+        tasks.Add(new(Lang.T("jl_ch_off"), "--crosshair off", Taskbar.AppIconFile));
         // the scene name travels quoted on the command line, so a quote inside it is dropped
         var scenes = _settings.Scenes
             .Where(s => !string.IsNullOrWhiteSpace(s.Name))
@@ -907,6 +937,7 @@ public sealed class TrayContext : ApplicationContext
             case TrayAction.CycleProfile: if (Writable) Cycle(ChangeSource.Tray); else ShowState(); break;
             case TrayAction.FanBoost: ToggleCoolerBoost(); break;
             case TrayAction.Overlay: ToggleOverlay(); break;
+            case TrayAction.Crosshair: ToggleCrosshair(); break;
             case TrayAction.ShowState: ShowState(); break;
             case TrayAction.PanicReset: PanicReset(); break;
             case TrayAction.OpenScenarios: OpenMain(MainTab.Scenarios); break;
@@ -1405,6 +1436,13 @@ public sealed class TrayContext : ApplicationContext
                 if (Hdr.Set(hd)) ChangeLog.Add(source, "HDR: " + Lang.T(hd ? "st_on" : "st_off"));
             }
             if (s.Overlay is { } ov && ov != OverlayVisible) SetOverlay(ov, osd: false);
+            if (s.Crosshair is { } ch)
+            {
+                // a named preset is loaded first; a missing one leaves the current look
+                if (ch && s.CrosshairPreset is { Length: > 0 } chp) LoadCrosshairPreset(chp);
+                if (ch != CrosshairVisible) SetCrosshair(ch, osd: false);
+                else if (ch) ApplyCrosshairSettings();
+            }
             if (s.KbdLight is { } kl) SetKbdLight(kl, source, osd: false);
             if (s.Webcam is { } wc && _webcamSupported && wc != _webcamOn) SetWebcamState(wc, source, osd: false);
             if (s.Mic is { } mc && Microphone.State() is >= 0 and var mst && (mst == 1) != mc)
@@ -1607,6 +1645,60 @@ public sealed class TrayContext : ApplicationContext
 
     // Re-read overlay options after the user edits them in Settings.
     private void ApplyOverlaySettings() { _overlay?.ApplySettings(); UpdateOverlayMenu(); UpdateFpsActive(); }
+
+    // ---------------- crosshair (roadmap #118) ----------------
+    private bool CrosshairVisible => _crosshair is { IsDisposed: false, Visible: true };
+
+    private void ToggleCrosshair() => SetCrosshair(!CrosshairVisible, osd: true);
+
+    private void SetCrosshair(bool on, bool osd)
+    {
+        if (on)
+        {
+            if (_crosshair is not { IsDisposed: false })
+            {
+                _crosshair = new CrosshairForm(_settings, _ui ?? SynchronizationContext.Current ?? new WindowsFormsSynchronizationContext());
+                _crosshair.FormClosed += (_, _) => _crosshair = null;
+            }
+            if (!_crosshair.Visible) _crosshair.Show();   // Show runs ApplySettings through OnVisibleChanged
+            else _crosshair.ApplySettings();
+        }
+        else _crosshair?.Hide();
+
+        if (_settings.CrosshairEnabled != on) { _settings.CrosshairEnabled = on; _settings.Save(); }
+        UpdateCrosshairMenu();
+        if (_main is { IsDisposed: false }) _main.RefreshActive();
+        if (osd) _osd.ShowProfile(OsdPrefix + Lang.T("ch_title"),
+            Lang.T(on ? "st_on" : "st_off"), _settings.Crosshair.ColorValue);
+    }
+
+    // Re-read the crosshair style after an edit in Settings, a preset or a code.
+    private void ApplyCrosshairSettings() { _crosshair?.ApplySettings(); UpdateCrosshairMenu(); }
+
+    private void UpdateCrosshairMenu()
+    {
+        if (_crosshairItem is { } it && !it.IsDisposed) SetDot(it, CrosshairVisible);
+    }
+
+    /// <summary>Copies a saved preset into the live look. False = no preset of that name.</summary>
+    private bool LoadCrosshairPreset(string name)
+    {
+        if (_settings.FindCrosshairPreset(name) is not { } p) return false;
+        _settings.Crosshair.CopyFrom(p);
+        _settings.Save();
+        ApplyCrosshairSettings();
+        return true;
+    }
+
+    /// <summary>Applies a shared crosshair code to the live look. False = not a valid code.</summary>
+    private bool ApplyCrosshairCode(string code)
+    {
+        if (CrosshairStyle.Decode(code) is not { } st) return false;
+        _settings.Crosshair.CopyFrom(st);
+        _settings.Save();
+        ApplyCrosshairSettings();
+        return true;
+    }
 
     // The ETW-based FPS monitor runs only while someone is looking: the overlay with an FPS metric
     // enabled, or the Status → Gaming sub-tab. Off otherwise — zero idle cost by design.
@@ -1867,6 +1959,7 @@ public sealed class TrayContext : ApplicationContext
         Reg("WinLock", ToggleWinLock);       // software hook, no EC needed
         if (Touchpad.Present()) Reg("Touchpad", ToggleTouchpad);   // devnode switch, no EC needed
         Reg("Mic", ToggleMic);                                     // Core Audio mute flag, no EC needed
+        Reg("Crosshair", ToggleCrosshair);                         // a window over the screen, no EC needed
         if (!Writable) return;
         Reg("Silent", () => SetProfile(ProfileId.Silent, true, ChangeSource.Hotkey));
         Reg("Balanced", () => SetProfile(ProfileId.Balanced, true, ChangeSource.Hotkey));
@@ -2049,6 +2142,9 @@ public sealed class TrayContext : ApplicationContext
         SetOverlay = on => SetOverlay(on, osd: false),
         ApplyOverlaySettings = ApplyOverlaySettings,
         SnapOverlay = SnapOverlayCorner,
+        CrosshairOn = () => CrosshairVisible,
+        SetCrosshair = on => SetCrosshair(on, osd: false),
+        ApplyCrosshairSettings = ApplyCrosshairSettings,
         SetFpsViewer = on => { _statusWantsFps = on; UpdateFpsActive(); },
         UpdateAvail = () => _updateAvail,
         OpenUpdates = tag => { OpenMain(MainTab.Updates); if (_main is { IsDisposed: false }) _main.ShowUpdates(tag); },
@@ -2767,6 +2863,7 @@ public sealed class TrayContext : ApplicationContext
         if (_main is { IsDisposed: false }) _main.StopPowerTest(wait: true);
         _main?.Close();
         _overlay?.Close();
+        _crosshair?.Close();
         _report?.Close();
         _osd.Dispose();
         if (_cpuTray != null) { _cpuTray.Visible = false; _cpuTray.Dispose(); }

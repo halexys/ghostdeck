@@ -4,7 +4,7 @@ using System.Text.Json;
 
 namespace GhostDeck;
 
-public enum CliKind { Profile, Cycle, FanBoost, Overlay, Curve, Panic, Status, Help, Kbd, Webcam, Scene, FnSwap, Brightness, WinLock, Refresh, Charge, Travel, Diag, HdrSwitch, Touchpad, Mic, Turbo, DumpModels, VerifyModels, DumpSupportedMd }
+public enum CliKind { Profile, Cycle, FanBoost, Overlay, Curve, Panic, Status, Help, Kbd, Webcam, Scene, FnSwap, Brightness, WinLock, Refresh, Charge, Travel, Diag, HdrSwitch, Touchpad, Mic, Turbo, DumpModels, VerifyModels, DumpSupportedMd, Crosshair }
 
 public sealed record CliCommand(CliKind Kind, string Arg = "", string Arg2 = "");
 
@@ -29,6 +29,9 @@ public static class Cli
           GhostDeck.exe --cycle                 switch to the next profile
           GhostDeck.exe --fanboost <on|off> [seconds]   full fan speed; the optional auto-off (10-7200 s) needs the app running
           GhostDeck.exe --overlay <on|off>      gaming overlay (needs the app running)
+          GhostDeck.exe --crosshair <on|off>    the crosshair (needs the app running)
+          GhostDeck.exe --crosshair preset "<name>"   switch the crosshair on with a saved preset
+          GhostDeck.exe --crosshair code <GDX1....>     switch it on with a shared crosshair code
           GhostDeck.exe --curve <preset|auto>   apply a saved fan-curve preset (auto = stock fans)
           GhostDeck.exe --refresh <hz|max>      panel refresh rate (works on any machine)
           GhostDeck.exe --charge <60|80|100|off>   battery charge limit (off = stop managing)
@@ -106,6 +109,14 @@ public static class Cli
                 return new CliCommand(CliKind.DumpSupportedMd, Arg1());
             case "--overlay":
                 return Arg1().ToLowerInvariant() is "on" or "off" ? new CliCommand(CliKind.Overlay, Arg1().ToLowerInvariant()) : null;
+            case "--crosshair":
+            {
+                string xh = Arg1().ToLowerInvariant();
+                if (xh is "on" or "off") return new CliCommand(CliKind.Crosshair, xh);
+                // "preset <name>" / "code <GDX1....>": the second word is the value
+                if (xh is "preset" or "code" && a.Length > 2 && a[2].Trim().Length > 0) return new CliCommand(CliKind.Crosshair, xh, a[2].Trim());
+                return null;
+            }
             case "--curve":
                 return Arg1().Length > 0 ? new CliCommand(CliKind.Curve, Arg1()) : null;
             case "--kbd":
@@ -331,6 +342,7 @@ public static class Cli
                     return 0;
                 }
                 case CliKind.Overlay:
+                case CliKind.Crosshair:
                 case CliKind.Scene:
                 case CliKind.WinLock:
                     // these live inside the running process (the overlay window, the scene engine,

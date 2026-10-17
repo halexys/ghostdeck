@@ -36,6 +36,8 @@ public sealed class SceneDef
     public bool? FanBoost { get; set; }
     public bool? Turbo { get; set; }               // CPU turbo boost in the active Windows plan, both sources
     public bool? Mic { get; set; }                 // default recording device: true = on, false = muted
+    public bool? Crosshair { get; set; }           // the crosshair window (roadmap #118)
+    public string? CrosshairPreset { get; set; }   // with Crosshair = true: the preset to load first (null = current look)
 
     [JsonIgnore] public string HotkeyKey => "Scene:" + Id;
 
@@ -59,6 +61,7 @@ public sealed class SceneDef
         if (BrightnessPct is { } bp) parts.Add(Lang.T("bri_title") + " " + bp + " %");
         if (Hdr is { } hd) parts.Add("HDR " + Lang.T(hd ? "st_on" : "st_off").ToLowerInvariant());
         if (Overlay is { } ov) parts.Add(Lang.T("overlay_title") + " " + Lang.T(ov ? "st_on" : "st_off").ToLowerInvariant());
+        if (Crosshair is { } ch) parts.Add(Lang.T("ch_title") + " " + (ch && CrosshairPreset is { Length: > 0 } cp ? cp : Lang.T(ch ? "st_on" : "st_off").ToLowerInvariant()));
         if (ChargeLimit is { } cl) parts.Add(cl > 0 ? cl + " %" : Lang.T("st_charge") + " " + Lang.T("st_off").ToLowerInvariant());
         if (KbdLight is { } kl) parts.Add(Lang.T("kbd_title") + " " + Lang.T(kl switch { 0 => "kbd_off", 1 => "kbd_low", 2 => "kbd_mid", _ => "kbd_high" }).ToLowerInvariant());
         if (Webcam is { } wc) parts.Add(Lang.T("webcam_title") + " " + Lang.T(wc ? "st_on" : "st_off").ToLowerInvariant());

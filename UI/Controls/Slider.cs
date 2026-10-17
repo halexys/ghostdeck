@@ -9,7 +9,7 @@ namespace GhostDeck;
 /// <summary>Themed horizontal slider: drag to set any value in [min,max]; shows the value + suffix.</summary>
 public sealed class Slider : Control
 {
-    private readonly int _min, _max, _step;
+    private readonly int _min, _max, _step, _valueW;
     private readonly string _suffix;
     private int _val;
     private bool _drag;
@@ -21,11 +21,14 @@ public sealed class Slider : Control
         _min = min; _max = max; _step = Math.Max(1, step); _suffix = suffix;
         _val = Clamp(val);
         DoubleBuffered = true; ResizeRedraw = true; Height = 26; Width = 240; Cursor = Cursors.Hand;
+        // room for the longest value this slider can show ("100%", "-500"), never less than before
+        using var f = new Font("Segoe UI", 10f, FontStyle.Bold);
+        _valueW = Math.Max(46, Math.Max(TextRenderer.MeasureText(_max + _suffix, f).Width, TextRenderer.MeasureText(_min + _suffix, f).Width) + 6);
     }
 
     public int Value { get => _val; set { _val = Clamp(value); Invalidate(); } }
     private int Clamp(int v) => Math.Clamp(v, _min, _max);
-    private int ValueW => ShowValue ? 46 : 0;
+    private int ValueW => ShowValue ? _valueW : 0;
     private int X0 => 8;
     private int X1 => Width - (ShowValue ? ValueW + 10 : 8);
 

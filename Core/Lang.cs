@@ -53,6 +53,7 @@ public static class Lang
         L11(m);
         L12(m);
         L13(m);
+        L14(m);
         return m;
     }
 
@@ -2800,5 +2801,177 @@ public static class Lang
         // the two channels of the temperature and SSD alerts (Settings → Automation), each switchable
         m["alert_osd"]         = new[] { "On-screen message (OSD)", "Komunikat na ekranie (OSD)", "Bildschirmmeldung (OSD)", "Message à l'écran (OSD)", "Mensaje en pantalla (OSD)", "屏幕提示 (OSD)", "Mensagem na tela (OSD)", "Сообщение на экране (OSD)", "画面上のメッセージ (OSD)", "화면 메시지 (OSD)", "螢幕提示 (OSD)", "Ekran mesajı (OSD)", "Thông báo trên màn hình (OSD)", "Pesan di layar (OSD)", "Messaggio a schermo (OSD)" };
         m["alert_card"]        = new[] { "GhostDeck card", "Karta GhostDecka", "GhostDeck-Karte", "Carte GhostDeck", "Tarjeta GhostDeck", "GhostDeck 卡片", "Cartão GhostDeck", "Карточка GhostDeck", "GhostDeck カード", "GhostDeck 카드", "GhostDeck 卡片", "GhostDeck kartı", "Thẻ GhostDeck", "Kartu GhostDeck", "Scheda GhostDeck" };
+    }
+
+    // ---- crosshair (roadmap #118, discussion #247) ----
+    private static void L14(Dictionary<string, string[]> m)
+    {
+        m["ch_title"]        = new[] { "Crosshair", "Celownik", "Fadenkreuz", "Réticule", "Mira", "准星", "Mira", "Прицел", "クロスヘア", "조준점", "準星", "Nişangâh", "Tâm ngắm", "Crosshair", "Mirino" };
+        m["ch_enable"]       = new[] { "Show the crosshair", "Pokazuj celownik", "Fadenkreuz anzeigen", "Afficher le réticule", "Mostrar la mira", "显示准星", "Mostrar a mira", "Показывать прицел", "クロスヘアを表示", "조준점 표시", "顯示準星", "Nişangâhı göster", "Hiện tâm ngắm", "Tampilkan crosshair", "Mostra il mirino" };
+        m["ch_look"]         = new[] { "Look", "Wygląd", "Aussehen", "Apparence", "Aspecto", "外观", "Aparência", "Внешний вид", "見た目", "모양", "外觀", "Görünüm", "Kiểu dáng", "Tampilan", "Aspetto" };
+        m["ch_desc"] = new[]
+        {
+            "A crosshair drawn at the centre of the screen, over the game, without taking the focus. Switch it with the hotkey (Settings → Shortcuts), the tile on Scenarios, the tray menu, a scene, --crosshair on the command line or a ghostdeck://crosshair/on link.",
+            "Celownik rysowany na środku ekranu, nad grą, bez zabierania fokusu. Przełączysz go skrótem (Ustawienia → Skróty), kafelkiem na Scenariuszach, z menu w zasobniku, sceną, poleceniem --crosshair albo linkiem ghostdeck://crosshair/on.",
+            "Ein Fadenkreuz in der Bildschirmmitte, über dem Spiel, ohne den Fokus zu nehmen. Umschalten per Hotkey (Einstellungen → Tastenkürzel), Kachel auf Szenarien, Tray-Menü, Szene, --crosshair auf der Befehlszeile oder ghostdeck://crosshair/on-Link.",
+            "Un réticule dessiné au centre de l'écran, par-dessus le jeu, sans prendre le focus. Activez-le par raccourci (Réglages → Raccourcis), la tuile des Scénarios, le menu de la zone de notification, une scène, --crosshair en ligne de commande ou un lien ghostdeck://crosshair/on.",
+            "Una mira dibujada en el centro de la pantalla, sobre el juego, sin quitar el foco. Actívala con el atajo (Ajustes → Atajos), el mosaico de Escenarios, el menú de la bandeja, una escena, --crosshair en la línea de comandos o un enlace ghostdeck://crosshair/on.",
+            "在屏幕中心、游戏之上绘制的准星，不会夺取焦点。可通过快捷键（设置 → 快捷键）、情景页的磁贴、托盘菜单、场景、命令行 --crosshair 或 ghostdeck://crosshair/on 链接切换。",
+            "Uma mira desenhada no centro da tela, sobre o jogo, sem roubar o foco. Alterne pelo atalho (Configurações → Atalhos), pelo bloco em Cenários, pelo menu da bandeja, por uma cena, por --crosshair na linha de comando ou por um link ghostdeck://crosshair/on.",
+            "Прицел в центре экрана поверх игры, не забирающий фокус. Переключается горячей клавишей (Настройки → Сочетания), плиткой на вкладке Сценарии, из меню в трее, сценой, командой --crosshair или ссылкой ghostdeck://crosshair/on.",
+            "画面中央、ゲームの上に描かれるクロスヘアです。フォーカスは奪いません。ホットキー（設定 → ショートカット）、シナリオのタイル、トレイメニュー、シーン、コマンドラインの --crosshair、または ghostdeck://crosshair/on リンクで切り替えられます。",
+            "화면 중앙, 게임 위에 그려지는 조준점으로 포커스를 가져가지 않습니다. 단축키(설정 → 단축키), 시나리오의 타일, 트레이 메뉴, 장면, 명령줄 --crosshair 또는 ghostdeck://crosshair/on 링크로 전환합니다.",
+            "在螢幕中央、遊戲之上繪製的準星，不會搶走焦點。可透過快速鍵（設定 → 快速鍵）、情境頁的磚塊、系統匣選單、場景、命令列 --crosshair 或 ghostdeck://crosshair/on 連結切換。",
+            "Ekranın ortasında, oyunun üzerinde çizilen ve odağı almayan bir nişangâh. Kısayolla (Ayarlar → Kısayollar), Senaryolar'daki kutuyla, tepsi menüsüyle, bir sahneyle, komut satırında --crosshair ile veya ghostdeck://crosshair/on bağlantısıyla açıp kapatın.",
+            "Tâm ngắm vẽ ở giữa màn hình, trên trò chơi, không lấy tiêu điểm. Bật tắt bằng phím tắt (Cài đặt → Phím tắt), ô trên trang Kịch bản, menu khay, một cảnh, lệnh --crosshair hoặc liên kết ghostdeck://crosshair/on.",
+            "Crosshair yang digambar di tengah layar, di atas game, tanpa mengambil fokus. Alihkan dengan hotkey (Pengaturan → Pintasan), ubin di Skenario, menu tray, scene, --crosshair di baris perintah, atau tautan ghostdeck://crosshair/on.",
+            "Un mirino disegnato al centro dello schermo, sopra il gioco, senza prendere il focus. Si attiva con la scorciatoia (Impostazioni → Scorciatoie), il riquadro in Scenari, il menu della tray, una scena, --crosshair da riga di comando o un link ghostdeck://crosshair/on.",
+        };
+        m["ch_hint"] = new[]
+        {
+            "Draws a crosshair at the centre of the screen over any game in windowed or borderless mode. Shape, colour and size in Settings → Gaming → Crosshair.",
+            "Rysuje celownik na środku ekranu nad każdą grą w trybie okna lub okna bez ramki. Rodzaj, kolor i rozmiar w Ustawienia → Gaming → Celownik.",
+            "Zeichnet ein Fadenkreuz in der Bildschirmmitte über jedes Spiel im Fenster- oder rahmenlosen Modus. Form, Farbe und Größe unter Einstellungen → Gaming → Fadenkreuz.",
+            "Dessine un réticule au centre de l'écran par-dessus tout jeu en mode fenêtré ou sans bordure. Forme, couleur et taille dans Réglages → Jeu → Réticule.",
+            "Dibuja una mira en el centro de la pantalla sobre cualquier juego en modo ventana o sin bordes. Forma, color y tamaño en Ajustes → Juegos → Mira.",
+            "在屏幕中心、任何窗口化或无边框模式的游戏之上绘制准星。形状、颜色和大小见设置 → 游戏 → 准星。",
+            "Desenha uma mira no centro da tela sobre qualquer jogo em modo janela ou sem bordas. Forma, cor e tamanho em Configurações → Jogos → Mira.",
+            "Рисует прицел в центре экрана поверх любой игры в оконном или безрамочном режиме. Форма, цвет и размер: Настройки → Игры → Прицел.",
+            "ウィンドウモードまたはボーダーレスのゲームの上、画面中央にクロスヘアを描きます。形・色・サイズは 設定 → ゲーム → クロスヘア で。",
+            "창 모드 또는 테두리 없는 모드의 모든 게임 위, 화면 중앙에 조준점을 그립니다. 모양, 색상, 크기는 설정 → 게이밍 → 조준점에서.",
+            "在螢幕中央、任何視窗化或無邊框模式的遊戲之上繪製準星。形狀、顏色和大小見設定 → 遊戲 → 準星。",
+            "Pencere veya çerçevesiz modda çalışan her oyunun üzerinde, ekranın ortasına bir nişangâh çizer. Şekil, renk ve boyut Ayarlar → Oyun → Nişangâh altında.",
+            "Vẽ tâm ngắm ở giữa màn hình trên mọi trò chơi ở chế độ cửa sổ hoặc không viền. Hình dạng, màu và kích thước trong Cài đặt → Chơi game → Tâm ngắm.",
+            "Menggambar crosshair di tengah layar di atas game apa pun dalam mode jendela atau tanpa bingkai. Bentuk, warna, dan ukuran di Pengaturan → Gaming → Crosshair.",
+            "Disegna un mirino al centro dello schermo sopra qualsiasi gioco in modalità finestra o senza bordi. Forma, colore e dimensione in Impostazioni → Gaming → Mirino.",
+        };
+        m["ch_kind_cross"]       = new[] { "Cross", "Krzyżyk", "Kreuz", "Croix", "Cruz", "十字", "Cruz", "Крест", "十字", "십자", "十字", "Artı", "Chữ thập", "Silang", "Croce" };
+        m["ch_kind_gapcross"]    = new[] { "Cross with gap", "Krzyżyk z przerwą", "Kreuz mit Lücke", "Croix ouverte", "Cruz con hueco", "开口十字", "Cruz com abertura", "Крест с зазором", "隙間つき十字", "간격 십자", "開口十字", "Boşluklu artı", "Chữ thập hở", "Silang berjarak", "Croce aperta" };
+        m["ch_kind_gapcrossdot"] = new[] { "Gap cross + dot", "Krzyżyk z przerwą i kropką", "Kreuz mit Lücke + Punkt", "Croix ouverte + point", "Cruz con hueco y punto", "开口十字加点", "Cruz com abertura e ponto", "Крест с зазором и точкой", "隙間つき十字と点", "간격 십자 + 점", "開口十字加點", "Boşluklu artı + nokta", "Chữ thập hở + chấm", "Silang berjarak + titik", "Croce aperta + punto" };
+        m["ch_kind_dot"]         = new[] { "Dot", "Kropka", "Punkt", "Point", "Punto", "圆点", "Ponto", "Точка", "ドット", "점", "圓點", "Nokta", "Chấm", "Titik", "Punto" };
+        m["ch_kind_circle"]      = new[] { "Circle", "Okrąg", "Kreis", "Cercle", "Círculo", "圆圈", "Círculo", "Круг", "円", "원", "圓圈", "Daire", "Vòng tròn", "Lingkaran", "Cerchio" };
+        m["ch_kind_circledot"]   = new[] { "Circle + dot", "Okrąg z kropką", "Kreis + Punkt", "Cercle + point", "Círculo y punto", "圆圈加点", "Círculo e ponto", "Круг с точкой", "円と点", "원 + 점", "圓圈加點", "Daire + nokta", "Vòng tròn + chấm", "Lingkaran + titik", "Cerchio + punto" };
+        m["ch_kind_t"]           = new[] { "T shape", "Litera T", "T-Form", "Forme en T", "Forma de T", "T 形", "Forma de T", "Буква T", "T 字", "T 자", "T 形", "T şekli", "Hình chữ T", "Bentuk T", "A forma di T" };
+        m["ch_kind_x"]           = new[] { "X shape", "Litera X", "X-Form", "Forme en X", "Forma de X", "X 形", "Forma de X", "Буква X", "X 字", "X 자", "X 形", "X şekli", "Hình chữ X", "Bentuk X", "A forma di X" };
+        m["ch_kind_chevron"]     = new[] { "Chevron", "Daszek", "Winkel", "Chevron", "Chevrón", "尖角", "Chevron", "Шеврон", "シェブロン", "꺾쇠", "尖角", "Köşeli", "Mũi nhọn", "Chevron", "Chevron" };
+        m["ch_kind_squaredot"]   = new[] { "Square + dot", "Kwadrat z kropką", "Quadrat + Punkt", "Carré + point", "Cuadrado y punto", "方框加点", "Quadrado e ponto", "Квадрат с точкой", "四角と点", "사각 + 점", "方框加點", "Kare + nokta", "Hình vuông + chấm", "Kotak + titik", "Quadrato + punto" };
+        m["ch_kind_reticle"]     = new[] { "Reticle", "Lunetka", "Absehen", "Réticule à repères", "Retícula", "瞄准环", "Retícula", "Сетка", "レティクル", "레티클", "瞄準環", "Retikül", "Kính ngắm", "Retikel", "Reticolo" };
+        m["ch_kind_image"]       = new[] { "Own image", "Własny obraz", "Eigenes Bild", "Image perso", "Imagen propia", "自定义图片", "Imagem própria", "Своё изображение", "独自の画像", "내 이미지", "自訂圖片", "Kendi resmim", "Ảnh riêng", "Gambar sendiri", "Immagine propria" };
+        m["ch_image_load"]       = new[] { "Load an image...", "Wczytaj obraz...", "Bild laden...", "Charger une image...", "Cargar una imagen...", "载入图片...", "Carregar imagem...", "Загрузить изображение...", "画像を読み込む...", "이미지 불러오기...", "載入圖片...", "Resim yükle...", "Tải ảnh...", "Muat gambar...", "Carica immagine..." };
+        m["ch_image_clear"]      = new[] { "Remove the image", "Usuń obraz", "Bild entfernen", "Supprimer l'image", "Quitar la imagen", "移除图片", "Remover imagem", "Удалить изображение", "画像を削除", "이미지 제거", "移除圖片", "Resmi kaldır", "Xóa ảnh", "Hapus gambar", "Rimuovi immagine" };
+        m["ch_image_none"] = new[]
+        {
+            "No own image loaded. PNG with transparency works best; BMP and JPG are accepted too (up to 512 × 512 px and 1 MB).",
+            "Brak własnego obrazu. Najlepiej działa PNG z przezroczystością; BMP i JPG też są przyjmowane (do 512 × 512 px i 1 MB).",
+            "Kein eigenes Bild geladen. PNG mit Transparenz funktioniert am besten; BMP und JPG werden auch angenommen (bis 512 × 512 px und 1 MB).",
+            "Aucune image perso chargée. Le PNG avec transparence convient le mieux ; BMP et JPG sont aussi acceptés (jusqu'à 512 × 512 px et 1 Mo).",
+            "No hay imagen propia. El PNG con transparencia funciona mejor; también se aceptan BMP y JPG (hasta 512 × 512 px y 1 MB).",
+            "尚未载入自定义图片。带透明度的 PNG 效果最佳；也接受 BMP 和 JPG（最大 512 × 512 像素、1 MB）。",
+            "Nenhuma imagem própria carregada. PNG com transparência funciona melhor; BMP e JPG também são aceitos (até 512 × 512 px e 1 MB).",
+            "Своё изображение не загружено. Лучше всего PNG с прозрачностью; BMP и JPG тоже принимаются (до 512 × 512 px и 1 МБ).",
+            "独自の画像は読み込まれていません。透過 PNG が最適です。BMP と JPG も使えます（最大 512 × 512 px、1 MB）。",
+            "불러온 이미지가 없습니다. 투명도가 있는 PNG가 가장 좋으며 BMP와 JPG도 됩니다(최대 512 × 512 px, 1 MB).",
+            "尚未載入自訂圖片。帶透明度的 PNG 效果最佳；也接受 BMP 和 JPG（最大 512 × 512 像素、1 MB）。",
+            "Kendi resminiz yüklü değil. Saydam PNG en iyisidir; BMP ve JPG de kabul edilir (en çok 512 × 512 px ve 1 MB).",
+            "Chưa có ảnh riêng. PNG có độ trong suốt là tốt nhất; BMP và JPG cũng được (tối đa 512 × 512 px và 1 MB).",
+            "Belum ada gambar sendiri. PNG dengan transparansi paling baik; BMP dan JPG juga diterima (maksimal 512 × 512 px dan 1 MB).",
+            "Nessuna immagine propria caricata. Il PNG con trasparenza funziona meglio; anche BMP e JPG sono accettati (fino a 512 × 512 px e 1 MB).",
+        };
+        m["ch_image_info"]       = new[] { "Own image: {0} × {1} px, stored in the settings folder.", "Własny obraz: {0} × {1} px, zapisany w folderze ustawień.", "Eigenes Bild: {0} × {1} px, im Einstellungsordner gespeichert.", "Image perso : {0} × {1} px, enregistrée dans le dossier des réglages.", "Imagen propia: {0} × {1} px, guardada en la carpeta de ajustes.", "自定义图片：{0} × {1} 像素，已保存到设置文件夹。", "Imagem própria: {0} × {1} px, guardada na pasta de configurações.", "Своё изображение: {0} × {1} px, сохранено в папке настроек.", "独自の画像: {0} × {1} px、設定フォルダーに保存済み。", "내 이미지: {0} × {1} px, 설정 폴더에 저장됨.", "自訂圖片：{0} × {1} 像素，已儲存到設定資料夾。", "Kendi resim: {0} × {1} px, ayarlar klasörüne kaydedildi.", "Ảnh riêng: {0} × {1} px, lưu trong thư mục cài đặt.", "Gambar sendiri: {0} × {1} px, tersimpan di folder pengaturan.", "Immagine propria: {0} × {1} px, salvata nella cartella delle impostazioni." };
+        m["ch_image_bad_title"]  = new[] { "Image not loaded", "Obraz nie został wczytany", "Bild nicht geladen", "Image non chargée", "Imagen no cargada", "图片未载入", "Imagem não carregada", "Изображение не загружено", "画像を読み込めません", "이미지를 불러오지 못함", "圖片未載入", "Resim yüklenmedi", "Chưa tải được ảnh", "Gambar tidak dimuat", "Immagine non caricata" };
+        m["ch_image_too_big"]    = new[] { "The file is larger than {0} × {0} px or {1} MB. Scale it down and try again.", "Plik jest większy niż {0} × {0} px albo {1} MB. Zmniejsz go i spróbuj ponownie.", "Die Datei ist größer als {0} × {0} px oder {1} MB. Verkleinern und erneut versuchen.", "Le fichier dépasse {0} × {0} px ou {1} Mo. Réduisez-le et réessayez.", "El archivo supera {0} × {0} px o {1} MB. Redúcelo e inténtalo de nuevo.", "文件超过 {0} × {0} 像素或 {1} MB。请缩小后重试。", "O arquivo é maior que {0} × {0} px ou {1} MB. Reduza-o e tente de novo.", "Файл больше {0} × {0} px или {1} МБ. Уменьшите его и повторите.", "ファイルが {0} × {0} px または {1} MB を超えています。縮小してやり直してください。", "파일이 {0} × {0} px 또는 {1} MB를 넘습니다. 줄여서 다시 시도하세요.", "檔案超過 {0} × {0} 像素或 {1} MB。請縮小後重試。", "Dosya {0} × {0} px veya {1} MB'tan büyük. Küçültüp yeniden deneyin.", "Tệp lớn hơn {0} × {0} px hoặc {1} MB. Thu nhỏ rồi thử lại.", "Berkas lebih besar dari {0} × {0} px atau {1} MB. Perkecil lalu coba lagi.", "Il file supera {0} × {0} px o {1} MB. Riducilo e riprova." };
+        m["ch_image_unreadable"] = new[] { "Windows could not read this file as an image. Use a PNG, BMP or JPG.", "Windows nie potrafi odczytać tego pliku jako obrazu. Użyj PNG, BMP albo JPG.", "Windows konnte die Datei nicht als Bild lesen. PNG, BMP oder JPG verwenden.", "Windows n'a pas pu lire ce fichier comme image. Utilisez un PNG, BMP ou JPG.", "Windows no pudo leer el archivo como imagen. Usa PNG, BMP o JPG.", "Windows 无法将此文件读取为图片。请使用 PNG、BMP 或 JPG。", "O Windows não conseguiu ler o arquivo como imagem. Use PNG, BMP ou JPG.", "Windows не смог прочитать файл как изображение. Используйте PNG, BMP или JPG.", "Windows はこのファイルを画像として読めませんでした。PNG、BMP、JPG を使ってください。", "Windows가 이 파일을 이미지로 읽지 못했습니다. PNG, BMP 또는 JPG를 사용하세요.", "Windows 無法將此檔案讀取為圖片。請使用 PNG、BMP 或 JPG。", "Windows bu dosyayı resim olarak okuyamadı. PNG, BMP veya JPG kullanın.", "Windows không đọc được tệp này dưới dạng ảnh. Hãy dùng PNG, BMP hoặc JPG.", "Windows tidak dapat membaca berkas ini sebagai gambar. Gunakan PNG, BMP, atau JPG.", "Windows non ha potuto leggere il file come immagine. Usa PNG, BMP o JPG." };
+        m["ch_preset"]           = new[] { "Preset", "Preset", "Voreinstellung", "Préréglage", "Preajuste", "预设", "Predefinição", "Пресет", "プリセット", "프리셋", "預設", "Ön ayar", "Thiết lập sẵn", "Preset", "Preset" };
+        m["ch_preset_custom"]    = new[] { "(current look)", "(bieżący wygląd)", "(aktuelles Aussehen)", "(aspect actuel)", "(aspecto actual)", "（当前样式）", "(aparência atual)", "(текущий вид)", "（現在の見た目）", "(현재 모양)", "（目前樣式）", "(geçerli görünüm)", "(kiểu hiện tại)", "(tampilan saat ini)", "(aspetto attuale)" };
+        m["ch_preset_save"]      = new[] { "Save as preset...", "Zapisz jako preset...", "Als Voreinstellung speichern...", "Enregistrer comme préréglage...", "Guardar como preajuste...", "另存为预设...", "Salvar como predefinição...", "Сохранить как пресет...", "プリセットとして保存...", "프리셋으로 저장...", "另存為預設...", "Ön ayar olarak kaydet...", "Lưu thành thiết lập sẵn...", "Simpan sebagai preset...", "Salva come preset..." };
+        m["ch_preset_delete"]    = new[] { "Delete preset", "Usuń preset", "Voreinstellung löschen", "Supprimer le préréglage", "Eliminar preajuste", "删除预设", "Excluir predefinição", "Удалить пресет", "プリセットを削除", "프리셋 삭제", "刪除預設", "Ön ayarı sil", "Xóa thiết lập sẵn", "Hapus preset", "Elimina preset" };
+        m["ch_preset_name"]      = new[] { "Preset name", "Nazwa presetu", "Name der Voreinstellung", "Nom du préréglage", "Nombre del preajuste", "预设名称", "Nome da predefinição", "Название пресета", "プリセット名", "프리셋 이름", "預設名稱", "Ön ayar adı", "Tên thiết lập sẵn", "Nama preset", "Nome del preset" };
+        m["ch_preset_taken"]     = new[] { "A preset with this name already exists.", "Preset o tej nazwie już istnieje.", "Eine Voreinstellung mit diesem Namen gibt es schon.", "Un préréglage de ce nom existe déjà.", "Ya existe un preajuste con ese nombre.", "已存在同名预设。", "Já existe uma predefinição com esse nome.", "Пресет с таким названием уже есть.", "この名前のプリセットは既にあります。", "같은 이름의 프리셋이 이미 있습니다.", "已存在同名預設。", "Bu adda bir ön ayar zaten var.", "Đã có thiết lập sẵn tên này.", "Preset dengan nama ini sudah ada.", "Esiste già un preset con questo nome." };
+        m["ch_color"]            = new[] { "Colour", "Kolor", "Farbe", "Couleur", "Color", "颜色", "Cor", "Цвет", "色", "색상", "顏色", "Renk", "Màu", "Warna", "Colore" };
+        m["ch_size"]             = new[] { "Size", "Rozmiar", "Größe", "Taille", "Tamaño", "大小", "Tamanho", "Размер", "サイズ", "크기", "大小", "Boyut", "Kích thước", "Ukuran", "Dimensione" };
+        m["ch_thickness"]        = new[] { "Line thickness", "Grubość linii", "Linienstärke", "Épaisseur du trait", "Grosor de línea", "线条粗细", "Espessura da linha", "Толщина линий", "線の太さ", "선 굵기", "線條粗細", "Çizgi kalınlığı", "Độ dày nét", "Ketebalan garis", "Spessore linea" };
+        m["ch_outline"]          = new[] { "Dark rim", "Ciemny obrys", "Dunkler Rand", "Contour sombre", "Borde oscuro", "深色描边", "Contorno escuro", "Тёмная обводка", "暗い縁取り", "어두운 외곽선", "深色描邊", "Koyu kenar", "Viền tối", "Tepi gelap", "Bordo scuro" };
+        m["ch_opacity"]          = new[] { "Opacity", "Przezroczystość", "Deckkraft", "Opacité", "Opacidad", "不透明度", "Opacidade", "Непрозрачность", "不透明度", "불투명도", "不透明度", "Opaklık", "Độ mờ", "Opasitas", "Opacità" };
+        m["ch_softness"]         = new[] { "Softness (blur)", "Miękkość (rozmycie)", "Weichheit (Unschärfe)", "Douceur (flou)", "Suavidad (desenfoque)", "柔化（模糊）", "Suavidade (desfoque)", "Мягкость (размытие)", "柔らかさ（ぼかし）", "부드러움 (흐림)", "柔化（模糊）", "Yumuşaklık (bulanıklık)", "Độ mềm (làm mờ)", "Kelembutan (blur)", "Morbidezza (sfocatura)" };
+        m["ch_rotation"]         = new[] { "Rotation", "Obrót", "Drehung", "Rotation", "Rotación", "旋转", "Rotação", "Поворот", "回転", "회전", "旋轉", "Döndürme", "Xoay", "Rotasi", "Rotazione" };
+        m["ch_offset_x"]         = new[] { "Offset X", "Przesunięcie X", "Versatz X", "Décalage X", "Desplazamiento X", "水平偏移", "Deslocamento X", "Смещение X", "オフセット X", "오프셋 X", "水平偏移", "Kaydırma X", "Dịch ngang X", "Geser X", "Spostamento X" };
+        m["ch_offset_y"]         = new[] { "Offset Y", "Przesunięcie Y", "Versatz Y", "Décalage Y", "Desplazamiento Y", "垂直偏移", "Deslocamento Y", "Смещение Y", "オフセット Y", "오프셋 Y", "垂直偏移", "Kaydırma Y", "Dịch dọc Y", "Geser Y", "Spostamento Y" };
+        m["ch_position"]         = new[] { "Position", "Pozycja", "Position", "Position", "Posición", "位置", "Posição", "Положение", "位置", "위치", "位置", "Konum", "Vị trí", "Posisi", "Posizione" };
+        m["ch_pos_center"]       = new[] { "Screen centre", "Środek ekranu", "Bildschirmmitte", "Centre de l'écran", "Centro de la pantalla", "屏幕中心", "Centro da tela", "Центр экрана", "画面の中央", "화면 중앙", "螢幕中央", "Ekranın ortası", "Giữa màn hình", "Tengah layar", "Centro dello schermo" };
+        m["ch_pos_cursor"]       = new[] { "Follows the mouse pointer", "Za kursorem myszy", "Folgt dem Mauszeiger", "Suit le pointeur de la souris", "Sigue al puntero del ratón", "跟随鼠标指针", "Segue o ponteiro do mouse", "Следует за указателем мыши", "マウスポインターに追従", "마우스 포인터 따라감", "跟隨滑鼠指標", "Fare imlecini izler", "Theo con trỏ chuột", "Mengikuti penunjuk mouse", "Segue il puntatore del mouse" };
+        m["ch_click"]            = new[] { "On left click", "Przy lewym kliknięciu", "Bei Linksklick", "Au clic gauche", "Al hacer clic izquierdo", "左键点击时", "Ao clicar com o botão esquerdo", "При левом клике", "左クリック時", "왼쪽 클릭 시", "左鍵點擊時", "Sol tıklamada", "Khi nhấp chuột trái", "Saat klik kiri", "Al clic sinistro" };
+        m["ch_fx_none"]          = new[] { "No effect", "Bez efektu", "Kein Effekt", "Aucun effet", "Sin efecto", "无效果", "Sem efeito", "Без эффекта", "効果なし", "효과 없음", "無效果", "Efekt yok", "Không hiệu ứng", "Tanpa efek", "Nessun effetto" };
+        m["ch_fx_spread"]        = new[] { "Spread", "Rozprysk", "Aufspreizen", "Écartement", "Apertura", "扩散", "Abertura", "Разброс", "拡散", "벌어짐", "擴散", "Yayılma", "Tỏa ra", "Melebar", "Apertura" };
+        m["ch_fx_pulse"]         = new[] { "Pulse", "Puls", "Puls", "Pulsation", "Pulso", "脉冲", "Pulso", "Пульс", "パルス", "펄스", "脈衝", "Nabız", "Nhịp đập", "Denyut", "Pulsazione" };
+        m["ch_fx_flash"]         = new[] { "Flash", "Błysk", "Blitz", "Flash", "Destello", "闪光", "Flash", "Вспышка", "フラッシュ", "번쩍임", "閃光", "Parlama", "Lóe sáng", "Kilat", "Lampo" };
+        m["ch_ads"]              = new[] { "On right button (aiming)", "Przy prawym przycisku (celowanie)", "Bei rechter Taste (Zielen)", "Au bouton droit (visée)", "Con el botón derecho (apuntar)", "右键（瞄准）时", "No botão direito (mira)", "При правой кнопке (прицеливание)", "右ボタン時（エイム）", "오른쪽 버튼 시 (조준)", "右鍵（瞄準）時", "Sağ tuşta (nişan)", "Khi nhấn chuột phải (ngắm)", "Saat tombol kanan (membidik)", "Col tasto destro (mira)" };
+        m["ch_ads_none"]         = new[] { "Nothing", "Nic", "Nichts", "Rien", "Nada", "无", "Nada", "Ничего", "何もしない", "없음", "無", "Hiçbir şey", "Không gì", "Tidak ada", "Niente" };
+        m["ch_ads_hold"]         = new[] { "Hide while held", "Ukryj, gdy trzymasz", "Ausblenden, solange gedrückt", "Masquer tant qu'il est maintenu", "Ocultar mientras se mantiene", "按住时隐藏", "Ocultar enquanto pressionado", "Скрывать, пока удерживается", "押している間は隠す", "누르는 동안 숨김", "按住時隱藏", "Basılıyken gizle", "Ẩn khi giữ", "Sembunyikan saat ditahan", "Nascondi finché premuto" };
+        m["ch_ads_toggle"]       = new[] { "Toggle on each click", "Przełączaj przy każdym kliknięciu", "Bei jedem Klick umschalten", "Basculer à chaque clic", "Alternar con cada clic", "每次点击切换", "Alternar a cada clique", "Переключать при каждом клике", "クリックごとに切替", "클릭할 때마다 전환", "每次點擊切換", "Her tıklamada değiştir", "Chuyển mỗi lần nhấp", "Alihkan tiap klik", "Alterna a ogni clic" };
+        m["ch_hook_note"] = new[]
+        {
+            "The click effect and the aiming option watch the mouse buttons system-wide (a low-level hook, like the Windows-key lock). Both are off by default.",
+            "Efekt kliknięcia i opcja celowania obserwują przyciski myszy w całym systemie (hak niskiego poziomu, jak blokada klawisza Windows). Obie są domyślnie wyłączone.",
+            "Klick-Effekt und Ziel-Option beobachten die Maustasten systemweit (Low-Level-Hook, wie die Windows-Tasten-Sperre). Beide sind standardmäßig aus.",
+            "L'effet de clic et l'option de visée observent les boutons de la souris dans tout le système (hook de bas niveau, comme le verrou de la touche Windows). Les deux sont désactivés par défaut.",
+            "El efecto de clic y la opción de apuntar observan los botones del ratón en todo el sistema (un hook de bajo nivel, como el bloqueo de la tecla Windows). Ambos están desactivados por defecto.",
+            "点击效果和瞄准选项会在全系统范围内监听鼠标按键（低级钩子，与 Windows 键锁定相同）。两者默认关闭。",
+            "O efeito de clique e a opção de mira observam os botões do mouse em todo o sistema (um hook de baixo nível, como o bloqueio da tecla Windows). Ambos vêm desligados.",
+            "Эффект клика и опция прицеливания отслеживают кнопки мыши во всей системе (низкоуровневый хук, как блокировка клавиши Windows). Обе выключены по умолчанию.",
+            "クリック効果とエイムのオプションは、システム全体でマウスボタンを監視します（Windows キーロックと同じ低レベルフック）。どちらも既定ではオフです。",
+            "클릭 효과와 조준 옵션은 시스템 전체에서 마우스 버튼을 감시합니다(Windows 키 잠금과 같은 저수준 후크). 둘 다 기본적으로 꺼져 있습니다.",
+            "點擊效果和瞄準選項會在全系統範圍內監聽滑鼠按鍵（低階掛鉤，與 Windows 鍵鎖定相同）。兩者預設關閉。",
+            "Tıklama efekti ve nişan seçeneği fare düğmelerini sistem genelinde izler (Windows tuşu kilidi gibi düşük düzeyli bir kanca). İkisi de varsayılan olarak kapalıdır.",
+            "Hiệu ứng nhấp và tùy chọn ngắm theo dõi các nút chuột trên toàn hệ thống (hook cấp thấp, như khóa phím Windows). Cả hai mặc định tắt.",
+            "Efek klik dan opsi membidik memantau tombol mouse di seluruh sistem (hook tingkat rendah, seperti kunci tombol Windows). Keduanya nonaktif secara bawaan.",
+            "L'effetto del clic e l'opzione di mira osservano i tasti del mouse in tutto il sistema (un hook di basso livello, come il blocco del tasto Windows). Entrambi sono disattivati per impostazione predefinita.",
+        };
+        m["ch_code_copy"]        = new[] { "Copy code", "Kopiuj kod", "Code kopieren", "Copier le code", "Copiar código", "复制代码", "Copiar código", "Копировать код", "コードをコピー", "코드 복사", "複製代碼", "Kodu kopyala", "Sao chép mã", "Salin kode", "Copia codice" };
+        m["ch_code_copied"]      = new[] { "Copied", "Skopiowano", "Kopiert", "Copié", "Copiado", "已复制", "Copiado", "Скопировано", "コピーしました", "복사됨", "已複製", "Kopyalandı", "Đã sao chép", "Disalin", "Copiato" };
+        m["ch_code_paste"]       = new[] { "Paste code...", "Wklej kod...", "Code einfügen...", "Coller un code...", "Pegar código...", "粘贴代码...", "Colar código...", "Вставить код...", "コードを貼り付け...", "코드 붙여넣기...", "貼上代碼...", "Kod yapıştır...", "Dán mã...", "Tempel kode...", "Incolla codice..." };
+        m["ch_code_label"]       = new[] { "A GhostDeck crosshair code (starts with GDX1.)", "Kod celownika GhostDecka (zaczyna się od GDX1.)", "Ein GhostDeck-Fadenkreuz-Code (beginnt mit GDX1.)", "Un code de réticule GhostDeck (commence par GDX1.)", "Un código de mira de GhostDeck (empieza por GDX1.)", "GhostDeck 准星代码（以 GDX1. 开头）", "Um código de mira do GhostDeck (começa com GDX1.)", "Код прицела GhostDeck (начинается с GDX1.)", "GhostDeck のクロスヘアコード（GDX1. で始まる）", "GhostDeck 조준점 코드(GDX1.로 시작)", "GhostDeck 準星代碼（以 GDX1. 開頭）", "GhostDeck nişangâh kodu (GDX1. ile başlar)", "Mã tâm ngắm GhostDeck (bắt đầu bằng GDX1.)", "Kode crosshair GhostDeck (diawali GDX1.)", "Un codice mirino GhostDeck (inizia con GDX1.)" };
+        m["ch_code_bad"]         = new[] { "This is not a GhostDeck crosshair code.", "To nie jest kod celownika GhostDecka.", "Das ist kein GhostDeck-Fadenkreuz-Code.", "Ce n'est pas un code de réticule GhostDeck.", "No es un código de mira de GhostDeck.", "这不是 GhostDeck 准星代码。", "Isto não é um código de mira do GhostDeck.", "Это не код прицела GhostDeck.", "GhostDeck のクロスヘアコードではありません。", "GhostDeck 조준점 코드가 아닙니다.", "這不是 GhostDeck 準星代碼。", "Bu bir GhostDeck nişangâh kodu değil.", "Đây không phải mã tâm ngắm GhostDeck.", "Ini bukan kode crosshair GhostDeck.", "Questo non è un codice mirino GhostDeck." };
+        m["ch_code_noimage"]     = new[] { "The code carries the settings, not the picture: send the image file as well (Export PNG).", "Kod przenosi ustawienia, nie obraz: prześlij też plik z obrazem (Eksport PNG).", "Der Code enthält die Einstellungen, nicht das Bild: die Bilddatei zusätzlich senden (PNG exportieren).", "Le code contient les réglages, pas l'image : envoyez aussi le fichier image (Exporter en PNG).", "El código lleva los ajustes, no la imagen: envía también el archivo de imagen (Exportar PNG).", "代码只包含设置，不包含图片：请一并发送图片文件（导出 PNG）。", "O código leva as configurações, não a imagem: envie também o arquivo de imagem (Exportar PNG).", "Код содержит настройки, а не картинку: отправьте и файл изображения (Экспорт PNG).", "コードには設定だけが含まれ、画像は含まれません。画像ファイルも送ってください（PNG を書き出す）。", "코드에는 설정만 담기고 이미지는 담기지 않습니다. 이미지 파일도 함께 보내세요(PNG 내보내기).", "代碼只包含設定，不包含圖片：請一併傳送圖片檔（匯出 PNG）。", "Kod ayarları taşır, resmi değil: resim dosyasını da gönderin (PNG dışa aktar).", "Mã chỉ mang cài đặt, không mang ảnh: hãy gửi kèm tệp ảnh (Xuất PNG).", "Kode membawa pengaturan, bukan gambar: kirim juga berkas gambarnya (Ekspor PNG).", "Il codice contiene le impostazioni, non l'immagine: invia anche il file immagine (Esporta PNG)." };
+        m["ch_export_png"]       = new[] { "Export PNG", "Eksport PNG", "PNG exportieren", "Exporter en PNG", "Exportar PNG", "导出 PNG", "Exportar PNG", "Экспорт PNG", "PNG を書き出す", "PNG 내보내기", "匯出 PNG", "PNG dışa aktar", "Xuất PNG", "Ekspor PNG", "Esporta PNG" };
+        m["ch_export_svg"]       = new[] { "Export SVG", "Eksport SVG", "SVG exportieren", "Exporter en SVG", "Exportar SVG", "导出 SVG", "Exportar SVG", "Экспорт SVG", "SVG を書き出す", "SVG 내보내기", "匯出 SVG", "SVG dışa aktar", "Xuất SVG", "Ekspor SVG", "Esporta SVG" };
+        m["ch_preview_scaled"]   = new[] { "Preview scaled to {0} %", "Podgląd pomniejszony do {0} %", "Vorschau auf {0} % verkleinert", "Aperçu réduit à {0} %", "Vista previa reducida al {0} %", "预览已缩小到 {0} %", "Pré-visualização reduzida a {0} %", "Предпросмотр уменьшен до {0} %", "プレビューは {0} % に縮小", "미리 보기 {0} %로 축소됨", "預覽已縮小到 {0} %", "Önizleme % {0} oranına küçültüldü", "Xem trước thu nhỏ còn {0} %", "Pratinjau diperkecil ke {0} %", "Anteprima ridotta al {0} %" };
+        m["ch_fullscreen_note"] = new[]
+        {
+            "In a game running in exclusive full-screen mode a window over the screen may not be visible; use windowed or borderless mode.",
+            "W grze w trybie pełnoekranowym na wyłączność okno nad ekranem może być niewidoczne; użyj trybu okna albo okna bez ramki.",
+            "In einem Spiel im exklusiven Vollbildmodus kann ein Fenster über dem Bildschirm unsichtbar bleiben; Fenster- oder rahmenlosen Modus verwenden.",
+            "Dans un jeu en plein écran exclusif, une fenêtre par-dessus l'écran peut rester invisible ; utilisez le mode fenêtré ou sans bordure.",
+            "En un juego a pantalla completa exclusiva, una ventana sobre la pantalla puede no verse; usa el modo ventana o sin bordes.",
+            "游戏使用独占全屏模式时，屏幕上方的窗口可能不可见；请改用窗口化或无边框模式。",
+            "Em um jogo em tela cheia exclusiva, uma janela sobre a tela pode não aparecer; use o modo janela ou sem bordas.",
+            "В игре в эксклюзивном полноэкранном режиме окно поверх экрана может быть не видно; используйте оконный или безрамочный режим.",
+            "排他的フルスクリーンのゲームでは、画面上のウィンドウが見えないことがあります。ウィンドウモードかボーダーレスを使ってください。",
+            "전용 전체 화면 모드의 게임에서는 화면 위의 창이 보이지 않을 수 있습니다. 창 모드나 테두리 없는 모드를 사용하세요.",
+            "遊戲使用獨佔全螢幕模式時，螢幕上方的視窗可能不可見；請改用視窗化或無邊框模式。",
+            "Özel tam ekran modunda çalışan bir oyunda ekranın üzerindeki pencere görünmeyebilir; pencere veya çerçevesiz modu kullanın.",
+            "Trong trò chơi chạy toàn màn hình độc quyền, cửa sổ trên màn hình có thể không hiện; hãy dùng chế độ cửa sổ hoặc không viền.",
+            "Dalam game yang berjalan di layar penuh eksklusif, jendela di atas layar mungkin tidak terlihat; gunakan mode jendela atau tanpa bingkai.",
+            "In un gioco a schermo intero esclusivo una finestra sopra lo schermo può restare invisibile; usa la modalità finestra o senza bordi.",
+        };
+        m["ch_anticheat"] = new[]
+        {
+            "GhostDeck does not touch the game: it draws a window over the screen and injects nothing. Even so, in ranked online games prefer the crosshair built into the game; some anti-cheat clients (for example FACEIT) block programs they do not recognise, and game rules can be broader than the technology.",
+            "GhostDeck nie ingeruje w grę: rysuje okno nad ekranem i niczego nie wstrzykuje. Mimo to w rankingowych grach online wybieraj celownik wbudowany w grę; niektóre klienty anty-cheat (na przykład FACEIT) blokują nierozpoznane programy, a regulaminy gier bywają szersze niż technika.",
+            "GhostDeck greift nicht ins Spiel ein: Es zeichnet ein Fenster über den Bildschirm und injiziert nichts. Trotzdem in Ranglisten-Onlinespielen lieber das spieleigene Fadenkreuz nutzen; manche Anti-Cheat-Clients (etwa FACEIT) blockieren unbekannte Programme, und Spielregeln können weiter gefasst sein als die Technik.",
+            "GhostDeck ne touche pas au jeu : il dessine une fenêtre par-dessus l'écran et n'injecte rien. Malgré tout, en partie classée préférez le réticule intégré au jeu ; certains clients anti-triche (FACEIT par exemple) bloquent les programmes inconnus, et le règlement d'un jeu peut aller plus loin que la technique.",
+            "GhostDeck no toca el juego: dibuja una ventana sobre la pantalla y no inyecta nada. Aun así, en partidas clasificatorias usa la mira del propio juego; algunos clientes anti-trampas (por ejemplo FACEIT) bloquean programas que no reconocen, y las normas de un juego pueden ir más allá de la técnica.",
+            "GhostDeck 不会触碰游戏：它只在屏幕上方绘制一个窗口，不注入任何东西。即便如此，在排位联机游戏中请优先使用游戏自带准星；某些反作弊客户端（例如 FACEIT）会拦截它们不认识的程序，而游戏规则可能比技术层面更宽泛。",
+            "O GhostDeck não toca no jogo: desenha uma janela sobre a tela e não injeta nada. Mesmo assim, em partidas ranqueadas prefira a mira do próprio jogo; alguns clientes anti-cheat (por exemplo o FACEIT) bloqueiam programas que não reconhecem, e as regras de um jogo podem ir além da técnica.",
+            "GhostDeck не вмешивается в игру: он рисует окно поверх экрана и ничего не внедряет. И всё же в рейтинговых онлайн-играх лучше использовать встроенный прицел; некоторые античит-клиенты (например FACEIT) блокируют незнакомые программы, а правила игр бывают шире, чем техника.",
+            "GhostDeck はゲームに触れません。画面の上にウィンドウを描くだけで、何も注入しません。それでもランク戦のオンラインゲームではゲーム内蔵のクロスヘアを優先してください。一部のアンチチート（例: FACEIT）は未知のプログラムをブロックし、ゲームの規約は技術面より広い場合があります。",
+            "GhostDeck는 게임을 건드리지 않습니다. 화면 위에 창을 그릴 뿐 아무것도 주입하지 않습니다. 그래도 랭크 온라인 게임에서는 게임 내장 조준점을 우선하세요. 일부 안티치트 클라이언트(예: FACEIT)는 인식하지 못하는 프로그램을 차단하며, 게임 규정은 기술보다 넓을 수 있습니다.",
+            "GhostDeck 不會觸碰遊戲：它只在螢幕上方繪製一個視窗，不注入任何東西。即便如此，在排位連線遊戲中請優先使用遊戲內建準星；某些反作弊用戶端（例如 FACEIT）會攔截它們不認識的程式，而遊戲規則可能比技術層面更寬泛。",
+            "GhostDeck oyuna dokunmaz: ekranın üzerine bir pencere çizer ve hiçbir şey enjekte etmez. Yine de dereceli çevrimiçi oyunlarda oyunun kendi nişangâhını tercih edin; bazı hile önleme istemcileri (örneğin FACEIT) tanımadığı programları engeller ve oyun kuralları teknikten daha geniş olabilir.",
+            "GhostDeck không đụng vào trò chơi: nó chỉ vẽ một cửa sổ trên màn hình và không tiêm gì cả. Dù vậy, trong các trận xếp hạng trực tuyến hãy ưu tiên tâm ngắm có sẵn trong game; một số trình chống gian lận (ví dụ FACEIT) chặn các chương trình chúng không nhận ra, và luật của trò chơi có thể rộng hơn kỹ thuật.",
+            "GhostDeck tidak menyentuh game: ia menggambar jendela di atas layar dan tidak menyuntikkan apa pun. Meski begitu, di game daring berperingkat gunakan crosshair bawaan game; beberapa klien anti-cheat (misalnya FACEIT) memblokir program yang tidak dikenalnya, dan aturan game bisa lebih luas daripada tekniknya.",
+            "GhostDeck non tocca il gioco: disegna una finestra sopra lo schermo e non inietta nulla. Anche così, nelle partite classificate online preferisci il mirino integrato nel gioco; alcuni client anti-cheat (per esempio FACEIT) bloccano i programmi che non riconoscono, e il regolamento di un gioco può andare oltre la tecnica.",
+        };
+        m["jl_ch_on"]            = new[] { "Crosshair on", "Celownik włącz", "Fadenkreuz an", "Réticule activé", "Mira activada", "开启准星", "Mira ligada", "Прицел вкл", "クロスヘア オン", "조준점 켜기", "開啟準星", "Nişangâh açık", "Bật tâm ngắm", "Crosshair aktif", "Mirino attivo" };
+        m["jl_ch_off"]           = new[] { "Crosshair off", "Celownik wyłącz", "Fadenkreuz aus", "Réticule désactivé", "Mira desactivada", "关闭准星", "Mira desligada", "Прицел выкл", "クロスヘア オフ", "조준점 끄기", "關閉準星", "Nişangâh kapalı", "Tắt tâm ngắm", "Crosshair nonaktif", "Mirino spento" };
     }
 }

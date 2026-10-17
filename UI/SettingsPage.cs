@@ -10,7 +10,7 @@ namespace GhostDeck;
 // =====================================================================
 //  Settings (grouped cards; real controls = DPI-safe text)
 // =====================================================================
-public sealed class SettingsPage : ThemedPage
+public sealed partial class SettingsPage : ThemedPage
 {
     private static readonly (string key, string label)[] Acts =
     {
@@ -19,7 +19,7 @@ public sealed class SettingsPage : ThemedPage
         ("CoolerBoost", "Fan Boost"), ("Overlay", "Gaming overlay"), ("OverlayLock", "Lock overlay"),
         ("PanicReset", "Panic reset"), ("KbdLight", "Keyboard backlight"), ("Webcam", "Webcam"),
         ("EcView", "EC live view"), ("WinLock", "Windows key lock"), ("Touchpad", "Touchpad"),
-        ("Mic", "Microphone"),
+        ("Mic", "Microphone"), ("Crosshair", "Crosshair"),
     };
     private static readonly int[] ChargeVals = { 0, 60, 80, 100 };
     private const int Pad = 28, Gutter = 24, TitleTop = 22;
@@ -112,7 +112,11 @@ public sealed class SettingsPage : ThemedPage
         foreach (var t in _tiles) t.Visible = _cur == SubHome;
         if (_homeHeader != null) _homeHeader.Visible = _cur == SubHome;
         if (_whatsNew != null) _whatsNew.Visible = _cur == SubHome;
-        if (_overlayPanel != null) _overlayPanel.Visible = _cur == SubGaming;
+        // Gaming is two views behind one segment switch: the overlay panel, or the crosshair cards
+        if (_overlayPanel != null) _overlayPanel.Visible = _cur == SubGaming && GamingSub == 0;
+        if (_gamingSeg != null) _gamingSeg.Visible = _cur == SubGaming;
+        foreach (var c in _gLeft[SubGaming]) c.Visible = _cur == SubGaming && GamingSub == 1;
+        foreach (var c in _gRight[SubGaming]) c.Visible = _cur == SubGaming && GamingSub == 1;
     }
 
     public override void OnEnter()
@@ -121,7 +125,7 @@ public sealed class SettingsPage : ThemedPage
         // the sub-tab you left. FocusScenVisibility runs AFTER OnEnter, so the gear deep link
         // from the Scenarios tab still wins - do not reorder those two.
         if (D.Settings.SettingsAlwaysStart && _cur != SubHome) SelectSub(SubHome, save: false);
-        SyncTravelRow(); SyncExternal(); _syncPowerCard?.Invoke(); _overlayPanel?.SyncFromSettings(); RefreshTiles(); Layout2(); Invalidate();
+        SyncTravelRow(); SyncExternal(); _syncPowerCard?.Invoke(); _overlayPanel?.SyncFromSettings(); SyncCrosshairCards(); RefreshTiles(); Layout2(); Invalidate();
     }
 
     // Thin themed rule between unrelated option groups inside one card (the Notifications
@@ -229,7 +233,7 @@ public sealed class SettingsPage : ThemedPage
     }
     // Sync overlay toggles from settings (they can change via the Scenarios brick / tray / hotkey);
     // no re-layout here, which would reset the scroll position mid-edit.
-    public override void LiveRefresh() { SyncTravelRow(); SyncExternal(); _overlayPanel?.SyncFromSettings(); RefreshTiles(); }
+    public override void LiveRefresh() { SyncTravelRow(); SyncExternal(); _overlayPanel?.SyncFromSettings(); SyncCrosshairCards(); RefreshTiles(); }
 
     // The Start page is a dashboard: every tile carries a live third line with the group's
     // current values, so all of it must be re-read whenever the page shows or state changes.
@@ -340,6 +344,7 @@ public sealed class SettingsPage : ThemedPage
         _subTabs?.Invalidate();
         foreach (var t in _tiles) t.Invalidate();
         _overlayPanel?.ApplyThemeColors();
+        _gamingSeg?.Invalidate();
         Invalidate();
     }
 
@@ -397,12 +402,19 @@ public sealed class SettingsPage : ThemedPage
             return;
         }
 
-        if (_cur == SubGaming && _overlayPanel != null)
+        if (_cur == SubGaming && _gamingSeg != null)
         {
-            _overlayPanel.Relayout(fullW);
-            _overlayPanel.Location = new Point(Pad + ox, top + oy);
-            AutoScrollMinSize = new Size(0, top + _overlayPanel.Height + 20);
-            return;
+            // the overlay | crosshair switch heads the group; the overlay view is the one
+            // full-width panel, the crosshair view the usual two columns of cards below
+            _gamingSeg.Location = new Point(Pad + ox, top + oy);
+            top += _gamingSeg.Height + 18;
+            if (GamingSub == 0 && _overlayPanel != null)
+            {
+                _overlayPanel.Relayout(fullW);
+                _overlayPanel.Location = new Point(Pad + ox, top + oy);
+                AutoScrollMinSize = new Size(0, top + _overlayPanel.Height + 20);
+                return;
+            }
         }
 
         int yL = top, yR = top;
@@ -429,6 +441,7 @@ public sealed class SettingsPage : ThemedPage
             else foreach (var c in oldCards) c.Dispose();
         }
         if (_overlayPanel != null) { Controls.Remove(_overlayPanel); _overlayPanel.Dispose(); _overlayPanel = null; }
+        if (_gamingSeg != null) { Controls.Remove(_gamingSeg); _gamingSeg.Dispose(); _gamingSeg = null; }
         if (_subTabs != null) { Controls.Remove(_subTabs); _subTabs.Dispose(); _subTabs = null; }
         foreach (var t in _tiles) { Controls.Remove(t); t.Dispose(); }
         _tiles.Clear();
@@ -1101,7 +1114,7 @@ public sealed class SettingsPage : ThemedPage
         // (#23) Mouse actions on the tray icon itself: left / middle click and the scroll wheel.
         TrayAction[] actOrder =
         {
-            TrayAction.None, TrayAction.CycleProfile, TrayAction.FanBoost, TrayAction.Overlay,
+            TrayAction.None, TrayAction.CycleProfile, TrayAction.FanBoost, TrayAction.Overlay, TrayAction.Crosshair,
             TrayAction.ShowState, TrayAction.PanicReset, TrayAction.OpenScenarios, TrayAction.OpenStatus,
             TrayAction.OpenFanCurve, TrayAction.OpenSettings, TrayAction.OpenModels, TrayAction.OpenChangeLog,
         };
@@ -1111,6 +1124,7 @@ public sealed class SettingsPage : ThemedPage
             TrayAction.CycleProfile => Lang.T("cycle"),
             TrayAction.FanBoost => Lang.T("cooler_boost"),
             TrayAction.Overlay => Lang.T("overlay_title"),
+            TrayAction.Crosshair => Lang.T("ch_title"),
             TrayAction.ShowState => Lang.T("act_show_state"),
             TrayAction.PanicReset => Lang.T("hk_panic"),
             TrayAction.OpenScenarios => string.Format(Lang.T("act_open"), Lang.T("tab_scenarios")),
@@ -1196,6 +1210,7 @@ public sealed class SettingsPage : ThemedPage
             scenVis.AddRow(Lang.T("po_title"), orderBtn);
             VisRow("fanboost", Lang.T("cooler_boost"));
             VisRow("overlay", Lang.T("overlay_title"));
+            VisRow("crosshair", Lang.T("ch_title"));
             VisRow("charge", Lang.T("st_charge"));
             VisRow("autoswitch", Lang.T("scen_autoswitch"));
             _builtRefreshRow = Display.SupportedRates().Count > 1;   // snapshot for OnDisplayChanged
@@ -1478,7 +1493,7 @@ public sealed class SettingsPage : ThemedPage
             // A shortcut Windows refused (another app owns the combination) is marked right on
             // its row - it used to look identical to one that works (issue #92).
             string mark = TrayContext.HotkeysRefused.Contains(key) ? "  ⚠" : "";
-            (isScene ? hkScenes : hk).AddRow(mark + (key == "Cycle" ? Lang.T("cycle") : key == "CoolerBoost" ? Lang.T("cooler_boost") : key == "Overlay" ? Lang.T("overlay_title") : key == "OverlayLock" ? Lang.T("ov_lock_menu") : key == "PanicReset" ? Lang.T("hk_panic") : key == "KbdLight" ? Lang.T("kbd_title") : key == "Webcam" ? Lang.T("webcam_title") : key == "EcView" ? Lang.T("ec_view_title") : key == "WinLock" ? Lang.T("winlock_title") : key == "Touchpad" ? Lang.T("tp_title") : key == "Mic" ? Lang.T("mic_title") : label), row);
+            (isScene ? hkScenes : hk).AddRow(mark + (key == "Cycle" ? Lang.T("cycle") : key == "CoolerBoost" ? Lang.T("cooler_boost") : key == "Overlay" ? Lang.T("overlay_title") : key == "OverlayLock" ? Lang.T("ov_lock_menu") : key == "PanicReset" ? Lang.T("hk_panic") : key == "KbdLight" ? Lang.T("kbd_title") : key == "Webcam" ? Lang.T("webcam_title") : key == "EcView" ? Lang.T("ec_view_title") : key == "WinLock" ? Lang.T("winlock_title") : key == "Touchpad" ? Lang.T("tp_title") : key == "Mic" ? Lang.T("mic_title") : key == "Crosshair" ? Lang.T("ch_title") : label), row);
         }
         var reset = new Button { Text = Lang.T("set_default"), AutoSize = true, Padding = new Padding(10, 4, 10, 4) };
         Ui.StyleGhost(reset);
@@ -1495,6 +1510,16 @@ public sealed class SettingsPage : ThemedPage
 
         _overlayPanel = new OverlaySettingsPanel(D);
         Controls.Add(_overlayPanel);
+        // Gaming: overlay | crosshair (roadmap #118); the choice is remembered like the sub-tab
+        _gamingSeg = new SegControl(new[] { Lang.T("overlay_title"), Lang.T("ch_title") }, GamingSub) { Size = new Size(360, 34) };
+        _gamingSeg.SelectedChanged += i =>
+        {
+            D.Settings.SettingsGamingSub = i; D.SaveSettings();
+            AutoScrollPosition = Point.Empty;
+            ApplyVisibility(); Layout2(); PerformLayout(); Invalidate();
+        };
+        Controls.Add(_gamingSeg);
+        BuildCrosshairCards();
 
         // ---- sub-tab strip (Start + six groups, MDL2 glyphs like the main tab strip) ----
         _subTabs = new SubTabs(
@@ -1579,12 +1604,16 @@ public sealed class SettingsPage : ThemedPage
         if (dlg.ShowDialog(FindForm()) != DialogResult.OK) return;
         try
         {
+            // the custom crosshair picture rides inside the exported file (and only there)
+            try { if (CrosshairPainter.HasImage) D.Settings.CrosshairImageBase64 = Convert.ToBase64String(File.ReadAllBytes(CrosshairPainter.ImagePath)); }
+            catch { D.Settings.CrosshairImageBase64 = null; }
             File.WriteAllText(dlg.FileName, JsonSerializer.Serialize(D.Settings, new JsonSerializerOptions { WriteIndented = true }));
         }
         catch (Exception ex)
         {
             MessageBox.Show(FindForm(), string.Format(Lang.T("bk_err"), ex.Message), "GhostDeck", MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
+        finally { D.Settings.CrosshairImageBase64 = null; }
     }
 
     private void ImportSettings()
@@ -2068,6 +2097,8 @@ public sealed class SettingsPage : ThemedPage
                     note.MaximumSize = new Size(width - pad * 2, 0);
                 // group separators stretch with the card
                 if (l == null && ctl is SepLine sep) sep.Width = width - pad * 2;
+                // a wrapping button row (the crosshair card) folds at the card's content width
+                if (l == null && ctl is FlowLayoutPanel { WrapContents: true } fw) fw.MaximumSize = new Size(width - pad * 2, 0);
                 int rowH = Math.Max(l?.Height ?? 0, ctl.Height);
                 if (l != null) l.Location = new Point(pad, y + (rowH - l.Height) / 2);
                 int cx = l != null ? Width - pad - ctl.Width : pad;
