@@ -3,7 +3,7 @@
 All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
-## [Unreleased]
+## [1.40.0] - 2026-10-18
 ### Added
 - **Backup WMI path for laptops whose firmware refuses MSI's EC control interface**
   ([#48](../../issues/48), [#117](../../issues/117), [#230](../../issues/230), thanks
