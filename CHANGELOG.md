@@ -5,6 +5,10 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 ### Added
+- **MSI Vector GP66 12UGS (`1544EMS1`): fan curve verified, fan RPM on** ([#249](../../issues/249),
+  [#250](../../issues/250), thanks @TheOriginalBabu) - his test curve sits byte-for-byte at the
+  shipped addresses on both fans, and both tachometers are live. Recipes confirmed in all four
+  scenarios; the model stays experimental until a power test.
 - **MSI Raider GE68 HX 14VGG (`15M2IMS2`) promoted to Tested** ([#244](../../issues/244),
   [#245](../../issues/245), thanks @Ghli) - a clean power test (1 % drift): Silent delivers 72 %
   of Balanced's work at 2.49 instead of 3.46 GHz and 9 C cooler; Extreme level with Balanced

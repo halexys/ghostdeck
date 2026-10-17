@@ -110,7 +110,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20261018;
+    public const int DataVersion = 20261019;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -876,7 +876,20 @@ public static class Devices
         new() { Name = "MSI Venture 14 AI A2HMG",           FirmwarePrefixes = new[] { "14Q2EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Venture A14 AI+ A3HMG",         FirmwarePrefixes = new[] { "14QKIMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Prestige 14 Flip AI+ D3MTG",    FirmwarePrefixes = new[] { "14T2EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
-        new() { Name = "MSI Vector GP66 12UGS",             FirmwarePrefixes = new[] { "1544EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
+        // Vector GP66 12UGS (1544EMS1) - owner captures (issues #249 + #250, MSI Center 2.0.48,
+        // firmware .112). Per-scenario dump matches StdRecipes 1:1 in all four scenarios (shift
+        // 0xD2 C1/C1/C4/C2, fan 0xD4 1D/0D/0D/0D, 0xEB=0F only in Super Battery). Curve
+        // VERIFIED (#250): the test curve sits byte-for-byte at the shipped 0x72 / 0x8A on both
+        // fans. 0xD6 reads 05 in every scenario, so this board needs none of the extra 0xD6 write
+        // the older GE66/GP66 board (1543EMS1) carries. Tier stays Experimental: no hardware
+        // checks and no power test yet.
+        //   RPM: 0xC9/0xCB single-byte divisors, high bytes 00 in every dump (C6/A1 = ~2400/
+        //   2970 rpm at rest; the Extreme and Super Battery columns were captured with Fan Boost
+        //   on, 0x98=82, hence ~6000 rpm there). Kbd backlight 0xD3 reads 83 / 80 in the
+        //   vendor's Super Battery (the 1583 pattern) - observation only.
+        new() { Name = "MSI Vector GP66 12UGS",             FirmwarePrefixes = new[] { "1544EMS1" }, Tier = Tier.Experimental,
+                CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
+                Credit = "TheOriginalBabu", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/250" },
         new() { Name = "MSI Modern 15 A11M",                FirmwarePrefixes = new[] { "1552EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Stealth 15M A11SEK",            FirmwarePrefixes = new[] { "1562EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Stealth 15M A11UEK",            FirmwarePrefixes = new[] { "1563EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
@@ -1105,6 +1118,11 @@ public static class Devices
         //   fifth wide-tach carrier; readout arrives with the release that ships the format.
         // Tier stays Experimental: the app could not write on the unrecognised machine, so
         // switching stability is unproven - his power test after the entry lands settles it.
+        //   Switching CONFIRMED (issue #251, no MSI Center installed): the owner's second
+        //   capture is the app's own writes read back - every column matches its recipe and
+        //   he ticked "switching stable"; the wide-tach pair read 01:07 (~1817 rpm) again.
+        //   Still missing for Tested: whether Silent is quieter / Extreme faster (checks or a
+        //   power test).
         new() { Name = "MSI Cyborg 15 C13WEO",              FirmwarePrefixes = new[] { "15T1EMS1" }, Tier = Tier.Experimental,
                 CpuRpmAddr16 = 0xC8,
                 FourthMode = new FourthModeSpec("Apex", 0xC5),
