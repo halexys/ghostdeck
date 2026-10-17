@@ -181,6 +181,8 @@ public static class Ec
             [spec.ShiftMode] = new(dev.Recipes.Values.SelectMany(r => r).Where(p => p.addr == dev.ShiftMode).Select(p => p.val)),
             [spec.FanMode] = new(dev.Recipes.Values.SelectMany(r => r).Where(p => p.addr == dev.FanMode).Select(p => p.val)),
         };
+        // A model with a curve on record may also put the fan into Advanced mode.
+        if (dev.FanCurve is { } fc) allowed[spec.FanMode].Add(fc.AdvancedModeValue);
         return new BackupState(dev, spec, slots, allowed);
     }
 
@@ -361,6 +363,20 @@ public static class Ec
     public static (int[] cpuTemp, int[] cpuSpeed, int[] gpuTemp, int[] gpuSpeed)? ReadFanCurve(DeviceProfile dev)
     {
         if (dev.FanCurve is not { } fc) return null;
+        // Backup path: the tables live in block slots (BlockCurveSpec), the same pairs the
+        // editor shows on every other board (anchor + thresholds / speeds).
+        if (_backup is { } bk && bk.Spec.CpuCurve is { } cc)
+        {
+            int[] Slots(BlockCurveSpec? c, Func<BlockCurveSpec, int, BlockRef> pick)
+            {
+                var arr = new int[fc.Points];
+                if (c == null) return arr;
+                for (int i = 0; i < fc.Points && i < c.Count; i++) arr[i] = EcBlocks.Read(pick(c, i));
+                return arr;
+            }
+            return (Slots(cc, (c, i) => c.Temp(i)), Slots(cc, (c, i) => c.Speed(i)),
+                    Slots(bk.Spec.GpuCurve, (c, i) => c.Temp(i)), Slots(bk.Spec.GpuCurve, (c, i) => c.Speed(i)));
+        }
         int[] Read(byte baseAddr)
         {
             var arr = new int[fc.Points];
@@ -374,6 +390,28 @@ public static class Ec
     public static void WriteFanCurve(DeviceProfile dev, int[] cpuTemp, int[] cpuSpeed, int[] gpuTemp, int[] gpuSpeed)
     {
         if (dev.FanCurve is not { } fc) return;
+        // Backup path: every value is range-checked and put on its slot's allow-list right
+        // before the write; the gate in BackupWrite does the rest (locked until the path test
+        // has passed on this machine).
+        if (_backup is { } bk && bk.Spec.CpuCurve is { } cc)
+        {
+            void Table(BlockCurveSpec? c, int[] temps, int[] speeds)
+            {
+                if (c == null) return;
+                for (int i = 0; i < fc.Points && i < c.Count && i < temps.Length && i < speeds.Length; i++)
+                {
+                    byte t = (byte)Math.Clamp(temps[i], 0, 110), s = (byte)Math.Clamp(speeds[i], 0, fc.MaxFanPct);
+                    BackupAllow(c.Temp(i), t); BackupWrite(c.Temp(i), t);
+                    BackupAllow(c.Speed(i), s); BackupWrite(c.Speed(i), s);
+                }
+            }
+            lock (_wmiLock)
+            {
+                Table(cc, cpuTemp, cpuSpeed);
+                if (!fc.SingleFan) Table(bk.Spec.GpuCurve, gpuTemp, gpuSpeed);
+            }
+            return;
+        }
         void W(byte baseAddr, int[] vals)
         {
             for (int i = 0; i < fc.Points && i < vals.Length; i++)
@@ -561,7 +599,7 @@ public static class Ec
 
     private static int RpmFrom(byte addr, int rpmConst) => addr == 0 ? 0 : RpmFromRaw(ReadRaw(addr), rpmConst);
 
-    private static int RpmFromRaw(int raw, int rpmConst)
+    internal static int RpmFromRaw(int raw, int rpmConst)
     {
         if (raw == 0) return 0;
         int rpm = rpmConst / raw;

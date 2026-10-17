@@ -239,6 +239,7 @@ public static class Devices
     // on the GF65, 55 60 70 78 85 90 on the Delta) and seven speed slots from index 11; index 3
     // is the critical-temperature limit and belongs to no table. A model gets this layout only
     // once its own dump shows it - the layout is never assumed from the generation.
+    internal static BlockPathSpec DragonEraLayout => DragonEraBlocks;
     private static readonly BlockPathSpec DragonEraBlocks = new(
         ShiftMode: new("MSI_System", 7), FanMode: new("MSI_System", 9),
         CpuTemp: new("MSI_CPU", 1), GpuTemp: new("MSI_VGA", 1),
@@ -660,6 +661,12 @@ public static class Devices
         new() { Name = "MSI GF65 Thin 10UE", FirmwarePrefixes = new[] { "16W2EMS1" }, Tier = Tier.Experimental,
                 ShiftMode = 0xF2, FanMode = 0xF4, ChargeCtrl = 0xEF, Recipes = StdRecipes(0xF2, 0xF4, null),
                 BlockPath = DragonEraBlocks,   // block dump in the diagnostic package of issue #117
+                // Fan curve VERIFIED by the owner's path test (issue #230, 8 Oct 2026): with every
+                // speed slot of the CPU table raised to 85 and the fan mode at 0x8D, the fan went
+                // 2261 -> 4733 RPM while the CPU cooled, in the comfort shift mode already. On the
+                // backup path the table is addressed by block slot (BlockCurveSpec), so the EC
+                // addresses here only name the pairs the editor shows.
+                FanCurve = new FanCurveSpec(0x8D, CpuTempBase: 0x69, CpuSpeedBase: 0x72, GpuTempBase: 0x81, GpuSpeedBase: 0x8A, Points: 6, Verified: true),
                 Credit = "scorvus99", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/230" },
 
         // ===== BULK IMPORT (msi-ec / MControlCenter) — all EXPERIMENTAL, opt-in, unverified =====

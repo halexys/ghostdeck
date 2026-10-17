@@ -5,6 +5,24 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 ### Added
+- **Backup WMI path for laptops whose firmware refuses MSI's EC control interface**
+  ([#48](../../issues/48), [#117](../../issues/117), [#230](../../issues/230), thanks
+  @scorvus99 and @SavAlexander) - firmware of the Dragon Center generation (Delta 15, GF65
+  Thin, GS75 and relatives) answers "not supported" to every call on the method interface, and
+  such a laptop used to get temperatures only. GhostDeck now works through the device's WMI
+  data blocks on a model whose block layout is on record: profiles, temperatures, fan duty and
+  fan RPM, and on the GF65 Thin 10UE also the fan curve. Profile switching starts locked; a
+  **path test** (offered at start, also in the tray menu) unlocks it on that machine: it reads
+  the state, changes one setting and puts it back, applies the four profiles with short
+  processor loads, optionally checks the fan curve, and restores everything, with a text report
+  on the desktop. Passed on a GF65 Thin 10UE in two runs on 8 October 2026. Every write on this
+  path goes through one gate (open during the test and after a pass) and an allow-list of slots
+  and values; Fan Boost, the charge limit, the keyboard backlight and the webcam switch stay
+  unavailable there. A laptop whose blocks answer in the known layout but whose model is not
+  on record runs in *monitoring only* mode with fan speeds next to the temperatures, gets a card
+  pointing to the Report tab, and "Report my model" captures the data blocks per scenario so
+  the model can be added through the signed database. The layout travels in the model database
+  (20261020) as an optional `blockPath` key; the diagnostic package lists the blocks in full.
 - **Crosshair** (roadmap #118, [discussion #247](../../discussions/247), thanks @arcfybr) - a
   crosshair drawn at the centre of the screen over the game, as its own small window that never
   takes the focus and lets every click through; nothing is injected into the game. Eleven

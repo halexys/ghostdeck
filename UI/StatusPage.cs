@@ -176,7 +176,13 @@ public sealed class StatusPage : ThemedPage
             Perf.Warm();   // disks, counters, battery estimate: queried here, the window thread reads the cached answers
             if (dev != null)
             {
-                try { live = Ec.ReadMany(new[] { dev.ShiftMode, (byte)0x34, (byte)0xEB, dev.FanMode }); } catch { }
+                try
+                {
+                    live = Ec.OnBackupPath
+                        ? new[] { Ec.ReadByte(dev.ShiftMode), (byte)0, (byte)0, Ec.ReadByte(dev.FanMode) }   // 0x34 / 0xEB have no slot there
+                        : Ec.ReadMany(new[] { dev.ShiftMode, (byte)0x34, (byte)0xEB, dev.FanMode });
+                }
+                catch { }
                 try { curve = Ec.ReadFanCurve(dev); } catch { }
             }
             try
@@ -397,8 +403,8 @@ public sealed class StatusPage : ThemedPage
         // The fan rings show the curve target (0x71 / 0x89), not the fan speed, on MSI's own
         // 0-150 scale; 0 is a real target (the first curve point), so it reads "0", not a dash.
         // TECHNICAL §76.
-        DrawRing(g, X(2), top, ring, info.Known ? hw.CpuFan : 0, 150, "%", Lang.T("st_cpu_fan"), Theme.Accent, info.Known, allowZero: true);
-        DrawRing(g, X(3), top, ring, info.Known ? hw.GpuFan : 0, 150, "%", Lang.T("st_gpu_fan"), Theme.Violet, info.Known, allowZero: true);
+        DrawRing(g, X(2), top, ring, temps ? hw.CpuFan : 0, 150, "%", Lang.T("st_cpu_fan"), Theme.Accent, temps, allowZero: true);
+        DrawRing(g, X(3), top, ring, temps ? hw.GpuFan : 0, 150, "%", Lang.T("st_gpu_fan"), Theme.Violet, temps, allowZero: true);
         _fanHelpBtns[0] = new RectangleF(X(2) + ring - 22, top, 22, 22);
         _fanHelpBtns[1] = new RectangleF(X(3) + ring - 22, top, 22, 22);
         HelpDot.Render(g, _fanHelpBtns[0]);
@@ -437,7 +443,7 @@ public sealed class StatusPage : ThemedPage
         }
         void RpmUnder(int i, int rpm, string label)
             => MetricBox(new RectangleF(X(i) + 14, subY, ring - 28, subH),
-                !info.Known ? $"{label}: —" : rpm > 0 ? $"{label}: {rpm} RPM" : $"{label}: — RPM");
+                !(info.Known || info.Telemetry) ? $"{label}: —" : rpm > 0 ? $"{label}: {rpm} RPM" : $"{label}: — RPM");
         RpmUnder(2, hw.CpuRpm, "CPU");
         RpmUnder(3, hw.GpuRpm, "GPU");
         // CPU clock (approx.) under the CPU-usage ring — same row as the RPM counters
@@ -561,10 +567,14 @@ public sealed class StatusPage : ThemedPage
         // (#48) telemetry-only machines: say plainly why the fan rings and controls are dead
         if (info.Telemetry)
         {
-            var noteR = new Rectangle(Pad, cardTop, avail, 44);
-            TextRenderer.DrawText(g, Lang.T("telemetry_note"), new Font("Segoe UI", 9.5f), noteR,
-                Theme.Muted, TextFormatFlags.WordBreak | TextFormatFlags.EndEllipsis);
-            cardTop += 52;
+            // why the controls are off, and - when the blocks show the layout other boards of this
+            // generation have - that one report is what turns this machine into a supported one
+            var noteFont = new Font("Segoe UI", 9.5f);
+            string note = Lang.T(info.SchemaMissing ? "telemetry_note_schema" : "telemetry_note");
+            if (EcBlocks.LayoutKnown()) note += Environment.NewLine + Lang.T("blocks_report_hint");
+            int noteH = TextRenderer.MeasureText(g, note, noteFont, new Size(avail, int.MaxValue), TextFormatFlags.WordBreak).Height;
+            TextRenderer.DrawText(g, note, noteFont, new Rectangle(Pad, cardTop, avail, noteH), Theme.Muted, TextFormatFlags.WordBreak);
+            cardTop += noteH + 10;
         }
         // Backup WMI path: say which road the readings come from and what it does not carry,
         // then the profile the hardware reports (the tiles cannot show it while writes are off).
@@ -618,6 +628,15 @@ public sealed class StatusPage : ThemedPage
     private void RenderBytes(Graphics g, int avail, StatusInfo info)
     {
         int sec = SecTop;
+        if (!info.Known)
+        {
+            // no register matrix without a model entry; the monitoring-only note says why
+            string note = info.Telemetry ? Lang.T(info.SchemaMissing ? "telemetry_note_schema" : "telemetry_note") : Lang.T("unsupported_title");
+            var f = new Font("Segoe UI", 9.5f);
+            int h = TextRenderer.MeasureText(g, note, f, new Size(avail, int.MaxValue), TextFormatFlags.WordBreak).Height;
+            TextRenderer.DrawText(g, note, f, new Rectangle(Pad, sec, avail, h), Theme.Muted, TextFormatFlags.WordBreak);
+            return;
+        }
         sec = DrawMatrix(g, sec, avail, info);
         TextRenderer.DrawText(g, Lang.T("st_matrix_note"), new Font("Segoe UI", 9f), new Rectangle(Pad, sec + 4, avail, NoteH - 4),
             Theme.Muted, TextFormatFlags.Left | TextFormatFlags.Top | TextFormatFlags.WordEllipsis);
@@ -1264,7 +1283,7 @@ public sealed class StatusPage : ThemedPage
         var rows = new List<string[]>();
         foreach (var id in order)
             rows.Add(new[] { Profiles.Get(id).Label, RecipeVal(id, shiftA), RecipeVal(id, 0x34), RecipeVal(id, 0xEB), FanCell(RecipeVal(id, fanA)) });
-        string LiveHex(int i) => _live.Length > i ? _live[i].ToString("X2") : "—";
+        string LiveHex(int i) => _live.Length > i && !(Ec.OnBackupPath && i is 1 or 2) ? _live[i].ToString("X2") : "—";
         rows.Add(new[] { Lang.T("st_now"), LiveHex(0), LiveHex(1), LiveHex(2), FanCell(LiveHex(3)) });
 
         int active = Array.IndexOf(order, info.Profile);

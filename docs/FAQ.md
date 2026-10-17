@@ -50,6 +50,20 @@ Your laptop is fine - a freshly installed Windows is just missing one piece. Win
 
 **The fix: install MSI Center once.** The schema is deployed during installation and the interface appears; after that you can keep MSI Center or uninstall it - measurements show the schema stays behind (it even survives MSI's own cleanup tool), and GhostDeck never needs MSI Center running. GhostDeck deliberately does not deploy the file itself: it is an MSI-signed system component, and redistributing it is not the project's call to make. Full write-up with sources and measurements: [MSI-WMI-SCHEMA.md](MSI-WMI-SCHEMA.md); the original report: [discussion #56](../../../discussions/56).
 
+## Status says "monitoring only", or that MSI's EC control interface is not available. Can GhostDeck still switch profiles?
+
+On some older MSI laptops - the Dragon Center generation, roughly 2018-2021: Delta 15, GF65 Thin, GS75 and their relatives - the firmware does not implement the interface GhostDeck normally uses for profiles. Every call is refused, whatever MSI software is installed, so the clean-install fix above does not apply. The same firmware still serves MSI's **data blocks**, and GhostDeck can work through them: the **backup WMI path**. What you see depends on whether your model's block layout is on record.
+
+**Model on record** (today the GF65 Thin 10UE and the Delta 15 A5EFK): Status names the model and says the laptop works over the backup path. Profile switching starts locked. A **path test**, offered at start and in the tray menu, checks in about a minute and a half that switching works on your machine: it reads the current state, changes one setting and puts it back, goes through the four profiles with short processor loads, and restores what it found. An optional step checks the fan curve. When the test passes, switching is unlocked on that machine; the result is a text file on the desktop, and attaching it to your issue helps the next owner of the same model. Fan Boost, the charge limit, the keyboard backlight and the webcam switch are not available on this path. Passed so far on a GF65 Thin 10UE ([issue #230](../../../issues/230)).
+
+**Model not on record**, but the blocks answer in the layout GhostDeck knows: the badge says *monitoring only*, Status shows temperatures and fan speeds, and a card at start points to the Report tab. *Report my model* captures the blocks in each scenario of your MSI app, and the model can then be added through the signed model database without waiting for a release.
+
+![Status on the backup path](images/backup_path_status.png)
+
+![The path test: intro, running, result](images/path_test_running.png)
+
+How it works, and why writes are gated: [TECHNICAL.md §81](TECHNICAL.md#81-the-backup-wmi-path-data-blocks-when-the-method-interface-is-refused-issues-48-117-230).
+
 ## Can GhostDeck control my keyboard backlight? Why not on my laptop?
 
 It depends on which of the two backlight designs your machine has, and the difference is in the hardware, not in the app.

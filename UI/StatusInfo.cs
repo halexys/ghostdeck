@@ -14,4 +14,7 @@ public sealed record StatusInfo(
     bool Telemetry = false,
     // Backup WMI path (TECHNICAL §81): the firmware refuses the method interface and the app
     // works with this model through its data blocks.
-    bool BackupPath = false);
+    bool BackupPath = false,
+    // Monitoring-only because Windows has no definition of the interface at all (the probe
+    // ended ClassMissing / InstanceMissing), as opposed to the firmware refusing the call.
+    bool SchemaMissing = false);

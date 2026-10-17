@@ -125,7 +125,10 @@ public sealed class TrayContext : ApplicationContext
         _firmware = probe.Firmware;
         // The method interface refused the call: a model with a backup-path layout on record
         // is read through its data blocks instead (identified by the BIOS version).
-        if (!_simulate && probe.Status == FirmwareProbeStatus.NotSupported && Ec.TryBackupPath() is { Active: true } bp)
+        // "not supported" is the firmware refusing the call; "class missing" is Windows without a
+        // definition of the interface (an old Dragon Center schema) - the blocks may serve either.
+        if (!_simulate && probe.Status is FirmwareProbeStatus.NotSupported or FirmwareProbeStatus.ClassMissing or FirmwareProbeStatus.InstanceMissing
+            && Ec.TryBackupPath() is { Active: true } bp)
             _firmware = bp.Firmware;
         _device = Devices.Detect(_firmware);
         if (Ec.OnBackupPath)
@@ -196,6 +199,7 @@ public sealed class TrayContext : ApplicationContext
         ShowState();
         if (_firmwareChanged) ShowFirmwareDialog();
         else if (Ec.OnBackupPath && !Writable) PromptBackupTest();
+        else if (_telemetryOnly && !_simulate && EcBlocks.LayoutKnown()) PromptBlocksReport();
         if (travelEnded != null) ShowCard("//TRAVEL", Lang.T("set_travel"), travelEnded);
         if (_settings.OverlayEnabled) SetOverlay(true, osd: false);
 
@@ -598,6 +602,24 @@ public sealed class TrayContext : ApplicationContext
 
     // Offered once per start while the test has not passed here. Via a one-shot timer so the
     // card opens once the message loop is running.
+    // A machine whose model is not in the database, but whose data blocks answer in the layout
+    // three boards have shown: the one thing that unlocks it is a report, so say so once per start.
+    private void PromptBlocksReport()
+    {
+        var t = new System.Windows.Forms.Timer { Interval = 1800 };
+        t.Tick += (_, _) =>
+        {
+            t.Stop(); t.Dispose();
+            if (_bptCard is { IsDisposed: false }) return;
+            var card = new GhostCardForm("//REPORT", Lang.T("blocks_hint_title"), Lang.T("blocks_report_hint"),
+                Lang.T("blocks_open_report"), Lang.T("fw_dlg_later"), () => OpenMain(MainTab.Report));
+            _bptCard = card;
+            card.Show();
+            card.Activate();
+        };
+        t.Start();
+    }
+
     private void PromptBackupTest()
     {
         var t = new System.Windows.Forms.Timer { Interval = 1800 };
@@ -759,6 +781,10 @@ public sealed class TrayContext : ApplicationContext
         {
             var probe = Ec.ProbeFirmware();
             _probeStatus = probe.Status;
+            // refused or unknown to Windows: the data blocks may still carry the model
+            if (probe.Status is FirmwareProbeStatus.NotSupported or FirmwareProbeStatus.ClassMissing or FirmwareProbeStatus.InstanceMissing
+                && Ec.TryBackupPath() is { Active: true } late)
+                probe = new FirmwareProbe(FirmwareProbeStatus.Success, late.Firmware, null);
             if (probe.Status == FirmwareProbeStatus.Success)
             {
                 DisarmProbeRetry();
@@ -794,6 +820,12 @@ public sealed class TrayContext : ApplicationContext
     private void RedetectFromFirmware()
     {
         _device = Devices.Detect(_firmware);
+        if (Ec.OnBackupPath)
+        {
+            if (BackupPathTest.RecoverPending(_firmware) is { } recovered) ChangeLog.Add(ChangeSource.Test, recovered);
+            Ec.OpenBackupWrites(Writable);
+            if (!Writable) PromptBackupTest();
+        }
         ResolveExtras();
         _telemetryOnly = !Known && MsiTelemetry.Available();
         if (Known)
@@ -2148,7 +2180,7 @@ public sealed class TrayContext : ApplicationContext
         if (_telemetryOnly)
         {
             var t = MsiTelemetry.Read();
-            return new HwSnapshot(t.CpuTemp, t.GpuTemp, 0, 0, 0, _firmware);
+            return new HwSnapshot(t.CpuTemp, t.GpuTemp, t.CpuFan, t.GpuFan, 0, _firmware, t.CpuRpm, t.GpuRpm);
         }
         return new HwSnapshot(0, 0, 0, 0, 0, _firmware);
     }
@@ -2334,7 +2366,8 @@ public sealed class TrayContext : ApplicationContext
             var (tier, color) = TierBadge();
             return new StatusInfo(_current, Writable, Known, DeviceName(), tier, color,
                                   _switches, DateTime.Now - _profileSince, Autostart.Known, AppVersion(),
-                                  _telemetryOnly, Ec.OnBackupPath);
+                                  _telemetryOnly, Ec.OnBackupPath,
+                                  _probeStatus is FirmwareProbeStatus.ClassMissing or FirmwareProbeStatus.InstanceMissing);
         },
         Hw = () => ReadHwOrTelemetry(),
         Current = () => _current,

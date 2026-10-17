@@ -328,7 +328,8 @@ public static class Cli
         var probe = Ec.ProbeFirmware();
         string fw = probe.Firmware;
         // method interface refused: a model with a backup-path layout is read through its data blocks
-        if (probe.Status == FirmwareProbeStatus.NotSupported && Ec.TryBackupPath() is { Active: true } bp)
+        if (probe.Status is FirmwareProbeStatus.NotSupported or FirmwareProbeStatus.ClassMissing or FirmwareProbeStatus.InstanceMissing
+            && Ec.TryBackupPath() is { Active: true } bp)
             fw = bp.Firmware;
         var dev = Devices.Detect(fw);
         // Legacy ExperimentalEnabled is honoured read-only here: a one-shot CLI call must not
@@ -367,7 +368,7 @@ public static class Cli
                         // (#48) monitoring-only boards: temperatures come from the vendor WMI blocks
                         telemetry = true;
                         var t = MsiTelemetry.Read();
-                        hw = new HwSnapshot(t.CpuTemp, t.GpuTemp, 0, 0, 0, fw);
+                        hw = new HwSnapshot(t.CpuTemp, t.GpuTemp, t.CpuFan, t.GpuFan, 0, fw, t.CpuRpm, t.GpuRpm);
                     }
                     int? kbd = null; bool? webcam = null; bool? fnLeft = null;
                     if (dev != null)

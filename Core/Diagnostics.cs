@@ -78,7 +78,7 @@ public static class Diagnostics
         sb.AppendLine($"Firmware probe: {probe.Status}"
                       + (probe.Firmware.Length > 0 ? $"  ({probe.Firmware})" : "")
                       + (probe.Error != null ? $"  [{probe.Error.GetType().Name}: {probe.Error.Message}]" : ""));
-        // Checked only after the method interface answered "not supported" (see Ec.TryBackupPath)
+        // Checked when the method interface is refused or not registered in Windows (see Ec.TryBackupPath)
         var bp = Ec.LastBackupProbe;
         sb.AppendLine("Backup path (data blocks): " + (bp == null
             ? "not checked"

@@ -23,7 +23,7 @@ public static class MsiTelemetry
 {
     private const int TempByteIndex = 1;
 
-    public readonly record struct Sample(int CpuTemp, int GpuTemp)
+    public readonly record struct Sample(int CpuTemp, int GpuTemp, int CpuFan = 0, int GpuFan = 0, int CpuRpm = 0, int GpuRpm = 0)
     {
         public bool Any => CpuTemp > 0 || GpuTemp > 0;
     }
@@ -36,7 +36,21 @@ public static class MsiTelemetry
     {
         if ((DateTime.UtcNow - _lastAt).TotalSeconds < 2) return _last;
         _lastAt = DateTime.UtcNow;
-        _last = new Sample(ReadBlockByte("MSI_CPU", "CPU"), ReadBlockByte("MSI_VGA", "VGA"));
+        int cpu = ReadBlockByte("MSI_CPU", "CPU"), gpu = ReadBlockByte("MSI_VGA", "VGA");
+        // Fan duty and the tachometers come along only in the layout three boards have shown
+        // (EcBlocks.LayoutKnown); any other block layout stays temperatures-only.
+        int cf = 0, gf = 0, cr = 0, gr = 0;
+        if ((cpu > 0 || gpu > 0) && EcBlocks.LayoutKnown())
+        {
+            var l = Devices.DragonEraLayout;
+            try
+            {
+                cf = Slot(l.CpuDuty); gf = Slot(l.GpuDuty);
+                cr = Ec.RpmFromRaw(Slot(l.CpuRpm), 478000); gr = Ec.RpmFromRaw(Slot(l.GpuRpm), 478000);
+            }
+            catch { }
+        }
+        _last = new Sample(cpu, gpu, cf, gf, cr, gr);
         return _last;
     }
 
@@ -46,25 +60,16 @@ public static class MsiTelemetry
     /// <summary>Raw survey of the vendor blocks for the diagnostic package (see EcBlocks.Dump).</summary>
     public static string Dump() => EcBlocks.Dump();
 
+    private static int Slot(BlockRef? r) => r == null ? 0 : EcBlocks.Read(r);
+
+    // One query per block, shared with everything else that reads the blocks (EcBlocks caches
+    // it for a second). Absent class, access denied, WMI hiccup - all mean "no telemetry".
     private static int ReadBlockByte(string cls, string prop)
     {
         try
         {
-            using var searcher = new ManagementObjectSearcher(
-                @"root\wmi", $"SELECT InstanceName, {prop} FROM {cls}");
-            foreach (ManagementObject o in searcher.Get())
-            {
-                // instance name ends with "_<byte index>"
-                string name = o["InstanceName"]?.ToString() ?? "";
-                int us = name.LastIndexOf('_');
-                if (us < 0 || !int.TryParse(name[(us + 1)..], out int idx) || idx != TempByteIndex) continue;
-                var v = o[prop];
-                if (v == null) continue;
-                int t = Convert.ToInt32(v);
-                return t is > 0 and < 120 ? t : 0;   // same sanity window as the EC path
-            }
+            return EcBlocks.ReadClass(cls).TryGetValue(TempByteIndex, out int t) && t is > 0 and < 120 ? t : 0;   // same sanity window as the EC path
         }
-        catch { }   // absent class, access denied, WMI hiccup - all mean "no telemetry"
-        return 0;
+        catch { return 0; }
     }
 }

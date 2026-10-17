@@ -108,6 +108,50 @@ public static class EcBlocks
     /// <summary>Drop cached block values (after sleep/resume the first sample must be fresh).</summary>
     public static void DropCache() { lock (_lock) _cache.Clear(); }
 
+    // ---------------- layout fingerprint ----------------
+    // Three boards of three generations (Delta 15 A5EFK, GF65 Thin 10UE, GS75 Stealth 8SE)
+    // answered with the same instance count in every block and the same constant markers.
+    // A machine that shows this fingerprint is READ in that layout - fan duty and tachometers
+    // in the monitoring-only mode, the report wizard's snapshots. Writing still needs a model
+    // entry: the fingerprint says where the registers are, a recipe says what may go in them.
+    private static bool? _layoutKnown;
+
+    public static bool LayoutKnown()
+    {
+        if (_layoutKnown is { } known) return known;
+        bool ok;
+        try
+        {
+            var cpu = ReadClass("MSI_CPU"); var vga = ReadClass("MSI_VGA");
+            var sys = ReadClass("MSI_System"); var ap = ReadClass("MSI_AP");
+            ok = cpu.Count == 19 && vga.Count == 18 && sys.Count == 21 && ap.Count == 8
+                 && cpu.GetValueOrDefault(0) == 13 && sys.GetValueOrDefault(1) == 2
+                 && sys.GetValueOrDefault(11) == 5 && sys.GetValueOrDefault(19) == 226
+                 && ap.GetValueOrDefault(1) == 20;
+        }
+        catch { ok = false; }
+        _layoutKnown = ok;
+        return ok;
+    }
+
+    /// <summary>
+    /// Every slot of the surveyed blocks, read fresh, as "Class[index]" -> value. The report
+    /// wizard takes one per scenario on a machine that has no EC image to capture.
+    /// </summary>
+    public static Dictionary<string, int> Snapshot(Action<int, int>? progress = null)
+    {
+        DropCache();
+        var all = new Dictionary<string, int>(StringComparer.Ordinal);
+        for (int i = 0; i < DumpClasses.Length; i++)
+        {
+            string cls = DumpClasses[i];
+            try { foreach (var kv in ReadClass(cls).OrderBy(k => k.Key)) all[$"{cls}[{kv.Key}]"] = kv.Value; }
+            catch { }   // a block this firmware does not serve is simply absent from the snapshot
+            progress?.Invoke(i + 1, DumpClasses.Length);
+        }
+        return all;
+    }
+
     /// <summary>One slot, read from the firmware now rather than from the one-second cache.</summary>
     public static int ReadFresh(BlockRef r)
     {

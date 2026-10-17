@@ -29,6 +29,10 @@ public sealed class ReportPage : ThemedPage
     private static readonly byte[] SnapshotAddrs = { 0x34, 0xD2, 0xD4, 0xEB, 0xF2, 0xF4, 0xD7, 0xEF };
 
     private readonly byte[]?[] _dumps = new byte[Steps.Length][];
+    // A machine with no EC image to capture (backup path, or monitoring-only with the blocks
+    // answering): the scenarios are captured slot by slot from the data blocks instead.
+    private readonly Dictionary<string, int>?[] _blockDumps = new Dictionary<string, int>?[Steps.Length];
+    private bool UseBlocks => Ec.OnBackupPath || (!D.Status().Known && MsiTelemetry.Available());
     private readonly StepRowT[] _rows;
     private readonly InfoCardT _card;
     private readonly Button _capture = new();
@@ -152,6 +156,7 @@ public sealed class ReportPage : ThemedPage
         {
             if (_capturing) return;
             Array.Clear(_dumps, 0, _dumps.Length);
+            Array.Clear(_blockDumps, 0, _blockDumps.Length);
             _step = 0; _savedPath = null; _barValue = 0; _lastPct = -1;
             RefreshSteps(); Invalidate();
         };
@@ -813,7 +818,19 @@ public sealed class ReportPage : ThemedPage
         int idx = _step;
         Task.Run(() =>
         {
-            try { var dump = Ec.DumpAll(ReportProgress); BeginInvoke(() => CaptureDone(idx, dump, null)); }
+            try
+            {
+                if (UseBlocks)
+                {
+                    var snap = EcBlocks.Snapshot((done, total) => ReportProgress(done * 256 / total - 1));
+                    BeginInvoke(() => { _blockDumps[idx] = snap; CaptureDone(idx, Array.Empty<byte>(), null); });
+                }
+                else
+                {
+                    var dump = Ec.DumpAll(ReportProgress);
+                    BeginInvoke(() => CaptureDone(idx, dump, null));
+                }
+            }
             catch (Exception ex) { BeginInvoke(() => CaptureDone(idx, null, ex)); }
         });
     }
@@ -877,6 +894,7 @@ public sealed class ReportPage : ThemedPage
 
     private string BuildReport()
     {
+        if (_blockDumps.Any(d => d != null)) return BuildBlockReport();
         var sb = new StringBuilder();
         sb.AppendLine("=== GhostDeck — model support report ===");
         sb.AppendLine($"Generated: {DateTime.Now:yyyy-MM-dd HH:mm}  (READ-ONLY, no EC writes)");
@@ -925,8 +943,87 @@ public sealed class ReportPage : ThemedPage
         return true;
     }
 
+    // ---- the same report from the data blocks (backup path / monitoring-only machines) ----
+    private static readonly string[] BlockSnapshotSlots =
+        { "MSI_System[7]", "MSI_System[8]", "MSI_System[9]", "MSI_System[10]", "MSI_CPU[1]", "MSI_CPU[2]", "MSI_AP[2]", "MSI_AP[4]" };
+
+    private string BuildBlockReport()
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine("=== GhostDeck - model support report (WMI data blocks) ===");
+        sb.AppendLine($"Generated: {DateTime.Now:yyyy-MM-dd HH:mm}  (READ-ONLY, nothing written)");
+        sb.AppendLine($"App version: {D.AppVersion()}");
+        sb.AppendLine($"Firmware: {(string.IsNullOrEmpty(D.Firmware()) ? "(unknown)" : D.Firmware())}   BIOS: {EcBlocks.BiosVersion()}");
+        sb.AppendLine($"Detected in app: {(string.IsNullOrEmpty(ModelName()) ? "(unsupported / unknown)" : ModelName())}");
+        sb.AppendLine("This machine's firmware does not answer on the MSI_ACPI methods; the values below are the device's WMI data blocks, slot by slot (class[index]).");
+        sb.AppendLine();
+        var keys = _blockDumps.Where(d => d != null).SelectMany(d => d!.Keys).Distinct().OrderBy(k => k, new SlotOrder()).ToList();
+        sb.AppendLine("--- Diff: slots that change between scenarios ---");
+        sb.AppendLine("(temperatures, fan duty and tachometers naturally fluctuate - ignore sensor-looking drift)");
+        sb.Append("Slot".PadRight(22));
+        foreach (var st in Steps) sb.Append(st.msiName.PadRight(20));
+        sb.AppendLine();
+        foreach (var k in keys)
+        {
+            if (AllEqualSlot(k)) continue;
+            sb.Append(k.PadRight(22));
+            foreach (var d in _blockDumps) sb.Append((d != null && d.TryGetValue(k, out int v) ? $"{v} (0x{v:X2})" : "--").PadRight(20));
+            sb.AppendLine();
+        }
+        sb.AppendLine();
+        sb.AppendLine("--- Full block snapshots ---");
+        for (int i = 0; i < Steps.Length; i++)
+        {
+            sb.AppendLine(); sb.AppendLine($"[{Steps[i].msiName}]");
+            var d = _blockDumps[i];
+            if (d == null) { sb.AppendLine("(not captured)"); continue; }
+            foreach (var k in keys) if (d.TryGetValue(k, out int v)) sb.AppendLine($"{k.PadRight(22)} {v,3}  (0x{v:X2})");
+        }
+        return sb.ToString();
+    }
+
+    private bool AllEqualSlot(string key)
+    {
+        int? first = null;
+        foreach (var d in _blockDumps)
+        {
+            if (d == null) continue;
+            int v = d.TryGetValue(key, out int x) ? x : -1;
+            if (first == null) first = v; else if (v != first) return false;
+        }
+        return true;
+    }
+
+    private string BuildBlockSnapshot()
+    {
+        var sb = new StringBuilder();
+        sb.Append("Slot".PadRight(16));
+        foreach (var st in Steps) sb.Append(st.msiName.PadRight(9));
+        sb.AppendLine();
+        foreach (var k in BlockSnapshotSlots)
+        {
+            sb.Append(k.PadRight(16));
+            foreach (var d in _blockDumps) sb.Append((d != null && d.TryGetValue(k, out int v) ? $"{v:X2}" : "--").PadRight(9));
+            sb.AppendLine();
+        }
+        return sb.ToString();
+    }
+
+    /// <summary>"MSI_CPU[2]" before "MSI_CPU[10]": class name first, then the numeric index.</summary>
+    private sealed class SlotOrder : IComparer<string>
+    {
+        public int Compare(string? a, string? b)
+        {
+            static (string Cls, int Idx) Split(string? s) { int o = s!.IndexOf('['); return (s[..o], int.Parse(s[(o + 1)..^1])); }
+            var (ca, ia) = Split(a); var (cb, ib) = Split(b);
+            int c = string.CompareOrdinal(ca, cb);
+            return c != 0 ? c : ia.CompareTo(ib);
+        }
+    }
+
     private string BuildSnapshot()
     {
+        if (_blockDumps.Any(d => d != null)) return BuildBlockSnapshot();
         var sb = new StringBuilder();
         sb.Append("Addr ");
         foreach (var st in Steps) sb.Append(st.msiName.PadRight(9));
