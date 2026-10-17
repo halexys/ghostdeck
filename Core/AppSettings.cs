@@ -179,6 +179,7 @@ public sealed class AppSettings
     public bool CrosshairEnabled { get; set; }                          // last visibility, restored at start like the overlay
     public CrosshairStyle Crosshair { get; set; } = new();              // the live look
     public List<CrosshairStyle> CrosshairPresets { get; set; } = new(); // named copies of the look, no limit
+    public string? CrosshairActivePreset { get; set; }                  // the preset the look came from (kept while edited; Save writes back)
     // The custom picture travels inside an EXPORTED settings file only: the export fills this
     // from crosshair\custom.png, the import writes it back and clears it. Never saved to
     // settings.json (null is skipped), so the picture is not duplicated on every save.
@@ -476,6 +477,7 @@ public sealed class AppSettings
         foreach (var p in CrosshairPresets) { p.Name = p.Name.Trim(); p.Normalize(); }
         foreach (var s in Scenes)
             if (s.CrosshairPreset is { } cp && FindCrosshairPreset(cp) == null) s.CrosshairPreset = null;
+        if (CrosshairActivePreset is { } acp && FindCrosshairPreset(acp) == null) CrosshairActivePreset = null;
         foreach (var k in Hotkeys.Keys.Where(k => k.StartsWith("Scene:", StringComparison.OrdinalIgnoreCase)
                                                   && !Scenes.Any(s => s.HotkeyKey.Equals(k, StringComparison.OrdinalIgnoreCase))).ToList())
             Hotkeys.Remove(k);
@@ -617,6 +619,7 @@ public sealed class AppSettings
         Crosshair = (src.Crosshair ?? new CrosshairStyle()).Clone();
         CrosshairPresets.Clear();
         foreach (var p in src.CrosshairPresets) CrosshairPresets.Add(p.Clone());
+        CrosshairActivePreset = src.CrosshairActivePreset;
         // the picture carried by the file replaces the stored one; a file without one leaves it alone
         if (!string.IsNullOrEmpty(src.CrosshairImageBase64))
         {
@@ -738,6 +741,7 @@ public sealed class AppSettings
         c.CrosshairEnabled = CrosshairEnabled;
         c.Crosshair = Crosshair.Clone();
         foreach (var p in CrosshairPresets) c.CrosshairPresets.Add(p.Clone());
+        c.CrosshairActivePreset = CrosshairActivePreset;
         c.SettingsGamingSub = SettingsGamingSub;
         return c;
     }

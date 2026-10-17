@@ -5,26 +5,31 @@ namespace GhostDeck;
 
 // =====================================================================
 //  Settings -> Gaming -> Crosshair (roadmap #118, discussion #247)
-//  Two cards: the crosshair itself (switch, shape tiles, own picture, preview, the anti-cheat
-//  note) and its look (presets, colour, sliders, position, click effect, aim-hide, share code,
-//  export). Every edit redraws the preview and the window at once; the file is saved a moment
-//  later, so a slider drag does not write settings.json on every pixel.
+//  The Gaming group has three views behind one switch: Start (a tile per feature with its
+//  state and a quick switch, like the Settings Start page), the overlay panel, and the
+//  crosshair. The crosshair view is three cards: the crosshair itself (switch, hotkey, shape
+//  tiles, own picture, preview, the notes), its look (presets, colour, sliders, position,
+//  click effect, aim-hide) and sharing (share code, PNG / SVG export). Every edit redraws the
+//  preview and the window at once; the file is saved a moment later, so a slider drag does not
+//  write settings.json on every pixel.
 // =====================================================================
 public sealed partial class SettingsPage
 {
-    private SegControl? _gamingSeg;               // Gaming: overlay | crosshair
-    private CardSection? _chCard, _chLookCard;
+    private const int GamingStart = 0, GamingOverlay = 1, GamingCrosshair = 2;
+    private SegControl? _gamingSeg;
+    private readonly List<GroupTile> _gamingTiles = new();
+    private CardSection? _chCard, _chLookCard, _chShareCard;
     private ToggleSwitch? _chToggle;
     private CrosshairPreview? _chPreview;
     private CrosshairKindPicker? _chPicker;
-    private Action? _syncChPreset;                // re-points the preset list at the live look
+    private Action? _syncChPreset;                // re-points the preset list and its buttons at the live look
     private bool _chSyncing;
     private System.Windows.Forms.Timer? _chSaveTimer;
     private Bitmap? _chImage;                     // the custom picture, for the tiles and the preview
     private DateTime _chImageStamp = DateTime.MinValue;
     private bool _chImageLoaded;
 
-    private int GamingSub => Math.Clamp(D.Settings.SettingsGamingSub, 0, 1);
+    private int GamingSub => Math.Clamp(D.Settings.SettingsGamingSub, GamingStart, GamingCrosshair);
 
     private static readonly string[] KindKeys =
     {
@@ -32,18 +37,67 @@ public sealed partial class SettingsPage
         "ch_kind_t", "ch_kind_x", "ch_kind_chevron", "ch_kind_squaredot", "ch_kind_reticle", "ch_kind_image",
     };
 
+    // ---------------- the Gaming switch and its Start view ----------------
+    private void BuildGamingViews()
+    {
+        _gamingSeg = new SegControl(new[] { Lang.T("ch_gaming_start"), Lang.T("overlay_title"), Lang.T("ch_title") }, GamingSub) { Size = new Size(480, 34) };
+        _gamingSeg.SelectedChanged += i => SelectGamingSub(i);
+        Controls.Add(_gamingSeg);
+
+        // Start: one tile per feature, same look as the Settings Start page; the click opens the view
+        var ov = new GroupTile("", Lang.T("overlay_title"), Lang.T("ch_tile_overlay_desc"), () => SelectGamingSub(GamingOverlay));
+        ov.AttachToggle(() => D.Settings.OverlayEnabled, v => { D.SetOverlay(v); RefreshGamingTiles(); });
+        var ch = new GroupTile("", Lang.T("ch_title"), Lang.T("ch_tile_ch_desc"), () => SelectGamingSub(GamingCrosshair));
+        ch.AttachToggle(() => D.CrosshairOn(), v => { D.SetCrosshair(v); RefreshGamingTiles(); });
+        _gamingTiles.Add(ov); _gamingTiles.Add(ch);
+        foreach (var t in _gamingTiles) Controls.Add(t);
+        RefreshGamingTiles();
+
+        BuildCrosshairCards();
+    }
+
+    private void SelectGamingSub(int i)
+    {
+        i = Math.Clamp(i, GamingStart, GamingCrosshair);
+        if (D.Settings.SettingsGamingSub != i) { D.Settings.SettingsGamingSub = i; D.SaveSettings(); }
+        if (_gamingSeg != null && _gamingSeg.Selected != i) _gamingSeg.Selected = i;   // silent setter
+        AutoScrollPosition = Point.Empty;
+        ApplyVisibility();
+        Layout2();
+        PerformLayout();
+        Invalidate();
+    }
+
+    private void RefreshGamingTiles()
+    {
+        if (_gamingTiles.Count < 2) return;
+        var s = D.Settings;
+        int mc = Enum.GetValues<OverlayMetric>().Count(m => s.HasMetric(m));
+        _gamingTiles[0].SetState(Lang.T(s.OverlayEnabled ? "st_on" : "st_off") + " · " + string.Format(Lang.T("st2_metrics"), mc)
+                                 + " · " + Lang.T(string.Equals(s.OverlayLayout, "Bar", StringComparison.OrdinalIgnoreCase) ? "ov_layout_bar" : "ov_layout_card"), s.OverlayEnabled);
+        var st = s.Crosshair;
+        _gamingTiles[1].SetState(Lang.T(D.CrosshairOn() ? "st_on" : "st_off") + " · " + Lang.T(KindKeys[Math.Clamp(st.Kind, 0, KindKeys.Length - 1)])
+                                 + " · " + st.Size + " px · " + st.Color.ToUpperInvariant(), D.CrosshairOn());
+        foreach (var t in _gamingTiles) t.SyncToggle();
+    }
+
+    // ---------------- the crosshair cards ----------------
     private void BuildCrosshairCards()
     {
         _chCard = BuildChMain();
         _chLookCard = BuildChLook();
+        _chShareCard = BuildChShare();
         _gLeft[SubGaming].Add(_chCard);
         _gRight[SubGaming].Add(_chLookCard);
+        _gRight[SubGaming].Add(_chShareCard);
     }
 
     private void RebuildCrosshairCards()
     {
         if (_chCard != null) _chCard = RebuildCard(_chCard, BuildChMain);
         if (_chLookCard != null) _chLookCard = RebuildCard(_chLookCard, BuildChLook);
+        if (_chShareCard != null) _chShareCard = RebuildCard(_chShareCard, BuildChShare);
+        RefreshGamingTiles();
     }
 
     // The window was toggled elsewhere (tray, hotkey, brick, scene): follow it.
@@ -51,6 +105,7 @@ public sealed partial class SettingsPage
     {
         if (_chToggle != null) _chToggle.Checked = D.CrosshairOn();
         _syncChPreset?.Invoke();
+        RefreshGamingTiles();
     }
 
     /// <summary>After any edit of the live look: redraw here and on the screen, save a little later.</summary>
@@ -61,6 +116,7 @@ public sealed partial class SettingsPage
         _chPicker?.Invalidate();
         D.ApplyCrosshairSettings();
         _syncChPreset?.Invoke();
+        RefreshGamingTiles();
         _chSaveTimer ??= new System.Windows.Forms.Timer { Interval = 400 };
         _chSaveTimer.Stop();
         _chSaveTimer.Tick -= ChSaveTick;
@@ -107,14 +163,40 @@ public sealed partial class SettingsPage
         return b;
     }
 
+    /// <summary>A ghost button that reads as unavailable: a disabled WinForms button loses its text on the dark surface.</summary>
+    private static void GhostAvailable(Button b, bool on)
+    {
+        b.Tag = on ? null : "off";
+        b.ForeColor = on ? Theme.Text : Theme.Faint;
+        b.FlatAppearance.BorderColor = on ? Theme.BorderStrong : Theme.Border;
+        b.FlatAppearance.MouseOverBackColor = on ? Theme.AccentSoft : Theme.Surface;
+        b.Cursor = on ? Cursors.Hand : Cursors.No;
+    }
+
+    /// <summary>Jumps to the Shortcuts group and flashes its card, so the crosshair hotkey is found at once.</summary>
+    public void FocusHotkeys()
+    {
+        SelectSub(SubHotkeys, save: true);
+        _hkCard?.Flash(FlashPink, 30);
+    }
+
     // ---------------- card 1: the crosshair ----------------
     private CardSection BuildChMain()
     {
         var st = D.Settings.Crosshair;
         var card = new CardSection(Lang.T("ch_title"), "");   // MDL2 ring-with-dot glyph (the closest to a reticle)
-        _chToggle = Toggle(D.CrosshairOn(), v => { D.SetCrosshair(v); RefreshTiles(); });
+        _chToggle = Toggle(D.CrosshairOn(), v => { D.SetCrosshair(v); RefreshTiles(); RefreshGamingTiles(); });
         card.AddRow(Lang.T("ch_enable"), _chToggle);
         card.AddRow(null, Note(Lang.T("ch_desc"), "muted"));
+
+        // the hotkey as it is set now, and the way to the group where it is changed
+        string hkText = Lang.T("ch_hotkey_off");
+        if (D.Settings.Hotkeys.TryGetValue("Crosshair", out var hd) && hd.IsSet)
+            hkText = hd.Display + (hd.Enabled && D.Settings.HotkeysEnabled ? "" : "  " + Lang.T("ch_hotkey_off"));
+        var hkLabel = new Label { Text = hkText, AutoSize = true, Font = new Font("Segoe UI", 10.5f), Margin = new Padding(0, 9, 14, 0) };
+        var hkBtn = Ghost(Lang.T("ch_hotkey_edit"));
+        hkBtn.Click += (_, _) => FocusHotkeys();
+        card.AddRow(Lang.T("ch_hotkey"), Flow(hkLabel, hkBtn));
 
         _chPicker = new CrosshairKindPicker(this) { Name = "wp-wide" };
         card.AddRow(null, _chPicker);
@@ -170,76 +252,142 @@ public sealed partial class SettingsPage
     // ---------------- card 2: the look ----------------
     private CardSection BuildChLook()
     {
-        var st = D.Settings.Crosshair;
+        var s = D.Settings;
+        var st = s.Crosshair;
         var card = new CardSection(Lang.T("ch_look"), "");   // MDL2 colour glyph
 
-        // presets: "(current look)" + one entry per saved preset; picking one loads it
-        var presets = D.Settings.CrosshairPresets;
+        // Presets. The active one is remembered by name, so an edit does not detach it: the
+        // list keeps its name with a "modified" mark, and Save writes the look back into it.
+        var presets = s.CrosshairPresets;
+        CrosshairStyle? Active() => s.CrosshairActivePreset is { Length: > 0 } an ? s.FindCrosshairPreset(an) : null;
+        if (Active() == null) s.CrosshairActivePreset = null;
         var items = new List<string> { Lang.T("ch_preset_custom") };
         items.AddRange(presets.Select(p => p.Name));
-        int PresetIndex() { for (int i = 0; i < presets.Count; i++) if (presets[i].LooksLike(st)) return i + 1; return 0; }
-        var combo = Combo(items.ToArray(), PresetIndex());
+        int ActiveIndex() => Active() is { } ap ? presets.IndexOf(ap) + 1 : 0;
+        var combo = Combo(items.ToArray(), ActiveIndex());
+        var modified = new Label { Text = Lang.T("ch_preset_modified"), AutoSize = true, Font = new Font("Segoe UI", 9f), Tag = "muted" };
+        var save = Ghost(Lang.T("set_save"));
+        var saveAs = Ghost(Lang.T("ch_preset_saveas"));
         var del = Ghost(Lang.T("ch_preset_delete"));
+        del.ForeColor = Theme.Red; del.FlatAppearance.BorderColor = Theme.Red;
+        bool armed = false;
+        var disarm = new System.Windows.Forms.Timer { Interval = 3000 };
+        disarm.Tick += (_, _) => { disarm.Stop(); armed = false; if (!del.IsDisposed) del.Text = Lang.T("ch_preset_delete"); };
         _syncChPreset = () =>
         {
-            int i = PresetIndex();
+            var ap = Active();
+            int i = ap == null ? 0 : presets.IndexOf(ap) + 1;
             _chSyncing = true;
             if (combo.SelectedIndex != i) combo.SelectedIndex = i;
             _chSyncing = false;
-            del.Enabled = i > 0;
+            bool mod = ap != null && !ap.LooksLike(st);
+            bool relayout = modified.Visible != mod || save.Visible != mod || del.Visible != (ap != null);
+            modified.Visible = mod; save.Visible = mod; del.Visible = ap != null;
+            if (relayout) Layout2();
         };
-        del.Enabled = PresetIndex() > 0;
         combo.SelectedIndexChanged += (_, _) =>
         {
             if (_chSyncing) return;
             int i = combo.SelectedIndex;
-            if (i <= 0 || i > presets.Count) return;
+            if (i <= 0) { s.CrosshairActivePreset = null; D.SaveSettings(); RebuildCrosshairCards(); return; }
+            if (i > presets.Count) return;
             st.CopyFrom(presets[i - 1]);
+            s.CrosshairActivePreset = presets[i - 1].Name;
             D.SaveSettings();
             D.ApplyCrosshairSettings();
             RebuildCrosshairCards();
         };
         card.AddRow(Lang.T("ch_preset"), combo);
-        var save = Ghost(Lang.T("ch_preset_save"));
         save.Click += (_, _) =>
         {
-            string? name = InputDialog.Ask(FindForm(), Lang.T("ch_preset_save"), Lang.T("ch_preset_name"), "",
-                n => D.Settings.FindCrosshairPreset(n) != null ? Lang.T("ch_preset_taken") : null, "//CROSSHAIR");
+            if (Active() is not { } ap) return;
+            ap.CopyFrom(st);
+            D.SaveSettings();
+            _syncChPreset?.Invoke();
+        };
+        saveAs.Click += (_, _) =>
+        {
+            // a new name adds a preset; an existing one overwrites that preset (the label says so)
+            string? name = InputDialog.Ask(FindForm(), Lang.T("ch_preset_saveas"), Lang.T("ch_preset_name") + "\n" + Lang.T("ch_preset_name_note"),
+                s.CrosshairActivePreset ?? "", null, "//CROSSHAIR");
             if (string.IsNullOrWhiteSpace(name)) return;
-            var p = st.Clone(); p.Name = name.Trim();
-            presets.Add(p);
+            name = name.Trim();
+            if (s.FindCrosshairPreset(name) is { } existing) existing.CopyFrom(st);
+            else { var p = st.Clone(); p.Name = name; presets.Add(p); }
+            s.CrosshairActivePreset = name;
             D.SaveSettings();
             RebuildCrosshairCards();
         };
         del.Click += (_, _) =>
         {
-            int i = combo.SelectedIndex;
-            if (i <= 0 || i > presets.Count) return;
-            string name = presets[i - 1].Name;
-            presets.RemoveAt(i - 1);
-            foreach (var sc in D.Settings.Scenes)
-                if (sc.CrosshairPreset is { } cp && cp.Equals(name, StringComparison.OrdinalIgnoreCase)) sc.CrosshairPreset = null;
+            if (Active() is not { } ap) return;
+            if (!armed) { armed = true; del.Text = Lang.T("ch_preset_delete_arm"); disarm.Start(); Layout2(); return; }
+            disarm.Stop(); armed = false;
+            presets.Remove(ap);
+            foreach (var sc in s.Scenes)
+                if (sc.CrosshairPreset is { } cp && cp.Equals(ap.Name, StringComparison.OrdinalIgnoreCase)) sc.CrosshairPreset = null;
+            s.CrosshairActivePreset = null;
             D.SaveSettings();
             RebuildCrosshairCards();
         };
-        card.AddRow(null, Flow(save, del));
+        card.AddRow(null, Flow(modified, save, saveAs, del));
+        _syncChPreset();
 
-        card.AddRow(null, ColorRow((Lang.T("ch_color"), () => st.Color, v => { st.Color = v; ChChanged(); })));
-
-        Slider Sl(int min, int max, int val, int step, string suffix, Action<int> set)
+        // colour: the GhostDeck palette as swatches (the current one marked) and any colour from the system picker
+        var swatches = new List<Panel>();
+        var colourFlow = new FlowLayoutPanel { AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, Margin = Padding.Empty, Padding = Padding.Empty, WrapContents = true };
+        foreach (var hex in Profiles.Palette)
         {
-            var s = new Slider(min, max, val, step, suffix) { Width = 300 };
-            s.ValueChanged += v => { set(v); ChChanged(); };
-            return s;
+            string ph = hex;
+            var sw = new Panel { Size = new Size(24, 22), BackColor = ColorTranslator.FromHtml(hex), Cursor = Cursors.Hand, Margin = new Padding(0, 4, 4, 4), Tag = hex };
+            sw.Paint += (_, e) =>
+            {
+                if (string.Equals(ColorTranslator.ToHtml(st.ColorValue), ph, StringComparison.OrdinalIgnoreCase))
+                {
+                    using var p1 = new Pen(Color.White, 2); e.Graphics.DrawRectangle(p1, 2, 2, sw.Width - 5, sw.Height - 5);
+                    using var p2 = new Pen(Color.FromArgb(80, 0, 0, 0), 1); e.Graphics.DrawRectangle(p2, 0, 0, sw.Width - 1, sw.Height - 1);
+                }
+            };
+            sw.Click += (_, _) => { st.Color = ph; ChChanged(); foreach (var p in swatches) p.Invalidate(); };
+            colourFlow.Controls.Add(sw); swatches.Add(sw);
         }
-        card.AddRow(Lang.T("ch_size"), Sl(CrosshairStyle.MinSize, CrosshairStyle.MaxSize, st.Size, 1, "", v => st.Size = v));
-        card.AddRow(Lang.T("ch_thickness"), Sl(1, CrosshairStyle.MaxThickness, st.Thickness, 1, "", v => st.Thickness = v));
-        card.AddRow(Lang.T("ch_outline"), Sl(0, CrosshairStyle.MaxOutline, st.Outline, 1, "", v => st.Outline = v));
-        card.AddRow(Lang.T("ch_opacity"), Sl(CrosshairStyle.MinOpacity, 100, st.Opacity, 1, "%", v => st.Opacity = v));
-        card.AddRow(Lang.T("ch_softness"), Sl(0, CrosshairStyle.MaxSoftness, st.Softness, 1, "", v => st.Softness = v));
-        card.AddRow(Lang.T("ch_rotation"), Sl(0, 359, st.Rotation, 1, "°", v => st.Rotation = v));
-        card.AddRow(Lang.T("ch_offset_x"), Sl(-CrosshairStyle.MaxOffset, CrosshairStyle.MaxOffset, st.OffsetX, 1, "", v => st.OffsetX = v));
-        card.AddRow(Lang.T("ch_offset_y"), Sl(-CrosshairStyle.MaxOffset, CrosshairStyle.MaxOffset, st.OffsetY, 1, "", v => st.OffsetY = v));
+        var any = Ghost(Lang.T("ch_color_any"));
+        any.Margin = new Padding(8, 0, 0, 0);
+        any.ForeColor = st.ColorValue;
+        any.Click += (_, _) =>
+        {
+            using var dlg = new ColorDialog { FullOpen = true, Color = st.ColorValue };
+            if (dlg.ShowDialog(FindForm()) != DialogResult.OK) return;
+            st.Color = ColorTranslator.ToHtml(dlg.Color);
+            any.ForeColor = dlg.Color;
+            ChChanged();
+            foreach (var p in swatches) p.Invalidate();
+        };
+        colourFlow.Controls.Add(any);
+        card.AddRow(Lang.T("ch_color"), new Label { Text = "", AutoSize = true, Width = 1 });   // caption row; the swatches take the next line in full
+        card.AddRow(null, colourFlow);
+
+        var def = new CrosshairStyle();
+        Slider Sl(int min, int max, int val, string suffix, int defVal, int? snap, Action<int> set)
+        {
+            var sl = new Slider(min, max, val, 1, suffix) { Width = 300, DefaultValue = defVal, SnapTo = snap };
+            sl.ValueChanged += v => { set(v); ChChanged(); };
+            return sl;
+        }
+        // the first slider carries the help dot: wheel, keys and double-click work on every slider
+        var sizeSl = Sl(CrosshairStyle.MinSize, CrosshairStyle.MaxSize, st.Size, "", def.Size, null, v => st.Size = v);
+        var help = new HelpDot { TextProvider = () => Lang.T("ch_slider_hint") };
+        var sizeRow = new FlowLayoutPanel { AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, Margin = Padding.Empty, Padding = Padding.Empty, WrapContents = false };
+        help.Margin = new Padding(0, (sizeSl.Height - help.Height) / 2, 8, 0); sizeSl.Margin = Padding.Empty;
+        sizeRow.Controls.Add(help); sizeRow.Controls.Add(sizeSl);
+        card.AddRow(Lang.T("ch_size"), sizeRow);
+        card.AddRow(Lang.T("ch_thickness"), Sl(1, CrosshairStyle.MaxThickness, st.Thickness, "", def.Thickness, null, v => st.Thickness = v));
+        card.AddRow(Lang.T("ch_outline"), Sl(0, CrosshairStyle.MaxOutline, st.Outline, "", def.Outline, null, v => st.Outline = v));
+        card.AddRow(Lang.T("ch_opacity"), Sl(CrosshairStyle.MinOpacity, 100, st.Opacity, "%", def.Opacity, null, v => st.Opacity = v));
+        card.AddRow(Lang.T("ch_softness"), Sl(0, CrosshairStyle.MaxSoftness, st.Softness, "", def.Softness, null, v => st.Softness = v));
+        card.AddRow(Lang.T("ch_rotation"), Sl(0, 359, st.Rotation, "°", def.Rotation, 0, v => st.Rotation = v));
+        card.AddRow(Lang.T("ch_offset_x"), Sl(-CrosshairStyle.MaxOffset, CrosshairStyle.MaxOffset, st.OffsetX, "", 0, 0, v => st.OffsetX = v));
+        card.AddRow(Lang.T("ch_offset_y"), Sl(-CrosshairStyle.MaxOffset, CrosshairStyle.MaxOffset, st.OffsetY, "", 0, 0, v => st.OffsetY = v));
 
         var pos = Combo(new[] { Lang.T("ch_pos_center"), Lang.T("ch_pos_cursor") }, st.FollowCursor ? 1 : 0);
         pos.SelectedIndexChanged += (_, _) => { st.FollowCursor = pos.SelectedIndex == 1; ChChanged(); };
@@ -254,7 +402,25 @@ public sealed partial class SettingsPage
         card.AddRow(Lang.T("ch_ads"), ads);
         card.AddRow(null, Note(Lang.T("ch_hook_note"), "muted"));
 
-        // share code + export + defaults
+        var reset = Ghost(Lang.T("set_defaults"));
+        reset.Click += (_, _) =>
+        {
+            st.CopyFrom(new CrosshairStyle());
+            D.SaveSettings();
+            D.ApplyCrosshairSettings();
+            RebuildCrosshairCards();
+        };
+        card.AddRow(null, Flow(reset));
+        return card;
+    }
+
+    // ---------------- card 3: sharing ----------------
+    private CardSection BuildChShare()
+    {
+        var s = D.Settings;
+        var st = s.Crosshair;
+        var card = new CardSection(Lang.T("ch_share_title"), "");   // MDL2 share glyph
+        card.AddRow(null, Note(Lang.T("ch_share_desc"), "muted"));
         var copy = Ghost(Lang.T("ch_code_copy"));
         copy.Click += (_, _) =>
         {
@@ -274,10 +440,14 @@ public sealed partial class SettingsPage
                 t => CrosshairStyle.Decode(t) == null ? Lang.T("ch_code_bad") : null, "//CROSSHAIR");
             if (code == null || CrosshairStyle.Decode(code) is not { } decoded) return;
             st.CopyFrom(decoded);
+            s.CrosshairActivePreset = null;   // a pasted look is nobody's preset until saved
             D.SaveSettings();
             D.ApplyCrosshairSettings();
             RebuildCrosshairCards();
         };
+        card.AddRow(null, Flow(copy, paste));
+        if (st.KindId == CrosshairKind.Image) card.AddRow(null, Note(Lang.T("ch_code_noimage"), "muted"));
+
         var png = Ghost(Lang.T("ch_export_png"));
         png.Click += (_, _) =>
         {
@@ -291,25 +461,17 @@ public sealed partial class SettingsPage
             catch (Exception ex) { ChMessage(Lang.T("ch_export_png"), string.Format(Lang.T("bk_err"), ex.Message)); }
         };
         var svg = Ghost(Lang.T("ch_export_svg"));
-        svg.Enabled = st.KindId != CrosshairKind.Image;   // the picture has no vector form
+        GhostAvailable(svg, st.KindId != CrosshairKind.Image);   // the picture has no vector form
         svg.Click += (_, _) =>
         {
-            if (st.ToSvg() is not { } text) return;
+            if (svg.Tag is "off" || st.ToSvg() is not { } text) return;
             using var dlg = new SaveFileDialog { Filter = "SVG (*.svg)|*.svg", FileName = "ghostdeck-crosshair.svg" };
             if (dlg.ShowDialog(FindForm()) != DialogResult.OK) return;
             try { File.WriteAllText(dlg.FileName, text); }
             catch (Exception ex) { ChMessage(Lang.T("ch_export_svg"), string.Format(Lang.T("bk_err"), ex.Message)); }
         };
-        var reset = Ghost(Lang.T("set_defaults"));
-        reset.Click += (_, _) =>
-        {
-            st.CopyFrom(new CrosshairStyle());
-            D.SaveSettings();
-            D.ApplyCrosshairSettings();
-            RebuildCrosshairCards();
-        };
-        card.AddRow(null, Flow(copy, paste, png, svg, reset));
-        if (st.KindId == CrosshairKind.Image) card.AddRow(null, Note(Lang.T("ch_code_noimage"), "muted"));
+        card.AddRow(Lang.T("ch_export"), Flow(png, svg));
+        card.AddRow(null, Note(Lang.T("ch_export_note"), "muted"));
         return card;
     }
 
@@ -359,7 +521,7 @@ public sealed partial class SettingsPage
             if (i == st.Kind) return;
             st.Kind = i;
             _page.ChChanged();
-            // the look card's SVG button and the picture note follow the kind
+            // the sharing card's SVG button and the picture note follow the kind
             _page.RebuildCrosshairCards();
         }
 

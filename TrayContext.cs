@@ -1685,6 +1685,7 @@ public sealed class TrayContext : ApplicationContext
     {
         if (_settings.FindCrosshairPreset(name) is not { } p) return false;
         _settings.Crosshair.CopyFrom(p);
+        _settings.CrosshairActivePreset = p.Name;
         _settings.Save();
         ApplyCrosshairSettings();
         return true;
@@ -1695,6 +1696,7 @@ public sealed class TrayContext : ApplicationContext
     {
         if (CrosshairStyle.Decode(code) is not { } st) return false;
         _settings.Crosshair.CopyFrom(st);
+        _settings.CrosshairActivePreset = null;
         _settings.Save();
         ApplyCrosshairSettings();
         return true;

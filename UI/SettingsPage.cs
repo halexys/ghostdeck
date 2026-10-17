@@ -43,6 +43,7 @@ public sealed partial class SettingsPage : ThemedPage
     private OverlaySettingsPanel? _overlayPanel;
     private SegControl? _themeSeg;             // kept to re-point after a theme change from the header button
     private CardSection? _scenVisCard;         // "Scenarios tab" visibility card (flash target for the gear)
+    private CardSection? _hkCard;              // the shortcuts card (flash target of the crosshair card's button)
     private static readonly Color FlashPink = Color.FromArgb(0xEC, 0x48, 0x99);   // highlight frame color
     private Label? _refreshNow;                // live current panel refresh rate (Settings → Power → Display)
     private Action? _syncRefreshMan;           // re-points the manual rate picker at the live rate
@@ -112,11 +113,12 @@ public sealed partial class SettingsPage : ThemedPage
         foreach (var t in _tiles) t.Visible = _cur == SubHome;
         if (_homeHeader != null) _homeHeader.Visible = _cur == SubHome;
         if (_whatsNew != null) _whatsNew.Visible = _cur == SubHome;
-        // Gaming is two views behind one segment switch: the overlay panel, or the crosshair cards
-        if (_overlayPanel != null) _overlayPanel.Visible = _cur == SubGaming && GamingSub == 0;
+        // Gaming is three views behind one segment switch: the Start tiles, the overlay panel, the crosshair cards
+        if (_overlayPanel != null) _overlayPanel.Visible = _cur == SubGaming && GamingSub == GamingOverlay;
         if (_gamingSeg != null) _gamingSeg.Visible = _cur == SubGaming;
-        foreach (var c in _gLeft[SubGaming]) c.Visible = _cur == SubGaming && GamingSub == 1;
-        foreach (var c in _gRight[SubGaming]) c.Visible = _cur == SubGaming && GamingSub == 1;
+        foreach (var t in _gamingTiles) t.Visible = _cur == SubGaming && GamingSub == GamingStart;
+        foreach (var c in _gLeft[SubGaming]) c.Visible = _cur == SubGaming && GamingSub == GamingCrosshair;
+        foreach (var c in _gRight[SubGaming]) c.Visible = _cur == SubGaming && GamingSub == GamingCrosshair;
     }
 
     public override void OnEnter()
@@ -345,6 +347,7 @@ public sealed partial class SettingsPage : ThemedPage
         foreach (var t in _tiles) t.Invalidate();
         _overlayPanel?.ApplyThemeColors();
         _gamingSeg?.Invalidate();
+        foreach (var t in _gamingTiles) t.Invalidate();
         Invalidate();
     }
 
@@ -408,7 +411,18 @@ public sealed partial class SettingsPage : ThemedPage
             // full-width panel, the crosshair view the usual two columns of cards below
             _gamingSeg.Location = new Point(Pad + ox, top + oy);
             top += _gamingSeg.Height + 18;
-            if (GamingSub == 0 && _overlayPanel != null)
+            if (GamingSub == GamingStart)
+            {
+                float k = DeviceDpi / 96f;
+                int gap = (int)(14 * k), th = (int)(110 * k);
+                int tw = (fullW - gap) / 2;
+                for (int i = 0; i < _gamingTiles.Count; i++)
+                    _gamingTiles[i].SetBounds(Pad + i % 2 * (tw + gap) + ox, top + i / 2 * (th + gap) + oy, tw, th);
+                int rows = (_gamingTiles.Count + 1) / 2;
+                AutoScrollMinSize = new Size(0, top + rows * (th + gap) + 16);
+                return;
+            }
+            if (GamingSub == GamingOverlay && _overlayPanel != null)
             {
                 _overlayPanel.Relayout(fullW);
                 _overlayPanel.Location = new Point(Pad + ox, top + oy);
@@ -442,6 +456,8 @@ public sealed partial class SettingsPage : ThemedPage
         }
         if (_overlayPanel != null) { Controls.Remove(_overlayPanel); _overlayPanel.Dispose(); _overlayPanel = null; }
         if (_gamingSeg != null) { Controls.Remove(_gamingSeg); _gamingSeg.Dispose(); _gamingSeg = null; }
+        foreach (var t in _gamingTiles) { Controls.Remove(t); t.Dispose(); }
+        _gamingTiles.Clear();
         if (_subTabs != null) { Controls.Remove(_subTabs); _subTabs.Dispose(); _subTabs = null; }
         foreach (var t in _tiles) { Controls.Remove(t); t.Dispose(); }
         _tiles.Clear();
@@ -1455,6 +1471,7 @@ public sealed partial class SettingsPage : ThemedPage
         }
 
         var hk = new CardSection(Lang.T("set_hotkeys"), "");
+        _hkCard = hk;
         // Second card so BOTH columns of the Hotkeys group are used: fixed actions on the
         // left, per-scene shortcuts on the right (the right half of a wide window used to
         // stay empty). Added only when at least one scene exists.
@@ -1510,16 +1527,8 @@ public sealed partial class SettingsPage : ThemedPage
 
         _overlayPanel = new OverlaySettingsPanel(D);
         Controls.Add(_overlayPanel);
-        // Gaming: overlay | crosshair (roadmap #118); the choice is remembered like the sub-tab
-        _gamingSeg = new SegControl(new[] { Lang.T("overlay_title"), Lang.T("ch_title") }, GamingSub) { Size = new Size(360, 34) };
-        _gamingSeg.SelectedChanged += i =>
-        {
-            D.Settings.SettingsGamingSub = i; D.SaveSettings();
-            AutoScrollPosition = Point.Empty;
-            ApplyVisibility(); Layout2(); PerformLayout(); Invalidate();
-        };
-        Controls.Add(_gamingSeg);
-        BuildCrosshairCards();
+        // Gaming: Start | overlay | crosshair (roadmap #118); the choice is remembered like the sub-tab
+        BuildGamingViews();
 
         // ---- sub-tab strip (Start + six groups, MDL2 glyphs like the main tab strip) ----
         _subTabs = new SubTabs(

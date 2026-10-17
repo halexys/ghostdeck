@@ -224,6 +224,9 @@ public static class CrosshairPainter
         var kind = st.KindId;
         float wave = fx <= 0f || fx >= 1f ? 0f : MathF.Sin(fx * MathF.PI);   // up and back down
         float grow = st.ClickFxId == CrosshairClickFx.Pulse ? 1f + 0.25f * wave : 1f;
+        // the shapes without arms spread by growing their ring, box or dot; the centre dot of a
+        // ring stays put, so the ring visibly moves away from it
+        float sg = st.ClickFxId == CrosshairClickFx.Spread ? 1f + 0.3f * wave : 1f;
         float S = st.Size * k * grow;                     // full extent
         float h = S / 2f;
         float t = st.Thickness * k;
@@ -242,9 +245,9 @@ public static class CrosshairPainter
                 break;
             case CrosshairKind.GapCross: Arms(gap); break;
             case CrosshairKind.GapCrossDot: Arms(gap); s.Dots.Add((PointF.Empty, dotR)); break;
-            case CrosshairKind.Dot: s.Dots.Add((PointF.Empty, Math.Max(1.5f * k, S * 0.18f))); break;
-            case CrosshairKind.Circle: s.Rings.Add((PointF.Empty, h - t / 2f)); break;
-            case CrosshairKind.CircleDot: s.Rings.Add((PointF.Empty, h - t / 2f)); s.Dots.Add((PointF.Empty, dotR)); break;
+            case CrosshairKind.Dot: s.Dots.Add((PointF.Empty, Math.Max(1.5f * k, S * 0.18f) * sg)); break;
+            case CrosshairKind.Circle: s.Rings.Add((PointF.Empty, (h - t / 2f) * sg)); break;
+            case CrosshairKind.CircleDot: s.Rings.Add((PointF.Empty, (h - t / 2f) * sg)); s.Dots.Add((PointF.Empty, dotR)); break;
             case CrosshairKind.T:
                 Line(-h, 0, -gap, 0); Line(gap, 0, h, 0); Line(0, gap, 0, h);
                 break;
@@ -265,17 +268,17 @@ public static class CrosshairPainter
             }
             case CrosshairKind.SquareDot:
             {
-                float side = S * 0.72f;
+                float side = S * 0.72f * sg;
                 s.Boxes.Add(new RectangleF(-side / 2f + t / 2f, -side / 2f + t / 2f, side - t, side - t));
                 s.Dots.Add((PointF.Empty, dotR));
                 break;
             }
             case CrosshairKind.Reticle:
             {
-                float r = S * 0.3f;
+                float r = S * 0.3f * sg;
                 s.Rings.Add((PointF.Empty, r));
-                float from = r + gap * 0.3f;
-                Line(-h, 0, -from, 0); Line(from, 0, h, 0); Line(0, -h, 0, -from); Line(0, from, 0, h);
+                float from = r + S * 0.18f * 0.3f, to = h * sg;
+                Line(-to, 0, -from, 0); Line(from, 0, to, 0); Line(0, -to, 0, -from); Line(0, from, 0, to);
                 s.Dots.Add((PointF.Empty, dotR));
                 break;
             }
@@ -288,7 +291,7 @@ public static class CrosshairPainter
     /// <summary>Pixel size of the bitmap a style needs at the given scale (shape plus rim and blur margin).</summary>
     public static int Extent(CrosshairStyle st, float k)
     {
-        float grow = st.ClickFxId == CrosshairClickFx.Pulse ? 1.25f : 1f;
+        float grow = st.ClickFxId == CrosshairClickFx.Pulse ? 1.25f : st.ClickFxId == CrosshairClickFx.Spread ? 1.3f : 1f;
         float margin = (st.Thickness + st.Outline * 2) * k + st.Softness * k * 3f + 4f * k;
         return (int)MathF.Ceiling(st.Size * k * grow + margin * 2f) | 1;   // odd: a true centre pixel
     }
@@ -318,7 +321,7 @@ public static class CrosshairPainter
             if (st.Rotation != 0) g.RotateTransform(st.Rotation);
             if (st.KindId == CrosshairKind.Image && custom != null)
             {
-                float grow = st.ClickFxId == CrosshairClickFx.Pulse ? 1f + 0.25f * wave : 1f;
+                float grow = st.ClickFxId == CrosshairClickFx.Pulse ? 1f + 0.25f * wave : st.ClickFxId == CrosshairClickFx.Spread ? 1f + 0.3f * wave : 1f;
                 float S = st.Size * k * grow;
                 // fit the picture into the size box, keeping its proportions
                 float sc = Math.Min(S / Math.Max(1, custom.Width), S / Math.Max(1, custom.Height));
