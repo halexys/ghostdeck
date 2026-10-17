@@ -3592,6 +3592,11 @@ The one-time consent card (`TrueColorConfirmed`) follows the Apex pattern; the s
 (`TrueColorEnabled`) is off by default and the tray submenu exists only while it is on and
 the version is confirmed.
 
+A profile True Color records on its own (its window, Fn+A, AppSync) reaches the card and the
+tray dots at once: a background thread sleeps on `RegNotifyChangeKeyValue` for True Color's
+key (`TrueColor.StartWatch`, event-driven, nothing polled) and raises `TrueColor.Changed` on
+the window thread after each change. The thread exists only when True Color is installed.
+
 ### 80.5 Known limits
 
 - One machine, one version. Other True Color versions: the owner's test (80.3) or a

@@ -188,6 +188,10 @@ public sealed class TrayContext : ApplicationContext
 
         _ui = SynchronizationContext.Current;
         ApplyTrayWheel();   // (#23) needs _ui for cross-thread posting, so after it is captured
+        // MSI True Color (roadmap #119): a profile recorded by True Color itself (its window, Fn+A)
+        // refreshes the tray dots and the Settings card; the watcher only exists when it is installed
+        TrueColor.Changed += UpdateTrueColorMenu;
+        if (_ui != null && TrueColor.Detect(_settings.TrueColorUserVerified).Installed) TrueColor.StartWatch(_ui);
         if (_settings.CrosshairEnabled) SetCrosshair(true, osd: false);   // its mouse hook posts to _ui too
         MaybeCheckForUpdates();
         MaybeCheckModelDb();     // own cadence: cheap static file, checked at every start

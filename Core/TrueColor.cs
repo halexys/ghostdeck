@@ -72,9 +72,51 @@ public static class TrueColor
     /// <summary>The render harness sets this to show the card in every state without the application installed.</summary>
     public static Func<Info>? TestOverride;
 
-    /// <summary>Raised on the window thread after a switch, a test or an enable: the Settings card and the tray refresh from it.</summary>
+    /// <summary>
+    /// Raised on the window thread after a switch, a test or an enable, and whenever True Color
+    /// itself records a profile (its window, Fn+A, AppSync - see <see cref="StartWatch"/>): the
+    /// Settings card and the tray dots refresh from it.
+    /// </summary>
     public static event Action? Changed;
     public static void RaiseChanged() => Changed?.Invoke();
+
+    private static Thread? _watch;
+
+    /// <summary>
+    /// Watches True Color's registry key for a change and raises <see cref="Changed"/> on the
+    /// window thread. Event-driven (RegNotifyChangeKeyValue): the thread sleeps until Windows
+    /// signals it, nothing is polled. True Color writes its two values one after the other, so
+    /// the signal is followed by a short pause and one notification. Call once, after the
+    /// message loop is up.
+    /// </summary>
+    public static void StartWatch(SynchronizationContext ui)
+    {
+        if (_watch != null) return;
+        _watch = new Thread(() =>
+        {
+            while (true)
+            {
+                try
+                {
+                    using var key = Registry.CurrentUser.OpenSubKey(RegistrySubkey, writable: false);
+                    if (key == null) { Thread.Sleep(60_000); continue; }   // True Color never ran yet: look again later
+                    using var signal = new AutoResetEvent(false);
+                    int rc = RegNotifyChangeKeyValue(key.Handle.DangerousGetHandle(), false, 0x4 /* REG_NOTIFY_CHANGE_LAST_SET */,
+                        signal.SafeWaitHandle.DangerousGetHandle(), true);
+                    if (rc != 0) { Thread.Sleep(60_000); continue; }
+                    signal.WaitOne();
+                    Thread.Sleep(150);
+                    ui.Post(_ => RaiseChanged(), null);
+                }
+                catch (Exception ex)
+                {
+                    AppLifecycle.Report(ex, "truecolor-watch");
+                    Thread.Sleep(60_000);
+                }
+            }
+        }) { IsBackground = true, Name = "TrueColorWatch" };
+        _watch.Start();
+    }
 
     // The install lookup (registry walk + file version) is cached briefly: the tray menu and the
     // Settings card ask several times per second while they refresh; the window and the
@@ -279,4 +321,6 @@ public static class TrueColor
     private static extern bool QueryFullProcessImageName(IntPtr hProcess, uint flags, System.Text.StringBuilder exeName, ref int size);
     [DllImport("kernel32.dll", SetLastError = true)]
     private static extern bool CloseHandle(IntPtr h);
+    [DllImport("advapi32.dll", SetLastError = true)]
+    private static extern int RegNotifyChangeKeyValue(IntPtr hKey, bool bWatchSubtree, uint dwNotifyFilter, IntPtr hEvent, bool fAsynchronous);
 }
