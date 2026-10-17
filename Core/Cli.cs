@@ -4,7 +4,7 @@ using System.Text.Json;
 
 namespace GhostDeck;
 
-public enum CliKind { Profile, Cycle, FanBoost, Overlay, Curve, Panic, Status, Help, Kbd, Webcam, Scene, FnSwap, Brightness, WinLock, Refresh, Charge, Travel, Diag, HdrSwitch, Touchpad, Mic, Turbo, DumpModels, VerifyModels, DumpSupportedMd }
+public enum CliKind { Profile, Cycle, FanBoost, Overlay, Curve, Panic, Status, Help, Kbd, Webcam, Scene, FnSwap, Brightness, WinLock, Refresh, Charge, Travel, Diag, HdrSwitch, Touchpad, Mic, Turbo, DumpModels, VerifyModels, DumpSupportedMd, Crosshair, TrueColor }
 
 public sealed record CliCommand(CliKind Kind, string Arg = "", string Arg2 = "");
 
@@ -29,6 +29,9 @@ public static class Cli
           GhostDeck.exe --cycle                 switch to the next profile
           GhostDeck.exe --fanboost <on|off> [seconds]   full fan speed; the optional auto-off (10-7200 s) needs the app running
           GhostDeck.exe --overlay <on|off>      gaming overlay (needs the app running)
+          GhostDeck.exe --crosshair <on|off>    the crosshair (needs the app running)
+          GhostDeck.exe --crosshair preset "<name>"   switch the crosshair on with a saved preset
+          GhostDeck.exe --crosshair code <GDX1....>     switch it on with a shared crosshair code
           GhostDeck.exe --curve <preset|auto>   apply a saved fan-curve preset (auto = stock fans)
           GhostDeck.exe --refresh <hz|max>      panel refresh rate (works on any machine)
           GhostDeck.exe --charge <60|80|100|off>   battery charge limit (off = stop managing)
@@ -41,17 +44,28 @@ public static class Cli
           GhostDeck.exe --touchpad <on|off>     enable/disable the precision touchpad (device level)
           GhostDeck.exe --mic <on|off>          unmute/mute the default Windows recording device (works on any machine)
           GhostDeck.exe --turbo <on|off|status>   CPU turbo boost via the Windows power plan (works on any machine)
+          GhostDeck.exe --truecolor <srgb|gamer|movie|antiblue|office|adobergb|displayp3|status>   MSI True Color profile (experimental; enable it under Settings -> System first; status works always)
           GhostDeck.exe --winlock <on|off>      block both Windows keys (needs the app running)
           GhostDeck.exe --scene "<name>"        apply a saved scene (needs the app running)
           GhostDeck.exe --panic                 safe state: Fan Boost off, Balanced, fans auto
           GhostDeck.exe --status                print the current state as JSON
           GhostDeck.exe --diag [path.zip]       save the diagnostic zip (read-only, runs locally)
-        Requires administrator rights (EC access), like the app itself.
+          GhostDeck.exe ghostdeck://<command>/<arg>[/<arg2>]   the same commands as a link,
+                                                e.g. ghostdeck://scene/Gaming or ghostdeck://profile/silent
+        With the app running the command is handed to it, no administrator prompt. Without it, the
+        command talks to the EC itself and asks for administrator rights once (UAC).
         """;
 
     public static CliCommand? Parse(string[] a)
     {
         if (a.Length == 0) return null;
+        if (Protocol.IsLink(a[0]))
+        {
+            // a ghostdeck:// link is the same command line, spelled for a browser or a shortcut
+            var fromLink = Protocol.ToArgs(a[0]);
+            if (fromLink == null) return null;
+            a = fromLink;
+        }
         string Arg1() => a.Length > 1 ? a[1] : "";
         switch (a[0].ToLowerInvariant())
         {
@@ -96,6 +110,14 @@ public static class Cli
                 return new CliCommand(CliKind.DumpSupportedMd, Arg1());
             case "--overlay":
                 return Arg1().ToLowerInvariant() is "on" or "off" ? new CliCommand(CliKind.Overlay, Arg1().ToLowerInvariant()) : null;
+            case "--crosshair":
+            {
+                string xh = Arg1().ToLowerInvariant();
+                if (xh is "on" or "off") return new CliCommand(CliKind.Crosshair, xh);
+                // "preset <name>" / "code <GDX1....>": the second word is the value
+                if (xh is "preset" or "code" && a.Length > 2 && a[2].Trim().Length > 0) return new CliCommand(CliKind.Crosshair, xh, a[2].Trim());
+                return null;
+            }
             case "--curve":
                 return Arg1().Length > 0 ? new CliCommand(CliKind.Curve, Arg1()) : null;
             case "--kbd":
@@ -118,6 +140,12 @@ public static class Cli
                 return Arg1().ToLowerInvariant() is "on" or "off" or "status" ? new CliCommand(CliKind.Turbo, Arg1().ToLowerInvariant()) : null;
             case "--scene":
                 return Arg1().Length > 0 ? new CliCommand(CliKind.Scene, Arg1()) : null;
+            case "--truecolor":
+            {
+                // a profile word or id (TrueColor.Parse), or "status"; the id travels as text
+                if (Arg1().Equals("status", StringComparison.OrdinalIgnoreCase)) return new CliCommand(CliKind.TrueColor, "status");
+                return TrueColor.Parse(Arg1()) is { } tcId ? new CliCommand(CliKind.TrueColor, tcId.ToString()) : null;
+            }
             case "--panic": return new CliCommand(CliKind.Panic);
             case "--status": return new CliCommand(CliKind.Status);
             case "--help" or "-h" or "/?": return new CliCommand(CliKind.Help);
@@ -141,7 +169,7 @@ public static class Cli
 
         // The diagnostic zip always runs locally: it writes a file in the CALLER's directory
         // and only does read-only collection, so there is nothing the live instance adds.
-        if (cmd.Kind == CliKind.Diag) return RunOneShot(cmd);
+        if (cmd.Kind == CliKind.Diag) return Elevated(args) ?? RunOneShot(cmd, args);
 
         // The model-table dump must come from THIS exe's compiled tables, never the pipe.
         if (cmd.Kind == CliKind.DumpModels)
@@ -180,7 +208,93 @@ public static class Cli
             if (resp.Length > 0) Console.WriteLine(resp);
             return code;
         }
-        return RunOneShot(cmd);
+        // True Color is a window message to MSI's own application: no EC, no administrator, so the
+        // one-shot runs right here without the UAC round trip the EC commands need.
+        if (cmd.Kind == CliKind.TrueColor) return RunTrueColorOneShot(cmd);
+        return Elevated(args) ?? RunOneShot(cmd, args);
+    }
+
+    /// <summary>
+    /// --truecolor with no app running. The status is read-only and always answers; a profile
+    /// needs the switch under Settings -> System (read from the settings file) and goes through the
+    /// same TrueColor.Set as the app, the tray and the scenes.
+    /// </summary>
+    private static int RunTrueColorOneShot(CliCommand cmd)
+    {
+        var settings = AppSettings.Load();
+        if (cmd.Arg == "status") { Console.WriteLine(TrueColorStatusJson(settings)); return 0; }
+        if (!settings.TrueColorEnabled) { Console.WriteLine("True Color switching is off - enable it under Settings -> System first"); return 1; }
+        int id = int.Parse(cmd.Arg);
+        var r = TrueColor.Set(id, settings.TrueColorUserVerified, out string detail);
+        if (r is TrueColor.Result.Ok or TrueColor.Result.AlreadySet)
+        {
+            settings.TrueColorLast = id; settings.TrueColorLastUtc = DateTime.UtcNow; settings.Save();
+            ChangeLog.Load();
+            ChangeLog.Add(ChangeSource.Cli, "True Color: " + TrueColor.Name(id) + (r == TrueColor.Result.AlreadySet ? " (already recorded)" : ""));
+            Console.WriteLine("true color: " + TrueColor.Name(id) + (r == TrueColor.Result.AlreadySet ? " (already recorded)" : ""));
+            return 0;
+        }
+        Console.WriteLine(TrueColorFailure(r, detail));
+        return 1;
+    }
+
+    /// <summary>The JSON --truecolor status prints (one-shot and in-app alike).</summary>
+    public static string TrueColorStatusJson(AppSettings settings)
+    {
+        var info = TrueColor.Detect(settings.TrueColorUserVerified);
+        return JsonSerializer.Serialize(new
+        {
+            installed = info.Installed,
+            version = info.Installed ? info.Version : null,
+            running = info.Installed ? info.Running : (bool?)null,
+            confirmedVersion = info.Installed ? info.Confirmed : (bool?)null,
+            enabled = settings.TrueColorEnabled,
+            recorded = info.Recorded is { } rec ? TrueColor.Name(rec) : null,
+            lastSetByGhostDeck = settings.TrueColorLast is { } last ? TrueColor.Name(last) : null,
+            profiles = TrueColor.Profiles.Select(p => p.Cli).ToArray(),
+        });
+    }
+
+    /// <summary>English, machine-readable failure text for the console and the pipe.</summary>
+    public static string TrueColorFailure(TrueColor.Result r, string detail) => r switch
+    {
+        TrueColor.Result.NotInstalled => "MSI True Color is not installed",
+        TrueColor.Result.NotRunning => "MSI True Color is not running - start it from the Start menu",
+        TrueColor.Result.Unconfirmed => $"True Color {detail} is not a confirmed version - run the test under Settings -> System first",
+        TrueColor.Result.BadProfile => "not a True Color profile",
+        TrueColor.Result.Timeout => "True Color did not answer within " + TrueColor.SendTimeoutMs + " ms",
+        TrueColor.Result.NotConfirmed => "True Color took the request but did not record the profile (" + detail + ")",
+        TrueColor.Result.Busy => "another True Color request is still running",
+        _ => "True Color request failed (" + detail + ")",
+    };
+
+    /// <summary>
+    /// A one-shot talks to the EC, which needs administrator rights. From an unelevated launch
+    /// (a terminal, a link, the pinned jump list) the same command line is started again through
+    /// the UAC prompt - the one prompt the manifest used to show on every launch - and its exit
+    /// code comes back; the child writes into this process's console. Null = already elevated.
+    /// </summary>
+    private static int? Elevated(string[] args) => Elevation.IsElevated ? null : Elevation.Relaunch(args, wait: true);
+
+    /// <summary>
+    /// Commands that live inside the running app (scenes, the overlay, the Windows-key lock, the
+    /// Fan Boost timer) with no instance running: start the tray app and hand the command over
+    /// once its pipe answers. The app stays in the tray afterwards.
+    /// </summary>
+    private static int StartAppAndForward(string[] args)
+    {
+        if (!Elevation.StartTray()) { Console.WriteLine("could not start the GhostDeck app"); return 1; }
+        for (int i = 0; i < 60; i++)   // the pipe is up within a second or two of the start
+        {
+            Thread.Sleep(250);
+            if (TrySendToRunning(args, out string resp, out int code))
+            {
+                if (resp.Length > 0) Console.WriteLine("GhostDeck started; " + resp);
+                return code;
+            }
+        }
+        Console.WriteLine("the GhostDeck app did not answer after starting");
+        return 1;
     }
 
     private static bool TrySendToRunning(string[] args, out string resp, out int code)
@@ -190,8 +304,12 @@ public static class Cli
         {
             using var pipe = new NamedPipeClientStream(".", PipeName, PipeDirection.InOut);
             pipe.Connect(700);
-            using var w = new StreamWriter(pipe) { AutoFlush = true };
+            // The reader closes the pipe when it is disposed, so it is declared first and disposed
+            // last: the other way round the writer's final flush hit a closed pipe, the exception
+            // landed in the catch below and the command - already carried out by the running app -
+            // was reported as "nobody listening" and run a second time one-shot.
             using var r = new StreamReader(pipe);
+            using var w = new StreamWriter(pipe) { AutoFlush = true };
             w.WriteLine(string.Join('\t', args));
             string? line = r.ReadLine();
             if (line == null) return false;
@@ -204,7 +322,7 @@ public static class Cli
     }
 
     // ---------------- one-shot (app not running): talk to the EC directly ----------------
-    private static int RunOneShot(CliCommand cmd)
+    private static int RunOneShot(CliCommand cmd, string[] args)
     {
         var settings = AppSettings.Load();
         var probe = Ec.ProbeFirmware();
@@ -284,6 +402,7 @@ public static class Cli
                         hdr = Hdr.Supported() ? Hdr.Enabled() : (bool?)null,
                         touchpad = Touchpad.State() is >= 0 and var tps ? tps == 1 : (bool?)null,
                         mic = Microphone.State() is >= 0 and var mcs ? mcs == 1 : (bool?)null,
+                        trueColor = TrueColor.Recorded() is { } tcr ? TrueColor.Name(tcr) : null,
                         batteryPercent = noBatt || batt < 0 ? (int?)null : batt,
                         batteryCharging = noBatt ? (bool?)null : ps.PowerLineStatus == PowerLineStatus.Online,
                         batteryMinutesLeft = battMin > 0 ? battMin : (int?)null,
@@ -293,15 +412,12 @@ public static class Cli
                     return 0;
                 }
                 case CliKind.Overlay:
-                    Console.WriteLine("overlay control needs the GhostDeck app running");
-                    return 1;
+                case CliKind.Crosshair:
                 case CliKind.Scene:
-                    Console.WriteLine("scene control needs the GhostDeck app running");
-                    return 1;
                 case CliKind.WinLock:
-                    // the hook lives inside the running process - a one-shot would exit and unhook
-                    Console.WriteLine("the Windows-key lock needs the GhostDeck app running");
-                    return 1;
+                    // these live inside the running process (the overlay window, the scene engine,
+                    // the keyboard hook) - start the app and let it take the command
+                    return StartAppAndForward(args);
                 case CliKind.Refresh:
                 {
                     // Windows display API, no EC needed - works on unsupported hardware too.
@@ -417,11 +533,7 @@ public static class Cli
                 case CliKind.FanBoost:
                 {
                     if (cmd.Arg2.Length > 0)
-                    {
-                        // one-shot exits immediately, so nothing would fire the auto-off
-                        Console.WriteLine("the fan-boost timer needs the GhostDeck app running");
-                        return 1;
-                    }
+                        return StartAppAndForward(args);   // a one-shot exits at once, so nothing would fire the auto-off
                     bool on = cmd.Arg == "on";
                     Ec.SetCoolerBoost(dev, on);
                     if (!on)

@@ -81,7 +81,15 @@ public abstract class ThemedPage : UserControl
     {
         if (_laying) return;
         _laying = true;
-        try { pass(); PerformLayout(); }
+        try
+        {
+            int w = ClientSize.Width;
+            pass(); PerformLayout();
+            // The pass may have made the vertical scrollbar appear or go, which changes the
+            // client width the children were laid out for; the Resize that reports it is the
+            // re-entrant call dropped above. One more pass at the settled width, never two.
+            if (ClientSize.Width != w) { pass(); PerformLayout(); }
+        }
         finally { _laying = false; }
     }
 

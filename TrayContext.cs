@@ -14,9 +14,9 @@ public sealed class TrayContext : ApplicationContext
     private readonly NotifyIcon _tray = new();
     // (discussion #9) Optional CPU/GPU temperature readouts in the notification area. Two icons,
     // because at 100% scaling an icon is 16x16 px - room for two bold digits, not for two values.
-    private NotifyIcon? _cpuTray, _gpuTray;
-    private Icon? _cpuTrayIcon, _gpuTrayIcon;
-    private string _cpuTrayText = "", _gpuTrayText = "";
+    private NotifyIcon? _cpuTray, _gpuTray, _ssdTray;
+    private Icon? _cpuTrayIcon, _gpuTrayIcon, _ssdTrayIcon;
+    private string _cpuTrayText = "", _gpuTrayText = "", _ssdTrayText = "";
     private readonly OsdForm _osd = new();
     private readonly HotkeyManager _hotkeys = new();
     private readonly System.Windows.Forms.Timer _poll = new() { Interval = 3000 };
@@ -45,7 +45,6 @@ public sealed class TrayContext : ApplicationContext
     private string? _updateUrl;
     private Updater.Result? _updateAvail;      // newer release found by the daily check (Settings Start header chip)
     private bool _telemetryOnly;               // (#48) no EC interface, but MSI WMI data blocks answer
-    private string? _balloonUrl;              // URL opened when the tray balloon is clicked (update or notice)
     private Notices.Notice? _pendingNotice;   // fetched notice waiting to be shown as an in-window banner
     private bool _firmwareChanged;             // EC firmware differs from last-seen -> block auto-writes
     private bool _fwDialogShown;               // the guard dialog opens at most once per run
@@ -62,6 +61,9 @@ public sealed class TrayContext : ApplicationContext
     private OverlayForm? _overlay;             // gaming status overlay (lazy)
     private ToolStripMenuItem? _overlayItem;
     private ToolStripMenuItem? _overlayLockItem;
+    private CrosshairForm? _crosshair;         // the crosshair window (roadmap #118; lazy)
+    private ToolStripMenuItem? _crosshairItem;
+    private readonly List<ToolStripMenuItem> _tcItems = new();   // True Color submenu entries (Tag = profile id)
     private bool _statusWantsFps;              // Status → Gaming sub-tab visible (keeps FpsMonitor running)
     private TrayWheel? _wheel;                 // (#23) wheel-over-tray hook, installed only while a wheel mode is set
     private int _wheelAccum;                   // raw wheel delta accumulator (one step per ±120)
@@ -96,9 +98,18 @@ public sealed class TrayContext : ApplicationContext
         Autostart.Migrate();                       // move a pre-rename "MSIProfileSwitcher" autostart task to "GhostDeck"
         Autostart.Heal();                          // re-point the task if the exe was moved since it was created
         _settings.Autostart = Autostart.IsEnabled();
+        // The first read of the Windows counters, the disk list and the graphics adapter takes
+        // 0.2-0.4 s each; done here on a worker, the Status tab finds them ready.
+        Task.Run(Perf.Warm);
         Lang.Set(_settings.Language);
         Theme.Set(_settings.DarkMode);
         TrayIconFactory.Style = _settings.IconStyle;
+        // The taskbar (roadmap #88, #89): icon files for the pin and the jump list, pins made
+        // before 1.38 brought under the app's identity, the ghostdeck:// registration (which
+        // also follows the exe when it moved, like the autostart task).
+        Taskbar.WriteIcons(_settings);
+        Taskbar.HealPins();
+        if (_settings.ProtocolLinks) Protocol.Register();
 
         ChangeLog.Load();
         GameSessions.Load();
@@ -149,8 +160,8 @@ public sealed class TrayContext : ApplicationContext
         DetectFirmwareChange();
         if (Known && !_simulate) { try { _coolerBoost = Ec.GetCoolerBoost(_device!); } catch { } }
 
-        // A trip that ended while the app was off reverts before the first apply. The balloon
-        // waits until the tray icon is in the shell - ShowBalloonTip is a silent no-op before.
+        // A trip that ended while the app was off reverts before the first apply. The card
+        // comes up with the rest of the start-up state, below.
         string? travelEnded = null;
         if (_settings.TravelUntil != DateTime.MinValue && DateTime.Now >= _settings.TravelUntil)
             travelEnded = EndTravel(notify: false);
@@ -185,18 +196,16 @@ public sealed class TrayContext : ApplicationContext
         ShowState();
         if (_firmwareChanged) ShowFirmwareDialog();
         else if (Ec.OnBackupPath && !Writable) PromptBackupTest();
-        if (travelEnded != null)
-        {
-            _balloonUrl = null;
-            _tray.BalloonTipTitle = Lang.T("set_travel");
-            _tray.BalloonTipText = travelEnded;
-            _tray.ShowBalloonTip(8000);
-        }
+        if (travelEnded != null) ShowCard("//TRAVEL", Lang.T("set_travel"), travelEnded);
         if (_settings.OverlayEnabled) SetOverlay(true, osd: false);
 
         _ui = SynchronizationContext.Current;
         ApplyTrayWheel();   // (#23) needs _ui for cross-thread posting, so after it is captured
-        _tray.BalloonTipClicked += (_, _) => { if (_balloonUrl != null) OpenUrl(_balloonUrl); };
+        // MSI True Color (roadmap #119): a profile recorded by True Color itself (its window, Fn+A)
+        // refreshes the tray dots and the Settings card; the watcher only exists when it is installed
+        TrueColor.Changed += UpdateTrueColorMenu;
+        if (_ui != null && TrueColor.Detect(_settings.TrueColorUserVerified).Installed) TrueColor.StartWatch(_ui);
+        if (_settings.CrosshairEnabled) SetCrosshair(true, osd: false);   // its mouse hook posts to _ui too
         MaybeCheckForUpdates();
         MaybeCheckModelDb();     // own cadence: cheap static file, checked at every start
 
@@ -243,7 +252,7 @@ public sealed class TrayContext : ApplicationContext
             {
                 try
                 {
-                    using var srv = new NamedPipeServerStream(Cli.PipeName, PipeDirection.InOut, 1);
+                    using var srv = Elevation.CreatePipeServer();   // reachable by the user's unelevated processes (jump list, links)
                     srv.WaitForConnection();
                     using var r = new StreamReader(srv);
                     using var w = new StreamWriter(srv) { AutoFlush = true };
@@ -254,7 +263,14 @@ public sealed class TrayContext : ApplicationContext
                     // Set() later, which would throw on a disposed event inside a finally
                     var done = new ManualResetEventSlim();
                     var ui = _ui;
-                    if (ui == null) resp = ExecuteCli(line);
+                    if (Cli.Parse(line.Split('\t')) is { Kind: CliKind.TrueColor } tcCmd)
+                    {
+                        // A True Color request waits on MSI's application (up to 4.5 s): it runs on
+                        // this thread, never on the window thread; the bookkeeping is posted back.
+                        resp = ExecuteTrueColorCli(tcCmd);
+                        if (ui != null) { string r2 = resp; ui.Post(_ => LinkRefusalCard(line, r2), null); }
+                    }
+                    else if (ui == null) resp = ExecuteCli(line);
                     else
                     {
                         ui.Post(_ => { try { resp = ExecuteCli(line); } finally { done.Set(); } }, null);
@@ -268,6 +284,28 @@ public sealed class TrayContext : ApplicationContext
     }
 
     private string ExecuteCli(string raw)
+    {
+        string resp = ExecuteCliCore(raw);
+        // A ghostdeck:// link has no console to answer into: a refusal is shown as a GhostDeck
+        // card (#212 style, not a Windows notification, which Focus Assist can swallow). The
+        // card is a window, so only when this runs on the UI thread - which it does once the
+        // message loop is up (_ui set); the few commands that arrive before it get no card.
+        if (_ui != null) LinkRefusalCard(raw, resp);
+        return resp;
+    }
+
+    /// <summary>The card a refused ghostdeck:// link gets (nothing for a console command or a success). UI thread.</summary>
+    private static void LinkRefusalCard(string raw, string resp)
+    {
+        if (resp.StartsWith("0|") || !Protocol.IsLink(raw.Split('\t')[0])) return;
+        string text = resp.IndexOf('|') is var bar && bar >= 0 ? resp[(bar + 1)..] : resp;
+        var dlg = new GhostCardForm("//LINK", Lang.T("link_title"), raw.Split('\t')[0] + "\n\n" + text,
+            Lang.T("gen_ok"), "", () => { });
+        dlg.Show();
+        dlg.Activate();
+    }
+
+    private string ExecuteCliCore(string raw)
     {
         try
         {
@@ -298,6 +336,7 @@ public sealed class TrayContext : ApplicationContext
                         profile = Known ? _current.ToString() : null,
                         fanBoost = _coolerBoost,
                         overlay = OverlayVisible,
+                        crosshair = CrosshairVisible,
                         winLock = _winLock.Enabled,
                         cpuTemp = hw.CpuTemp, gpuTemp = hw.GpuTemp,
                         cpuFan = hw.CpuFan, gpuFan = hw.GpuFan,
@@ -310,6 +349,7 @@ public sealed class TrayContext : ApplicationContext
                         hdr = Hdr.Supported() ? Hdr.Enabled() : (bool?)null,
                         touchpad = Touchpad.State() is >= 0 and var tps ? tps == 1 : (bool?)null,
                         mic = Microphone.State() is >= 0 and var mcs ? mcs == 1 : (bool?)null,
+                        trueColor = TrueColor.Recorded() is { } tcr ? TrueColor.Name(tcr) : null,
                         batteryPercent = noBatt || batt < 0 ? (int?)null : batt,
                         batteryCharging = noBatt ? (bool?)null : ps.PowerLineStatus == PowerLineStatus.Online,
                         batteryMinutesLeft = battMin > 0 ? battMin : (int?)null,
@@ -323,6 +363,26 @@ public sealed class TrayContext : ApplicationContext
                 case CliKind.Overlay:
                     SetOverlay(cmd.Arg == "on", osd: false);
                     return "0|overlay: " + cmd.Arg;
+                case CliKind.Crosshair:
+                {
+                    // on / off, or on with a preset or a shared code (roadmap #118)
+                    if (cmd.Arg == "preset")
+                    {
+                        if (!LoadCrosshairPreset(cmd.Arg2)) return "1|crosshair preset not found: " + cmd.Arg2;
+                        SetCrosshair(true, osd: false);
+                        return "0|crosshair: on (preset " + cmd.Arg2 + ")";
+                    }
+                    if (cmd.Arg == "code")
+                    {
+                        if (!ApplyCrosshairCode(cmd.Arg2)) return "1|not a GhostDeck crosshair code";
+                        SetCrosshair(true, osd: false);
+                        return "0|crosshair: on (code applied)";
+                    }
+                    SetCrosshair(cmd.Arg == "on", osd: false);
+                    return "0|crosshair: " + cmd.Arg;
+                }
+                case CliKind.TrueColor:
+                    return ExecuteTrueColorCli(cmd);   // normally taken before the UI post (StartCliServer)
                 case CliKind.Brightness:
                 {
                     // Windows-level (WMI), independent of EC writability.
@@ -855,6 +915,29 @@ public sealed class TrayContext : ApplicationContext
         _overlayLockItem.Click += (_, _) => ToggleOverlayLock();
         menu.Items.Add(_overlayLockItem);
 
+        _crosshairItem = new ToolStripMenuItem(Lang.T("ch_title")) { CheckOnClick = false };
+        SetDot(_crosshairItem, CrosshairVisible);
+        _crosshairItem.Click += (_, _) => ToggleCrosshair();
+        menu.Items.Add(_crosshairItem);
+
+        // MSI True Color (roadmap #119): only with the experimental switch on and a confirmed
+        // version installed; the dot marks the profile True Color last recorded.
+        _tcItems.Clear();
+        if (_settings.TrueColorEnabled && TrueColor.Detect(_settings.TrueColorUserVerified) is { Installed: true, Confirmed: true } tcInfo)
+        {
+            var tcMenu = new ToolStripMenuItem(Lang.T("tc_title"));
+            foreach (var p in TrueColor.Profiles)
+            {
+                int tcId = p.Id;
+                var it = new ToolStripMenuItem(p.Name) { Tag = tcId, CheckOnClick = false };
+                SetDot(it, tcInfo.Recorded == tcId);
+                it.Click += (_, _) => ApplyTrueColor(tcId, ChangeSource.Tray, manual: true);
+                tcMenu.DropDownItems.Add(it);
+                _tcItems.Add(it);
+            }
+            menu.Items.Add(tcMenu);
+        }
+
         menu.Items.Add(new ToolStripSeparator());
 
         var panel = new ToolStripMenuItem(Lang.T("menu_panel"));
@@ -972,6 +1055,7 @@ public sealed class TrayContext : ApplicationContext
         _tray.ContextMenuStrip = menu;
         if (_cpuTray != null) _cpuTray.ContextMenuStrip = menu;
         if (_gpuTray != null) _gpuTray.ContextMenuStrip = menu;
+        if (_ssdTray != null) _ssdTray.ContextMenuStrip = menu;
         _tray.MouseClick -= TrayClick;
         _tray.MouseClick += TrayClick;
 
@@ -983,6 +1067,37 @@ public sealed class TrayContext : ApplicationContext
         // a strip that is open right now keeps its images until it has closed
         if (oldMenu is { IsDisposed: false, Visible: true }) oldMenu.Closed += (_, _) => SynchronizationContext.Current?.Post(_ => Retire(), null);
         else Retire();
+
+        RebuildJumpList();   // the taskbar list mirrors the menu, so it follows every rebuild
+    }
+
+    /// <summary>
+    /// The taskbar jump list (roadmap #88): profiles in the user's order, the scenes, then
+    /// Fan Boost on/off and the safe state as tasks - each entry runs this exe with the CLI
+    /// command line, which the running instance takes over the pipe. Rebuilt with the menu, so
+    /// a new scene, a new order or a new language reaches the taskbar at once.
+    /// </summary>
+    private void RebuildJumpList()
+    {
+        var profiles = new List<Taskbar.Entry>();
+        var tasks = new List<Taskbar.Entry>();
+        if (Writable)
+        {
+            foreach (var id in Profiles.Shown)
+                profiles.Add(new(Profiles.Get(id).Label, "--profile " + id, Taskbar.ProfileIconFile(id)));
+            tasks.Add(new(Lang.T("jl_boost_on"), "--fanboost on", Taskbar.AppIconFile));
+            tasks.Add(new(Lang.T("jl_boost_off"), "--fanboost off", Taskbar.AppIconFile));
+            tasks.Add(new(Lang.T("hk_panic"), "--panic", Taskbar.AppIconFile));
+        }
+        // the crosshair is a screen-only feature: offered on every machine
+        tasks.Add(new(Lang.T("jl_ch_on"), "--crosshair on", Taskbar.AppIconFile));
+        tasks.Add(new(Lang.T("jl_ch_off"), "--crosshair off", Taskbar.AppIconFile));
+        // the scene name travels quoted on the command line, so a quote inside it is dropped
+        var scenes = _settings.Scenes
+            .Where(s => !string.IsNullOrWhiteSpace(s.Name))
+            .Select(s => new Taskbar.Entry(s.Name, "--scene \"" + s.Name.Replace("\"", "") + "\"", Taskbar.AppIconFile))
+            .ToList();
+        Taskbar.Rebuild(Lang.T("jl_profiles"), profiles, Lang.T("scene_title"), scenes, tasks);
     }
 
     private void TrayClick(object? s, MouseEventArgs e)
@@ -1000,6 +1115,7 @@ public sealed class TrayContext : ApplicationContext
             case TrayAction.CycleProfile: if (Writable) Cycle(ChangeSource.Tray); else ShowState(); break;
             case TrayAction.FanBoost: ToggleCoolerBoost(); break;
             case TrayAction.Overlay: ToggleOverlay(); break;
+            case TrayAction.Crosshair: ToggleCrosshair(); break;
             case TrayAction.ShowState: ShowState(); break;
             case TrayAction.PanicReset: PanicReset(); break;
             case TrayAction.OpenScenarios: OpenMain(MainTab.Scenarios); break;
@@ -1024,9 +1140,10 @@ public sealed class TrayContext : ApplicationContext
     // while they are shown (the temp icons mirror the main icon's mouse actions).
     private NotifyIcon[] WheelIcons()
     {
-        var list = new List<NotifyIcon>(3) { _tray };
+        var list = new List<NotifyIcon>(4) { _tray };
         if (_cpuTray != null) list.Add(_cpuTray);
         if (_gpuTray != null) list.Add(_gpuTray);
+        if (_ssdTray != null) list.Add(_ssdTray);
         return list.ToArray();
     }
 
@@ -1469,6 +1586,7 @@ public sealed class TrayContext : ApplicationContext
                 ApplyPresetFromTray(cp.Length == 0 ? null : cp, osd: false);
             if (s.FanBoost is { } fb && fb != _coolerBoost)
                 SetCoolerBoostState(fb, osd: false);
+            if (s.Turbo is { } tb) SetTurboFromScene(tb, source);
             // Schedule/battery-rule scenes must not defeat an active travel mode: the limit is
             // skipped and the pending revert survives. A scene run by hand is an explicit choice.
             if (s.ChargeLimit is { } cl &&
@@ -1496,8 +1614,20 @@ public sealed class TrayContext : ApplicationContext
                 if (Hdr.Set(hd)) ChangeLog.Add(source, "HDR: " + Lang.T(hd ? "st_on" : "st_off"));
             }
             if (s.Overlay is { } ov && ov != OverlayVisible) SetOverlay(ov, osd: false);
+            if (s.Crosshair is { } ch)
+            {
+                // a named preset is loaded first; a missing one leaves the current look
+                if (ch && s.CrosshairPreset is { Length: > 0 } chp) LoadCrosshairPreset(chp);
+                if (ch != CrosshairVisible) SetCrosshair(ch, osd: false);
+                else if (ch) ApplyCrosshairSettings();
+            }
+            // True Color runs on a worker and reports to the history on its own; an automatic
+            // scene never shows a card for it, and nothing below waits for it
+            if (s.TrueColor is { } tcp) ApplyTrueColor(tcp, source, manual: false);
             if (s.KbdLight is { } kl) SetKbdLight(kl, source, osd: false);
             if (s.Webcam is { } wc && _webcamSupported && wc != _webcamOn) SetWebcamState(wc, source, osd: false);
+            if (s.Mic is { } mc && Microphone.State() is >= 0 and var mst && (mst == 1) != mc)
+                SetMicState(mc, source, osd: false);
             if (s.WinLock is { } wl) SetWinLockState(wl, source, osd: false);
             if (s.Touchpad is { } tp && Touchpad.State() is >= 0 and var tst && (tst == 1) != tp)
                 SetTouchpadState(tp, source, osd: false);
@@ -1511,6 +1641,17 @@ public sealed class TrayContext : ApplicationContext
         {
             _osd.ShowProfile(OsdPrefix + Lang.T("err"), ex.Message, Color.Firebrick);
         }
+    }
+
+    // A scene's turbo field goes through the same snapshot-keeping calls as the Windows power card
+    // and --turbo. "On" counts as done only when both sources already boost: TurboOn would otherwise
+    // rewrite a working non-default mode with the snapshot or GhostDeck's fallback.
+    private void SetTurboFromScene(bool on, ChangeSource source)
+    {
+        if (!PowerPlan.TryGetActiveScheme(out var scheme) || !PowerPlan.TryReadBoost(scheme, out uint ac, out uint dc)) return;
+        if (on ? ac != 0 && dc != 0 : ac == 0 && dc == 0) return;
+        string err = on ? PowerPlan.TurboOn(_settings) : PowerPlan.TurboOff(_settings);
+        ChangeLog.Add(source, "CPU turbo boost: " + (err.Length == 0 ? (on ? "on" : "off") : err));
     }
 
     // ---------------- webcam (#27) ----------------
@@ -1691,6 +1832,137 @@ public sealed class TrayContext : ApplicationContext
 
     // Re-read overlay options after the user edits them in Settings.
     private void ApplyOverlaySettings() { _overlay?.ApplySettings(); UpdateOverlayMenu(); UpdateFpsActive(); }
+
+    // ---------------- crosshair (roadmap #118) ----------------
+    private bool CrosshairVisible => _crosshair is { IsDisposed: false, Visible: true };
+
+    private void ToggleCrosshair() => SetCrosshair(!CrosshairVisible, osd: true);
+
+    private void SetCrosshair(bool on, bool osd)
+    {
+        if (on)
+        {
+            if (_crosshair is not { IsDisposed: false })
+            {
+                _crosshair = new CrosshairForm(_settings, _ui ?? SynchronizationContext.Current ?? new WindowsFormsSynchronizationContext());
+                _crosshair.FormClosed += (_, _) => _crosshair = null;
+            }
+            if (!_crosshair.Visible) _crosshair.Show();   // Show runs ApplySettings through OnVisibleChanged
+            else _crosshair.ApplySettings();
+        }
+        else _crosshair?.Hide();
+
+        if (_settings.CrosshairEnabled != on) { _settings.CrosshairEnabled = on; _settings.Save(); }
+        UpdateCrosshairMenu();
+        if (_main is { IsDisposed: false }) _main.RefreshActive();
+        if (osd) _osd.ShowProfile(OsdPrefix + Lang.T("ch_title"),
+            Lang.T(on ? "st_on" : "st_off"), _settings.Crosshair.ColorValue);
+    }
+
+    // Re-read the crosshair style after an edit in Settings, a preset or a code.
+    private void ApplyCrosshairSettings() { _crosshair?.ApplySettings(); UpdateCrosshairMenu(); }
+
+    private void UpdateCrosshairMenu()
+    {
+        if (_crosshairItem is { } it && !it.IsDisposed) SetDot(it, CrosshairVisible);
+    }
+
+    /// <summary>Copies a saved preset into the live look. False = no preset of that name.</summary>
+    private bool LoadCrosshairPreset(string name)
+    {
+        if (_settings.FindCrosshairPreset(name) is not { } p) return false;
+        _settings.Crosshair.CopyFrom(p);
+        _settings.CrosshairActivePreset = p.Name;
+        _settings.Save();
+        ApplyCrosshairSettings();
+        return true;
+    }
+
+    /// <summary>Applies a shared crosshair code to the live look. False = not a valid code.</summary>
+    private bool ApplyCrosshairCode(string code)
+    {
+        if (CrosshairStyle.Decode(code) is not { } st) return false;
+        _settings.Crosshair.CopyFrom(st);
+        _settings.CrosshairActivePreset = null;
+        _settings.Save();
+        ApplyCrosshairSettings();
+        return true;
+    }
+
+    // ---------------- MSI True Color (roadmap #119, discussions #150 and #204) ----------------
+    // Every entry (Settings card, tray, scene, CLI, link) ends in TrueColor.Set on a worker; the
+    // bookkeeping (settings, history, menu dots, the Settings card) comes back to the UI thread.
+    // A manual request gets a card on failure; an automatic one (a scene) only a history line.
+
+    /// <summary>A profile request from the UI thread; returns at once.</summary>
+    private void ApplyTrueColor(int id, ChangeSource source, bool manual)
+    {
+        string name = TrueColor.Name(id) ?? id.ToString();
+        if (!_settings.TrueColorEnabled)
+        {
+            ChangeLog.Add(source, string.Format(Lang.T("tc_log_skipped"), name), Lang.T("tc_err_disabled"));
+            if (manual) TrueColorCard(Lang.T("tc_err_disabled"));
+            return;
+        }
+        Task.Run(() =>
+        {
+            var (r, detail) = TrueColorApplyCore(id, source);
+            if (manual && r is not (TrueColor.Result.Ok or TrueColor.Result.AlreadySet))
+                _ui?.Post(_ => TrueColorCard(TrueColorReason(r, detail)), null);
+        });
+    }
+
+    /// <summary>The blocking part, on whatever worker called it; the bookkeeping is posted to the UI thread.</summary>
+    private (TrueColor.Result r, string detail) TrueColorApplyCore(int id, ChangeSource source)
+    {
+        var r = TrueColor.Set(id, _settings.TrueColorUserVerified, out string detail);
+        void Done() => AfterTrueColor(id, source, r, detail);
+        if (_ui is { } ui) ui.Post(_ => Done(), null); else Done();
+        return (r, detail);
+    }
+
+    private void AfterTrueColor(int id, ChangeSource source, TrueColor.Result r, string detail)
+    {
+        string name = TrueColor.Name(id) ?? id.ToString();
+        if (r is TrueColor.Result.Ok or TrueColor.Result.AlreadySet)
+        {
+            _settings.TrueColorLast = id;
+            _settings.TrueColorLastUtc = DateTime.UtcNow;
+            _settings.Save();
+            ChangeLog.Add(source, string.Format(Lang.T(r == TrueColor.Result.Ok ? "tc_log_set" : "tc_log_already"), name), detail);
+        }
+        else ChangeLog.Add(source, string.Format(Lang.T("tc_log_failed"), name), TrueColorReason(r, detail));
+        UpdateTrueColorMenu();
+        TrueColor.RaiseChanged();
+    }
+
+    /// <summary>The in-app CLI / link path: runs on the pipe thread (StartCliServer), answers "<code>|<text>".</summary>
+    private string ExecuteTrueColorCli(CliCommand cmd)
+    {
+        if (cmd.Arg == "status") return "0|" + Cli.TrueColorStatusJson(_settings);
+        if (!_settings.TrueColorEnabled) return "1|True Color switching is off - enable it under Settings -> System first";
+        int id = int.Parse(cmd.Arg);
+        var (r, detail) = TrueColorApplyCore(id, ChangeSource.Cli);
+        if (r is TrueColor.Result.Ok or TrueColor.Result.AlreadySet)
+            return "0|true color: " + TrueColor.Name(id) + (r == TrueColor.Result.AlreadySet ? " (already recorded)" : "");
+        return "1|" + Cli.TrueColorFailure(r, detail);
+    }
+
+    private static string TrueColorReason(TrueColor.Result r, string detail) => TrueColor.ReasonText(r, detail);
+
+    private static void TrueColorCard(string body)
+    {
+        var dlg = new GhostCardForm("//TRUECOLOR", Lang.T("tc_title"), body, Lang.T("gen_ok"), "", () => { });
+        dlg.Show();
+        dlg.Activate();
+    }
+
+    private void UpdateTrueColorMenu()
+    {
+        int? rec = TrueColor.Recorded();
+        foreach (var it in _tcItems)
+            if (!it.IsDisposed && it.Tag is int id) SetDot(it, rec == id);
+    }
 
     // The ETW-based FPS monitor runs only while someone is looking: the overlay with an FPS metric
     // enabled, or the Status → Gaming sub-tab. Off otherwise — zero idle cost by design.
@@ -1902,7 +2174,8 @@ public sealed class TrayContext : ApplicationContext
             load, ramPct, ramUsed, AppSettings.ChargeManaged(_settings.ChargeLimit) ? _settings.ChargeLimit : 0, batt, charging,
             Perf.GpuUsage(), Perf.VramUsedMb(), Perf.CpuClockMhz(),
             FpsMonitor.Current?.Fps ?? -1, FpsMonitor.Current?.FrameTimeMs ?? -1,
-            Perf.DiskTemps2().First, Perf.BatteryMinutesLeft(), Perf.DiskTemps2().Second);
+            Perf.DiskTemps2().First, Perf.BatteryMinutesLeft(), Perf.DiskTemps2().Second,
+            Perf.IgpuUsage(), SysInfo.CpuShortName());
     }
 
     private void ShowOsd(ProfileId id)
@@ -1915,6 +2188,7 @@ public sealed class TrayContext : ApplicationContext
     private void UpdateUi(ProfileId id)
     {
         TrayIconFactory.Style = _settings.IconStyle;   // follow the Settings icon-style choice
+        if (Taskbar.WriteIcons(_settings)) RebuildJumpList();   // a new style or profile colour reaches the pin and the list
         _osd.HoldSeconds = _settings.OsdSeconds;       // follow the OSD display-time choice
         var color = Writable ? _settings.ColorFor(id) : Color.Gray;
         var newIcon = TrayIconFactory.Create(color);
@@ -1949,6 +2223,7 @@ public sealed class TrayContext : ApplicationContext
         Reg("WinLock", ToggleWinLock);       // software hook, no EC needed
         if (Touchpad.Present()) Reg("Touchpad", ToggleTouchpad);   // devnode switch, no EC needed
         Reg("Mic", ToggleMic);                                     // Core Audio mute flag, no EC needed
+        Reg("Crosshair", ToggleCrosshair);                         // a window over the screen, no EC needed
         if (!Writable) return;
         Reg("Silent", () => SetProfile(ProfileId.Silent, true, ChangeSource.Hotkey));
         Reg("Balanced", () => SetProfile(ProfileId.Balanced, true, ChangeSource.Hotkey));
@@ -1971,14 +2246,30 @@ public sealed class TrayContext : ApplicationContext
     // keeps showing the warning for as long as the clash lasts.
     private bool _refusedTold;
 
+    /// <summary>
+    /// A message from the tray as a GhostDeck card (#212), not a Windows notification - those
+    /// can be silenced by Focus Assist and look like someone else's. Acknowledge-only unless an
+    /// <paramref name="open"/> action is given (then "Open" / "Later"). Shown without taking the
+    /// focus: these arrive on their own and may land in the middle of a game, where the OSD
+    /// toast remains the in-game channel.
+    /// </summary>
+    private static void ShowCard(string tag, string title, string body, Action? open = null, string? openLabel = null)
+    {
+        var dlg = open == null
+            ? new GhostCardForm(tag, title, body, Lang.T("gen_ok"), "", () => { }) { Quiet = true }
+            : new GhostCardForm(tag, title, body, openLabel ?? Lang.T("gen_open"), Lang.T("fw_dlg_later"), open) { Quiet = true };
+        dlg.Show();
+    }
+
     private void ReportRefusedHotkeys()
     {
         if (_refusedTold || HotkeysRefused.Count == 0 || !_tray.Visible) return;
         _refusedTold = true;
-        _balloonUrl = null;
-        _tray.BalloonTipTitle = Lang.T("hk_refused_title");
-        _tray.BalloonTipText = string.Format(Lang.T("hk_refused_body"), HotkeysRefused.Count);
-        _tray.ShowBalloonTip(8000);
+        // a GhostDeck card (#212), not a Windows notification - those can be silenced by Focus Assist
+        var dlg = new GhostCardForm("//HOTKEYS", Lang.T("hk_refused_title"),
+            string.Format(Lang.T("hk_refused_body"), HotkeysRefused.Count), Lang.T("gen_ok"), "", () => { });
+        dlg.Show();
+        dlg.Activate();
     }
 
     // Live EC viewer (Ctrl+Shift+E; also a button in the Ctrl+Shift+T test dialog): read-only
@@ -2042,7 +2333,7 @@ public sealed class TrayContext : ApplicationContext
         {
             var (tier, color) = TierBadge();
             return new StatusInfo(_current, Writable, Known, DeviceName(), tier, color,
-                                  _switches, DateTime.Now - _profileSince, Autostart.IsEnabled(), AppVersion(),
+                                  _switches, DateTime.Now - _profileSince, Autostart.Known, AppVersion(),
                                   _telemetryOnly, Ec.OnBackupPath);
         },
         Hw = () => ReadHwOrTelemetry(),
@@ -2115,6 +2406,10 @@ public sealed class TrayContext : ApplicationContext
         SetOverlay = on => SetOverlay(on, osd: false),
         ApplyOverlaySettings = ApplyOverlaySettings,
         SnapOverlay = SnapOverlayCorner,
+        CrosshairOn = () => CrosshairVisible,
+        SetCrosshair = on => SetCrosshair(on, osd: false),
+        ApplyCrosshairSettings = ApplyCrosshairSettings,
+        SetTrueColor = id => ApplyTrueColor(id, ChangeSource.Panel, manual: true),
         SetFpsViewer = on => { _statusWantsFps = on; UpdateFpsActive(); },
         UpdateAvail = () => _updateAvail,
         OpenUpdates = tag => { OpenMain(MainTab.Updates); if (_main is { IsDisposed: false }) _main.ShowUpdates(tag); },
@@ -2286,14 +2581,15 @@ public sealed class TrayContext : ApplicationContext
         if (res is not { } r) return;
         _updateAvail = r;
         _updateUrl = r.Url;
-        _balloonUrl = r.Url;
         BuildMenu();
-        _tray.BalloonTipTitle = Lang.T("update_available");
-        _tray.BalloonTipText = string.Format(Lang.T("update_available_text"), r.Tag);
-        _tray.ShowBalloonTip(8000);
+        // "Install vX": the Updates tab opens with the download already running (progress bar
+        // and restart as from its own Install button)
+        ShowCard("//UPDATE", Lang.T("update_available"), string.Format(Lang.T("update_available_text"), r.Tag),
+            () => { OpenMain(MainTab.Updates); if (_main is { IsDisposed: false }) _main.InstallUpdate(r); },
+            string.Format(Lang.T("upd_install"), r.Tag));
     }
 
-    // Announcements (one-way notices): show the newest unseen as a tray balloon now, and as an in-window
+    // Announcements (one-way notices): show the newest unseen as a card now, and as an in-window
     // banner when the panel is (or gets) opened. Seen ids are persisted so each notice shows once.
     private void OnNoticesResult(List<Notices.Notice> notices)
     {
@@ -2302,16 +2598,10 @@ public sealed class TrayContext : ApplicationContext
         _pendingNotice = n;
 
         // One place at a time: banner if the window is open (marks it seen → never nags again),
-        // otherwise a tray balloon to nudge. The balloon doesn't mark it seen, so it keeps nudging
-        // on the daily check until the user actually opens the app once.
+        // otherwise a card to nudge. The card doesn't mark it seen, so it keeps nudging on the
+        // daily check until the user actually opens the app once.
         if (_main is { IsDisposed: false }) ShowNoticeBanner(n);
-        else
-        {
-            _balloonUrl = string.IsNullOrEmpty(n.Url) ? null : n.Url;
-            _tray.BalloonTipTitle = n.Title;
-            _tray.BalloonTipText = n.Body;
-            _tray.ShowBalloonTip(9000);
-        }
+        else ShowCard("//NOTICE", n.Title, n.Body, string.IsNullOrEmpty(n.Url) ? null : () => OpenUrl(n.Url));
     }
 
     // Manual "Check now": respect SeenNoticeIds so an already-read notice does NOT pop up again.
@@ -2409,13 +2699,7 @@ public sealed class TrayContext : ApplicationContext
         TryApplyChargeLimit();   // no-op when back == 0: stop managing, the EC keeps its threshold
         string text = string.Format(Lang.T("log_travel_off"), back > 0 ? back + " %" : Lang.T("st_off"));
         ChangeLog.Add(ChangeSource.ChargeLimit, text);
-        if (notify)
-        {
-            _balloonUrl = null;
-            _tray.BalloonTipTitle = Lang.T("set_travel");
-            _tray.BalloonTipText = text;
-            _tray.ShowBalloonTip(8000);
-        }
+        if (notify) ShowCard("//TRAVEL", Lang.T("set_travel"), text);
         if (_main is { IsDisposed: false }) _main.RefreshActive();
         return text;
     }
@@ -2458,7 +2742,13 @@ public sealed class TrayContext : ApplicationContext
                 if (_settings.TempAlertEnabled) ui?.Post(_ => OnThermalSample(hw), null);
                 if (!Ec.OnBackupPath)   // the charge register has no slot on the backup path
                     ui?.Post(_ => OnChargeSample(hw.ChargeLimit), null);   // someone else may have moved the threshold
-                if (_settings.TempTrayCpu || _settings.TempTrayGpu) ui?.Post(_ => UpdateTempTrays(hw), null);
+                if (_settings.TempTrayCpu || _settings.TempTrayGpu || _settings.TempTraySsd)
+                {
+                    // hottest disk, as the SSD alert sees it; Disks() caches for 10 s, so this
+                    // costs a storage query at most every few polls, and never on the UI thread
+                    int ssd = _settings.TempTraySsd ? Perf.Disks().Select(d => d.TempC).DefaultIfEmpty(-1).Max() : -1;
+                    ui?.Post(_ => UpdateTempTrays(hw, ssd), null);
+                }
             }
             catch { }
             finally { Interlocked.Exchange(ref _thermalBusy, 0); }
@@ -2470,17 +2760,27 @@ public sealed class TrayContext : ApplicationContext
     /// every 3 s would be ~1200 GDI icons an hour for nothing), and the previous icon is always
     /// disposed AFTER the new one is assigned - the same order UpdateUi uses for the main icon.
     /// </summary>
-    private void UpdateTempTrays(HwSnapshot hw)
+    private void UpdateTempTrays(HwSnapshot hw, int ssdTemp)
     {
         ApplyTempTray(ref _cpuTray, ref _cpuTrayIcon, ref _cpuTrayText,
-            _settings.TempTrayCpu, hw.CpuTemp, Lang.T("st_cpu_temp"));
+            _settings.TempTrayCpu, hw.CpuTemp, Lang.T("st_cpu_temp"), Mark(_settings.TempTrayMarkCpu));
         ApplyTempTray(ref _gpuTray, ref _gpuTrayIcon, ref _gpuTrayText,
-            _settings.TempTrayGpu, hw.GpuTemp, Lang.T("st_gpu_temp"));
+            _settings.TempTrayGpu, hw.GpuTemp, Lang.T("st_gpu_temp"), Mark(_settings.TempTrayMarkGpu));
+        // (discussion #150) the same thresholds and colours: 70 / 85 °C defaults sit where NVMe
+        // drives report their own warning and critical temperatures
+        ApplyTempTray(ref _ssdTray, ref _ssdTrayIcon, ref _ssdTrayText,
+            _settings.TempTraySsd, ssdTemp, Lang.T("st_ssd_temp"), Mark(_settings.TempTrayMarkSsd));
         _wheel?.SetIcons(WheelIcons());   // no-op unless an icon appeared or went away
     }
 
+    private Color? Mark(string hex)
+    {
+        if (_settings.TempTrayMarkStyle == (int)TrayMarker.None) return null;
+        try { return ColorTranslator.FromHtml(hex); } catch { return null; }
+    }
+
     private void ApplyTempTray(ref NotifyIcon? icon, ref Icon? current, ref string shown,
-                               bool wanted, int temp, string label)
+                               bool wanted, int temp, string label, Color? mark)
     {
         if (!wanted)
         {
@@ -2506,12 +2806,16 @@ public sealed class TrayContext : ApplicationContext
         // icons with the previous menu.
         icon.ContextMenuStrip = _tray.ContextMenuStrip;
         icon.Text = noReading ? $"{label} --" : $"{label} {temp} °C";
-        if (text == shown) return;                       // nothing to redraw
-        var next = TrayIconFactory.TextIcon(text, noReading ? Theme.Faint : TempTrayColor(temp));
+        var fg = noReading ? Theme.Faint : TempTrayColor(temp);
+        // the key carries the colours and the mark style, so a change in Settings shows on the next update
+        var style = (TrayMarker)_settings.TempTrayMarkStyle;
+        string key = $"{text}|{fg.ToArgb()}|{mark?.ToArgb()}|{style}";
+        if (key == shown) return;                        // nothing to redraw
+        var next = TrayIconFactory.TextIcon(text, fg, mark, style);
         icon.Icon = next;
         current?.Dispose();
         current = next;
-        shown = text;
+        shown = key;
     }
 
     private Color TempTrayColor(int temp)
@@ -2529,6 +2833,8 @@ public sealed class TrayContext : ApplicationContext
         { _cpuTray.Visible = false; _cpuTray.Dispose(); _cpuTray = null; _cpuTrayIcon?.Dispose(); _cpuTrayIcon = null; _cpuTrayText = ""; }
         if (!_settings.TempTrayGpu && _gpuTray != null)
         { _gpuTray.Visible = false; _gpuTray.Dispose(); _gpuTray = null; _gpuTrayIcon?.Dispose(); _gpuTrayIcon = null; _gpuTrayText = ""; }
+        if (!_settings.TempTraySsd && _ssdTray != null)
+        { _ssdTray.Visible = false; _ssdTray.Dispose(); _ssdTray = null; _ssdTrayIcon?.Dispose(); _ssdTrayIcon = null; _ssdTrayText = ""; }
         _wheel?.SetIcons(WheelIcons());
     }
 
@@ -2544,11 +2850,9 @@ public sealed class TrayContext : ApplicationContext
         _lastTempAlert = now;
         string text = string.Format(Lang.T("ta_alert_text"),
             hw.CpuTemp, hw.GpuTemp, _settings.TempAlertDegrees, _settings.TempAlertSeconds);
-        _osd.ShowProfile(OsdPrefix + Lang.T("ta_alert_title"), text, Theme.Red, minSeconds: 5);
-        _balloonUrl = null;
-        _tray.BalloonTipTitle = Lang.T("ta_alert_title");
-        _tray.BalloonTipText = text;
-        _tray.ShowBalloonTip(8000);
+        // two channels, each the user's choice (Settings → Automation): the on-screen toast, the card
+        if (_settings.TempAlertOsd) _osd.ShowProfile(OsdPrefix + Lang.T("ta_alert_title"), text, Theme.Red, minSeconds: 5);
+        if (_settings.TempAlertCard) ShowCard("//THERMAL", Lang.T("ta_alert_title"), text);
         ChangeLog.Add(ChangeSource.Thermal, text);
     }
 
@@ -2612,10 +2916,7 @@ public sealed class TrayContext : ApplicationContext
         if (_main is { IsDisposed: false }) _main.RefreshActive();
         if (!_settings.ChargeExternalNotify) return;
         _osd.ShowProfile(OsdPrefix + Lang.T("charge_ext_title"), text, Theme.Amber);
-        _balloonUrl = null;
-        _tray.BalloonTipTitle = Lang.T("charge_ext_title");
-        _tray.BalloonTipText = text;
-        _tray.ShowBalloonTip(8000);
+        ShowCard("//CHARGE", Lang.T("charge_ext_title"), text);
     }
 
     private void OnSsdSample(string name, int temp)
@@ -2632,11 +2933,8 @@ public sealed class TrayContext : ApplicationContext
         if (now - _lastSsdAlert < ThermalCooldown) return;
         _lastSsdAlert = now;
         string text = string.Format(Lang.T("ssd_alert_text"), name, temp, _settings.SsdAlertDegrees);
-        _osd.ShowProfile(OsdPrefix + Lang.T("ssd_alert_title"), text, Theme.Red, minSeconds: 5);
-        _balloonUrl = null;
-        _tray.BalloonTipTitle = Lang.T("ssd_alert_title");
-        _tray.BalloonTipText = text;
-        _tray.ShowBalloonTip(8000);
+        if (_settings.SsdAlertOsd) _osd.ShowProfile(OsdPrefix + Lang.T("ssd_alert_title"), text, Theme.Red, minSeconds: 5);
+        if (_settings.SsdAlertCard) ShowCard("//SSD", Lang.T("ssd_alert_title"), text);
         ChangeLog.Add(ChangeSource.Thermal, text);
     }
 
@@ -2844,11 +3142,13 @@ public sealed class TrayContext : ApplicationContext
         if (_bptTask is { IsCompleted: false }) { try { _bptCts?.Cancel(); _bptTask.Wait(8000); } catch { } }
         _main?.Close();
         _overlay?.Close();
+        _crosshair?.Close();
         _report?.Close();
         _osd.Dispose();
         if (_cpuTray != null) { _cpuTray.Visible = false; _cpuTray.Dispose(); }
         if (_gpuTray != null) { _gpuTray.Visible = false; _gpuTray.Dispose(); }
-        _cpuTrayIcon?.Dispose(); _gpuTrayIcon?.Dispose();
+        if (_ssdTray != null) { _ssdTray.Visible = false; _ssdTray.Dispose(); }
+        _cpuTrayIcon?.Dispose(); _gpuTrayIcon?.Dispose(); _ssdTrayIcon?.Dispose();
         _tray.Dispose();
         _currentIcon?.Dispose();
         ExitThread();

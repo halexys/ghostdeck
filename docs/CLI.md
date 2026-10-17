@@ -9,9 +9,12 @@ the UI language).
 
 ## Requirements
 
-- **Administrator rights.** EC access needs elevation, exactly like the app itself (the manifest
-  requests it, so an elevated shell / scheduled task with *highest privileges* is required;
-  a non-elevated caller gets a UAC prompt or a failure in non-interactive contexts).
+- **Administrator rights, but only where the EC is touched.** With the app running, the caller
+  needs none: the command is handed to the running app, which already has them (since 1.38 the
+  exe no longer demands elevation at launch; TECHNICAL.md §77). Without the app running, the
+  one-shot talks to the EC itself: an unelevated caller gets one UAC prompt (and a failure in a
+  non-interactive context), an elevated shell or a scheduled task with *highest privileges*
+  runs straight through.
 - Supported hardware for anything that writes to the EC. `--status`, `--refresh`,
   `--brightness`, `--hdr`, `--touchpad`, `--winlock` and `--diag` work on any machine (they
   are Windows-level or read-only); `--status` reports `"writable": false` there, and on
@@ -23,11 +26,13 @@ the UI language).
 |---|---|
 | **GhostDeck is running** (tray) | The command is forwarded over the local named pipe `GhostDeck_Cli` and executed **by the running instance** on its UI thread - identical code paths, safety gates (tier / experimental opt-in), OSD toasts and change-history entries as clicking the UI. |
 | **GhostDeck is not running** | One-shot mode: the process loads `settings.json`, detects the device, applies the same gates, talks to the EC directly, logs to the shared change history, and exits. Nothing stays resident. |
+| **GhostDeck is not running** and the command lives in the app (`--scene`, `--overlay`, `--winlock`, the `--fanboost` timer) | The one-shot starts the tray app and hands the command over once its pipe answers (up to 15 s); the app stays in the tray. The answer is prefixed `GhostDeck started; `. |
 
-The commands that strictly need the running app are `--overlay` (the overlay is a window of
-that process), `--scene` (scenes orchestrate app state like the overlay and hotkeys),
-`--winlock` (the keyboard hook lives in the running process) and the optional `--fanboost`
-auto-off timer (something has to stay alive to fire it). The opposite special case is
+The commands that live in the running app are `--overlay` and `--crosshair` (both are windows of
+that process), `--scene` (scenes orchestrate app state like the overlay and hotkeys), `--winlock`
+(the keyboard hook lives in the running process) and the optional `--fanboost` auto-off timer
+(something has to stay alive to fire it) - with no app running they start it (third row). The
+opposite special case is
 `--diag`: it always runs locally in the calling process, so the zip lands in *your* current
 directory and it works even when the app can't start.
 
@@ -49,11 +54,16 @@ directory and it works even when the app can't start.
 | `--hdr <on\|off>` | HDR / advanced color on every HDR-capable display (DisplayConfig API, any machine) | `hdr: on` |
 | `--touchpad <on\|off>` | Enable/disable the precision touchpad at the device level (same operation as Device Manager; admin, any machine). The in-app hotkey and a panic reset always re-enable it | `touchpad: off` |
 | `--mic <on\|off>` | Unmute / mute the default Windows recording device (the mute flag in the Windows sound settings; when calls use a different default device, both are switched). Works on any laptop, no EC involved | `microphone: off` |
+| `--truecolor <srgb\|gamer\|movie\|antiblue\|office\|adobergb\|displayp3>` | **Experimental.** Ask MSI's True Color application for that display colour profile (a profile id 0/2/3/4/5/6/9 is accepted too). Needs the switch under Settings → System → *MSI True Color* (otherwise exit 1, `True Color switching is off - enable it under Settings -> System first`), True Color installed and running, and a confirmed version (5.1.24.0, or one you confirmed with the in-app test). No EC, no administrator: with no app running the command runs right in the calling process. Confirmed through True Color's own registry record within 3 s; `(already recorded)` when the profile was already the recorded one | `true color: Movie` |
+| `--truecolor status` | Read-only, works with the switch off: installed, version, running, confirmedVersion, enabled, `recorded` (the profile True Color itself last recorded, also after Fn+A), `lastSetByGhostDeck`, the profile words | `{"installed":true,"version":"5.1.24.0","running":true,"confirmedVersion":true,"enabled":true,"recorded":"Office","lastSetByGhostDeck":"Movie","profiles":[…]}` |
 | `--kbd <off\|low\|mid\|high\|0-3>` | Keyboard-backlight level (models with the EC brightness register) | `keyboard backlight: high` |
 | `--webcam on\|off` | EC-level webcam switch - same switch as the Fn camera key. Refused while the hard camera block (Settings → System → Privacy) is active | `webcam: off` |
 | `--fnswap <left\|right>` | Which side the Fn key is on - the EC-persisted Fn/Windows swap (boards in msi-ec's `fn_win_swap` map) | `fn key: left` |
 | `--winlock on\|off` | Block both Windows keys - software hook, any laptop (**requires the app running**) | `win key lock: on` |
 | `--overlay on\|off` | Show/hide the gaming overlay (**requires the app running**) | `overlay: on` |
+| `--crosshair on\|off` | Show/hide the crosshair (**requires the app running**; starts the app when it is not) | `crosshair: on` |
+| `--crosshair preset "<name>"` | Load a saved crosshair preset into the live look and show the crosshair | `crosshair: on (preset Dot)` |
+| `--crosshair code <GDX1.…>` | Apply a shared crosshair code (Settings → Gaming → Crosshair → *Copy code*) and show the crosshair. Exit 1 with `not a GhostDeck crosshair code` when the text is not one | `crosshair: on (code applied)` |
 | `--panic` | Safe state: Fan Boost off, Balanced profile, fans on the automatic curve; also lifts the camera block, re-enables the webcam and releases the Windows-key lock | `panic reset done` |
 | `--diag [path.zip]` | Save the one-zip diagnostic package (report, read-only EC dump or its exact failure, vendor WMI blocks, settings/changelog/errors). Always runs locally; default name `ghostdeck-diagnostics-<date>.zip` in the current directory | `diagnostics saved: <path>` |
 | `--status` | Print the current state as JSON (see below) | *(JSON document)* |
@@ -64,7 +74,7 @@ directory and it works even when the app can't start.
 | Code | Meaning | Typical stderr/stdout message |
 |---|---|---|
 | `0` | Success | *(command-specific, above)* |
-| `1` | Refused or failed | `unsupported hardware (firmware: …)` · `model is experimental - enable Experimental writes in the app settings first` · `preset not found: X` · `overlay control needs the GhostDeck app running` · `EC access failed (…) - run elevated (administrator) on supported hardware` |
+| `1` | Refused or failed | `unsupported hardware (firmware: …)` · `model is experimental - enable Experimental writes in the app settings first` · `preset not found: X` · `could not start the GhostDeck app` · `EC access failed (…) - run elevated (administrator) on supported hardware` |
 | `2` | Bad usage (unknown command / missing argument) | usage text |
 
 ## `--status` JSON
@@ -80,6 +90,7 @@ directory and it works even when the app can't start.
   "profile": "Silent",
   "fanBoost": false,
   "overlay": true,
+  "crosshair": false,
   "winLock": false,
   "cpuTemp": 52, "gpuTemp": 46,
   "cpuFan": 34,  "gpuFan": 0,
@@ -91,6 +102,7 @@ directory and it works even when the app can't start.
   "fnLeft": false,
   "hdr": false,
   "touchpad": true,
+  "trueColor": "Office",
   "batteryPercent": 76, "batteryCharging": true,
   "batteryMinutesLeft": null, "batteryWearPct": 9,
   "disks": [ { "name": "Samsung MZVL21T0HCLR", "tempC": 41 }, { "name": "KINGSTON SKC3000", "tempC": 37 } ],
@@ -124,14 +136,54 @@ directory and it works even when the app can't start.
 | `disks` | array | `{ name, tempC }` per physical disk; `tempC` `null` when the drive doesn't report it. Empty when not elevated |
 | `fps`, `frameTimeMs`, `game` | int? / float? / string? | foreground game via the ETW FPS monitor; `null` when the monitor is off (overlay hidden, Gaming tab closed) or no game is presenting. Only present when `running` is `true` |
 
+## `ghostdeck://` links
+
+Every state-changing command is also a link: `ghostdeck://<command>/<argument>[/<second>]`
+maps one to one onto the switches above, with the same gates, OSD toasts and history entries.
+
+| Link | Same as |
+|---|---|
+| `ghostdeck://profile/silent` | `--profile Silent` |
+| `ghostdeck://cycle` | `--cycle` |
+| `ghostdeck://scene/Gaming%20night` | `--scene "Gaming night"` (spaces as `%20`) |
+| `ghostdeck://fanboost/on/300` | `--fanboost on 300` |
+| `ghostdeck://curve/My%20quiet` | `--curve "My quiet"` |
+| `ghostdeck://refresh/max` | `--refresh max` |
+| `ghostdeck://charge/80`, `ghostdeck://travel/7` | `--charge 80`, `--travel 7` |
+| `ghostdeck://turbo/off`, `ghostdeck://mic/off`, `ghostdeck://hdr/on`, `ghostdeck://kbd/high`, ... | the matching switch |
+| `ghostdeck://panic` | `--panic` |
+
+Not reachable as links, on purpose: `--status` and `--help` (nothing to print into), `--diag`
+and the maintainer commands (a web page must not be able to write a file on your disk).
+
+The link is registered for the current Windows user (`HKCU\Software\Classes\ghostdeck`) when
+the app starts, no administrator needed, and re-pointed when the exe moves. Settings → System →
+*ghostdeck:// links* switches the registration off and removes the key. A browser asks once
+whether to open GhostDeck, as for any such link; the Run dialog (Win+R), a shortcut, AutoHotkey
+(`Run ghostdeck://scene/Gaming`) and a Stream Deck *Open* or *Website* action launch it
+directly. With the app running the link runs without any prompt and answers with the usual
+OSD; a refusal (an unknown scene, say) shows as a GhostDeck card with the message, because a
+link has no console to answer into. Without the app running the link behaves like the CLI: one UAC prompt,
+and a scene starts the app.
+
+## Taskbar jump list
+
+A right-click on the GhostDeck taskbar button opens a jump list: the profiles in the order you
+set, every scene, and Fan Boost on / off plus the panic reset as tasks. Each entry is the
+matching CLI command, carried out by the running app. The button exists while the main window
+is open; pin GhostDeck to the taskbar (right-click the button → *Pin to taskbar*) and the list
+is there at any time, also through Win+Alt+<position of the button>. A pinned GhostDeck takes
+the icon style chosen in Settings (*Application icon*).
+
 ## Recipes
 
 **Task Scheduler - quiet nights.** Create two basic tasks running with *highest privileges*:
 one at 22:00 → `GhostDeck.exe --profile Silent`, one at 07:00 → `GhostDeck.exe --profile Balanced`.
 
 **Stream Deck.** Add a *System → Open* action with `GhostDeck.exe` and the arguments
-(e.g. `--fanboost on`). One key per profile, one for `--panic`. (Stream Deck itself must run
-elevated for the launched process to inherit elevation without a UAC prompt.)
+(e.g. `--fanboost on`). One key per profile, one for `--panic`. With the app running no
+elevation is involved; a *Website* action with `ghostdeck://profile/silent` works just as well
+and needs no path to the exe.
 
 **AutoHotkey.**
 ```ahk

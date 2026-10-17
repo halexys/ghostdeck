@@ -11,6 +11,9 @@ namespace GhostDeck;
 /// profile-coloured ghost in the tray), 2 = the same on a light tile, 3 = the classic pre-1.18
 /// gauge (tachometer squircle). Tray icons always follow the active profile colour.
 /// </summary>
+/// <summary>How a tray temperature icon marks its source (CPU / GPU / SSD).</summary>
+public enum TrayMarker { None = 0, Underline = 1, Dot = 2, Corner = 3 }
+
 public static class TrayIconFactory
 {
     [DllImport("user32.dll")] private static extern bool DestroyIcon(IntPtr handle);
@@ -44,6 +47,43 @@ public static class TrayIconFactory
         return _appIcons[s] = icon;
     }
 
+    /// <summary>The profile-coloured icon of the active style, on the 32-unit grid scaled to <paramref name="size"/>.</summary>
+    private static void DrawProfile(Graphics g, float size, Color color)
+    {
+        switch (Style)
+        {
+            case 0: DrawSquircleGhost(g, size, color); break;                                  // white ghost, profile squircle
+            case 2:
+            case 4: DrawTile(g, size, LightTile, ControlPaint.Dark(color, 0.02f)); break;      // profile ghost, light tile
+            case 3: DrawGauge(g, size, color); break;                                          // classic gauge, profile squircle
+            default: DrawTile(g, size, DarkTile, Theme.Profile(color)); break;                 // profile ghost, dark tile
+        }
+    }
+
+    /// <summary>The window icon of the active style as an .ico file's bytes (the taskbar pin, see Taskbar).</summary>
+    public static byte[] AppIconBytes()
+    {
+        if (Style == 0)
+        {
+            try
+            {
+                using var s = typeof(TrayIconFactory).Assembly.GetManifestResourceStream("GhostDeck.app.ico");
+                if (s != null) { using var ms = new MemoryStream(); s.CopyTo(ms); return ms.ToArray(); }
+            }
+            catch { }
+        }
+        return IcoBytes(Style switch
+        {
+            2 => (g, sz) => DrawTile(g, sz, LightTile, BrandBlue),
+            3 => (g, sz) => DrawGauge(g, sz, BrandBlue),
+            4 => (g, sz) => DrawTile(g, sz, LightTile, BrandCyan),
+            _ => (g, sz) => DrawTile(g, sz, DarkTile, BrandCyan),
+        });
+    }
+
+    /// <summary>A profile's icon (active style, the profile's colour) as an .ico file's bytes.</summary>
+    public static byte[] ProfileIconBytes(Color color) => IcoBytes((g, sz) => DrawProfile(g, sz, color));
+
     /// <summary>Tray icon in the active profile colour, per the active style.</summary>
     public static Icon Create(Color color)
     {
@@ -53,14 +93,7 @@ public static class TrayIconFactory
         {
             g.SmoothingMode = SmoothingMode.AntiAlias;
             g.Clear(Color.Transparent);
-            switch (Style)
-            {
-                case 0: DrawSquircleGhost(g, S, color); break;                                  // white ghost, profile squircle
-                case 2:
-                case 4: DrawTile(g, S, LightTile, ControlPaint.Dark(color, 0.02f)); break;      // profile ghost, light tile
-                case 3: DrawGauge(g, S, color); break;                                          // classic gauge, profile squircle
-                default: DrawTile(g, S, DarkTile, Theme.Profile(color)); break;                 // profile ghost, dark tile
-            }
+            DrawProfile(g, S, color);
         }
 
         IntPtr h = bmp.GetHicon();
@@ -78,14 +111,28 @@ public static class TrayIconFactory
     /// <summary>
     /// A number as a notification-area icon (the temperature readouts, discussion #9). Two bold
     /// digits are all that fits, so a value of 100 or more is drawn as "99+"; the caller picks the
-    /// colour from its own thresholds.
+    /// colour from its own thresholds. <paramref name="marker"/> adds a small mark in the source's
+    /// own colour (CPU / GPU / SSD), so the icons can be told apart without hovering.
     /// </summary>
-    public static Icon TextIcon(string text, Color fg)
+    public static Icon TextIcon(string text, Color fg, Color? marker = null, TrayMarker style = TrayMarker.Underline)
+    {
+        using var bmp = TextBitmap(text, fg, marker, style, 0);
+        IntPtr h2 = bmp.GetHicon();
+        try
+        {
+            using var tmp = Icon.FromHandle(h2);
+            return (Icon)tmp.Clone();
+        }
+        finally { DestroyIcon(h2); }
+    }
+
+    /// <summary>The bitmap behind <see cref="TextIcon"/>; <paramref name="size"/> 0 = the shell's small-icon size.</summary>
+    public static Bitmap TextBitmap(string text, Color fg, Color? marker, TrayMarker style, int size)
     {
         // Render at the size the shell actually asks for. A bitmap built larger than that is
         // resampled down by the shell, which costs more sharpness than the extra pixels buy.
-        int S = Math.Clamp(GetSystemMetrics(SM_CXSMICON), 16, 64);
-        using var bmp = new Bitmap(S, S);
+        int S = size > 0 ? size : Math.Clamp(GetSystemMetrics(SM_CXSMICON), 16, 64);
+        var bmp = new Bitmap(S, S);
         using (var g = Graphics.FromImage(bmp))
         {
             g.SmoothingMode = SmoothingMode.AntiAlias;
@@ -98,16 +145,24 @@ public static class TrayIconFactory
             using (var ff = new FontFamily("Segoe UI"))
                 path.AddString(text, ff, (int)FontStyle.Bold, 64f, PointF.Empty, StringFormat.GenericTypographic);
             var b = path.GetBounds();
+            float pen = Math.Max(1f, S / 12f);
+            // Two digits are wider than tall, so they are fitted by width and leave a band above
+            // and below; the underline mark lives in the lower band and the digits move up into
+            // the upper one, so neither covers the other.
+            bool mark = marker is { } && style != TrayMarker.None;
+            float barH = mark && style == TrayMarker.Underline ? Math.Max(2f, S / 7f) : 0f;
+            float gap = barH > 0 ? Math.Max(1f, S / 16f) : 0f;
             if (b.Width > 0 && b.Height > 0)
             {
                 // The icon has no background of its own and the taskbar is light in one theme and
                 // dark in the other, so the digits carry a dark outline. Half of a stroke falls
                 // outside the path, hence the pen width (not twice it) as the margin.
-                float pen = Math.Max(1f, S / 12f);
                 float box = S - pen;
-                float k = Math.Min(box / b.Width, box / b.Height);
+                float boxH = box - barH - gap;
+                float k = Math.Min(box / b.Width, boxH / b.Height);
+                float top = (S - barH - gap - b.Height * k) / 2f;
                 using var m = new Matrix();
-                m.Translate((S - b.Width * k) / 2f - b.X * k, (S - b.Height * k) / 2f - b.Y * k);
+                m.Translate((S - b.Width * k) / 2f - b.X * k, top - b.Y * k);
                 m.Scale(k, k, MatrixOrder.Prepend);
                 path.Transform(m);
                 using (var p = new Pen(Color.FromArgb(190, 0, 0, 0), pen) { LineJoin = LineJoin.Round })
@@ -115,14 +170,46 @@ public static class TrayIconFactory
                 using var brush = new SolidBrush(fg);
                 g.FillPath(brush, path);
             }
+            if (mark) DrawMarker(g, S, marker!.Value, style, barH, pen);
         }
-        IntPtr h2 = bmp.GetHicon();
-        try
+        return bmp;
+    }
+
+    // The mark carries the same dark edge as the digits, so it reads on a light and a dark taskbar.
+    private static void DrawMarker(Graphics g, int S, Color c, TrayMarker style, float barH, float pen)
+    {
+        using var edge = new Pen(Color.FromArgb(190, 0, 0, 0), Math.Max(1f, pen * 0.8f)) { LineJoin = LineJoin.Round };
+        using var fill = new SolidBrush(c);
+        switch (style)
         {
-            using var tmp = Icon.FromHandle(h2);
-            return (Icon)tmp.Clone();
+            case TrayMarker.Underline:
+            {
+                float inset = pen;
+                var r = new RectangleF(inset, S - barH - pen / 2f, S - inset * 2, barH);
+                using var path = Theme.RoundRect(r, barH / 2f);
+                g.DrawPath(edge, path);
+                g.FillPath(fill, path);
+                break;
+            }
+            case TrayMarker.Dot:
+            {
+                float d = Math.Max(4f, S / 3.2f);
+                var r = new RectangleF(S - d - pen / 2f, pen / 2f, d, d);
+                g.DrawEllipse(edge, r);
+                g.FillEllipse(fill, r);
+                break;
+            }
+            case TrayMarker.Corner:
+            {
+                float a = Math.Max(5f, S / 2.6f);
+                var pts = new[] { new PointF(0, 0), new PointF(a, 0), new PointF(0, a) };
+                using var path = new GraphicsPath();
+                path.AddPolygon(pts);
+                g.DrawPath(edge, path);
+                g.FillPath(fill, path);
+                break;
+            }
         }
-        finally { DestroyIcon(h2); }
     }
 
     /// <summary>
@@ -257,7 +344,10 @@ public static class TrayIconFactory
     }
 
     /// <summary>Builds a multi-size icon (PNG-compressed ICO in memory) from a vector painter.</summary>
-    private static Icon BuildIcon(Action<Graphics, int> draw)
+    private static Icon BuildIcon(Action<Graphics, int> draw) => new(new MemoryStream(IcoBytes(draw)));
+
+    /// <summary>The bytes of a multi-size .ico (PNG-compressed entries) painted by <paramref name="draw"/>.</summary>
+    private static byte[] IcoBytes(Action<Graphics, int> draw)
     {
         int[] sizes = { 16, 24, 32, 48, 64, 128, 256 };
         var pngs = new List<byte[]>(sizes.Length);
@@ -293,7 +383,6 @@ public static class TrayIconFactory
             }
             foreach (var p in pngs) w.Write(p);
         }
-        ico.Position = 0;
-        return new Icon(ico);
+        return ico.ToArray();
     }
 }

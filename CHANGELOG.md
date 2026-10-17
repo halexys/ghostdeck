@@ -3,6 +3,204 @@
 All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [Unreleased]
+### Added
+- **Crosshair** (roadmap #118, [discussion #247](../../discussions/247), thanks @arcfybr) - a
+  crosshair drawn at the centre of the screen over the game, as its own small window that never
+  takes the focus and lets every click through; nothing is injected into the game. Eleven
+  built-in shapes (cross, cross with gap, gap cross with dot, dot, circle, circle with dot, T, X,
+  chevron, square with dot, reticle) or your own PNG / BMP / JPG (up to 512 × 512 px and 1 MB,
+  copied into the settings folder), each with colour, size, line thickness, a dark rim, opacity,
+  softness, rotation and an X / Y offset; the position can also follow the mouse pointer. Optional
+  click effect on the left button (spread, pulse, flash) and hide-while-aiming on the right button
+  (both off by default; they watch the mouse through a low-level hook like the Windows-key lock).
+  Named presets without limit, a short share code (`GDX1.…`) with *Copy code* / *Paste code*,
+  PNG and SVG export, and a live preview on a dark and a light background. Switch it with a
+  hotkey (`Ctrl+Alt+F12`, shipped disabled), the tile on Scenarios, the tray menu, a tray-click
+  action, the taskbar jump list, a scene field (off / on / on with a preset), `--crosshair
+  on|off|preset|code` and `ghostdeck://crosshair/...`. Settings → Gaming now opens on a
+  *Start* view with a tile per feature (its state and a quick switch, like the Settings Start
+  page) and has the *Gaming overlay* and *Crosshair* views behind the same switch. A preset
+  stays selected while you edit it, marked "(modified)", with *Save* writing the look back
+  and *Save as...* adding or overwriting a preset. The settings backup carries the presets
+  and the custom picture.
+- **Sliders take the mouse wheel, the arrow keys and a double-click** - one step per wheel
+  notch or arrow (ten with Ctrl), a double-click puts the slider back to its default, and a
+  slider with a natural zero (the crosshair offsets and rotation) snaps to it when dragged
+  close. The value column is as wide as the longest value, so "100%" is no longer clipped.
+- **MSI True Color profiles, experimental** (roadmap #119, [discussion #150](../../discussions/150)
+  and [#204](../../discussions/204)) - the display colour profile of MSI's True Color application
+  (sRGB, Gamer, Movie, Anti-Blue, Office, AdobeRGB, Display P3) switched from GhostDeck: a card
+  under Settings → System with seven tiles, a *True Color* submenu in the tray, a scene field
+  (leave alone, or one of the seven), `--truecolor <profile|status>` and
+  `ghostdeck://truecolor/<profile>`. GhostDeck asks the running True Color through the window
+  message its own helper uses and reads the profile True Color records back; it writes nothing to
+  True Color's files or settings and never calculates colours. Off by default, opt-in with a
+  consent card; confirmed on True Color 5.1.24.0 (one GE78HX, 17 October 2026) and off on other
+  versions until the owner runs the one-click test on their own machine. The card shows what True
+  Color recorded and what GhostDeck last asked for, never a measured state. A scene with the field
+  set runs it on a worker and never waits for it; a failure is a history line (and a card only
+  for a manual action). `--truecolor status` works with the switch off; the diagnostic zip lists
+  the installed version.
+
+### Fixed
+- **Settings cards laid out for the width before the scrollbar** - when a Settings view grew
+  tall enough for a vertical scrollbar on entry, the two card columns kept the width they
+  had without it until the next rebuild, which then shifted them by half the scrollbar.
+  The layout pass now runs again at the settled width.
+- **MSI Vector GP66 12UGS (`1544EMS1`): fan curve verified, fan RPM on** ([#249](../../issues/249),
+  [#250](../../issues/250), thanks @TheOriginalBabu) - his test curve sits byte-for-byte at the
+  shipped addresses on both fans, and both tachometers are live. Recipes confirmed in all four
+  scenarios; the model stays experimental until a power test.
+- **MSI Raider GE68 HX 14VGG (`15M2IMS2`) promoted to Tested** ([#244](../../issues/244),
+  [#245](../../issues/245), thanks @Ghli) - a clean power test (1 % drift): Silent delivers 72 %
+  of Balanced's work at 2.49 instead of 3.46 GHz and 9 C cooler; Extreme level with Balanced
+  under the combined load. Fan RPM readout on, as on the sibling GE68 HX 14VIG.
+- **MSI Titan 18 HX A14V / Raider 18 HX A14V (`1822EMS1`) promoted to Tested** ([#239](../../issues/239),
+  thanks @se-240717038) - the owner's per-scenario capture matches the standard recipe set
+  in all four scenarios with the real Silent tile, and all three hardware checks are confirmed.
+  His machine is sold as the Raider 18 HX A14V on the Titan 18 HX A14V board, so the entry
+  carries both names. Fan RPM reads as 16-bit tachometer pairs, proven on his idle capture.
+- **The "Report my model" steps name the tile in the other MSI apps** ([#170](../../issues/170)) -
+  each step shows the scenario as MSI Center 2.0.48 names it and, underneath, the name the owner
+  may be looking at instead: "High Performance" in MSI Center Pro for Extreme, "ECO-Silent" in
+  MSI Center 2.0.49 and newer for Super Battery, and a note that those newer versions have no
+  Silent tile at all. The instruction line carries the short alternatives too, and the card at the
+  left says that a business laptop with MSI Center Pro can use it as it is.
+- **The power test report names a phase that did not run evenly** - a new "Inside the phases"
+  section lists a phase whose processor clock stepped to a different level partway through, or
+  spiked inside the measured window, with the second it happened and both levels. The baseline
+  check then says that its drift figure measures that step, instead of describing a machine
+  that heated up over the run.
+
+### Changed
+- The "Report my model" texts use plain hyphens instead of long dashes in all 15 languages.
+
+### Fixed
+- **Changing the language left the "Report my model" window half translated** - the three
+  info cards, the "Start over" buttons and the consent line of the power test kept the old
+  language until the app was restarted; they now follow the switch.
+
+## [1.38.0] - 2026-10-07
+### Added
+- **Profiles and scenes from the taskbar** (roadmap #88) - a right-click on the GhostDeck
+  taskbar button, or on the icon once GhostDeck is pinned, opens a jump list with the profiles
+  in your order, every scene, Fan Boost on / off and the panic reset. A pinned GhostDeck now
+  carries the icon style chosen in Settings instead of the plain exe icon (a pin made with an
+  older version takes the new identity after the next sign-in; pinning again does it at once).
+- **`ghostdeck://` links** (roadmap #89) - `ghostdeck://scene/Gaming`, `ghostdeck://profile/silent`,
+  `ghostdeck://fanboost/on/300` and every other state-changing CLI command as a link, for a
+  browser, the Run dialog, a Stream Deck "open" action, AutoHotkey or a plain shortcut; no
+  plugin, no administrator prompt while the app runs. Registered for the current user when
+  the app starts; Settings → System → "ghostdeck:// links" switches it off. `--status`,
+  `--diag` and the maintainer commands are deliberately not reachable from a link.
+- **The temperature and SSD alerts have two switchable channels** (Settings → Automation) - the
+  on-screen message (OSD) and the GhostDeck card, each with its own switch, both on by default;
+  the OSD alone is the choice for the game, the card alone for the desk.
+- **A scene, the overlay or the Windows-key lock from the command line starts the app** when it
+  is not running and hands the command over, instead of answering "needs the app running".
+- **Integrated GPU on Status and in the overlay** ([discussion #101](../../discussions/101),
+  thanks @M-Essa11) - on a laptop with two graphics cards, Status shows the integrated card's
+  load and the system memory it uses ("iGPU: 7 % · 1.9 GB") next to the GPU load, and the
+  gaming overlay can show "iGPU%" (off by default; offered only when the laptop has an
+  integrated card). Which card is which comes from the driver's own report to Windows, not
+  from memory sizes. Laptops with one card, or with the MUX switched to the discrete card,
+  look exactly as before. No temperature or power draw for the integrated chip: it sits in the
+  processor and shares its temperature.
+- **CPU turbo boost and the microphone in scenes** - a scene can switch CPU turbo boost in the
+  active Windows plan (both plugged in and on battery) and mute or unmute the microphone, so
+  "Work = Silent + turbo off" is one click. Turbo goes through the same path as the Windows
+  power card, so its saved values and "comes back: ..." keep working; a scene that turns turbo
+  on leaves an already working mode alone.
+- **SSD temperature in the tray** ([discussion #150](../../discussions/150), thanks
+  @r7v9r4hmm8-png) - a third temperature icon for the hottest drive, next to the CPU and GPU
+  ones, with the same warning / hot thresholds and colours (Settings → System → Temperature in
+  the tray).
+- **Tray temperature icons say what they measure** - each icon carries a small mark in a colour
+  of its own, so the icons can be told apart without hovering over them. The mark is a bar under
+  the digits by default; a dot, a corner or no mark can be picked instead, and the colours (by
+  default the Silent, Extreme and Super Battery profile colours: blue for CPU, pink for GPU,
+  green for SSD) are editable (Settings → System → Temperature in the tray).
+- **CPU model in the overlay** ([discussion #150](../../discussions/150), thanks
+  @r7v9r4hmm8-png) - a new overlay item shows the processor as people name it ("i9-13980HX",
+  "Ultra 9 185H", "Ryzen AI 9 HX 370").
+- **Katana 15 B13VGK - sixth retail line on the `1585EMS1` board**
+  ([#235](../../issues/235), thanks @sefouhi3400-hash) - the Tested entry gains the name
+  (i7-13620H + RTX 4070; retail listings carry the same board code). The owner's clean Power
+  test (0 % drift) records Silent at 83 % of Balanced's work at 79 °C against 94 °C, and
+  Extreme at 73 % under the combined CPU and graphics load. Second owner confirmation of the
+  Raider GE68 HX 14VIG / Vector 16 HX A13V (`15M1IMS2`) ([#234](../../issues/234), thanks
+  @alinayzIr): every recipe byte and the fan-curve tables match again. Signed model database
+  `DataVersion 20261011`.
+
+### Fixed
+- **A CLI command no longer runs twice while the app is running** - the calling process closed
+  its end of the pipe in the wrong order, took its own error for "nobody listening" and carried
+  the command out a second time one-shot: two "CLI" entries per profile switch in the history,
+  `--status` printed twice, `--scene` ending with "needs the app running" although the scene had
+  been applied. Since the CLI's first version (1.21.0).
+- **Card titles keep their "&"** - the heading of the Settings card "Startup & tray" lost the
+  ampersand (the label read it as a keyboard-shortcut mark).
+- **"GPU load" and "VRAM" describe the discrete card only** - the Windows counters behind them
+  were added up across every graphics adapter, including the integrated chip and Windows'
+  software renderer, so on a two-card laptop the integrated chip's load showed as "GPU load"
+  while the discrete card slept. Status, the overlay and the power test now read the discrete
+  card alone (the same card the GPU-clock tile names), and the VRAM total is that card's own.
+- **Power test: the graphics load always runs on the discrete card** - the test picked the card
+  with the most memory of its own, and an integrated chip can be given more of it than the
+  discrete card has (AMD's Variable Graphics Memory reaches 8, 16 or 32 GB), so on such a laptop
+  the load could land on the integrated chip. It now uses the same driver-reported choice as
+  Status.
+- **Changing the language no longer leaves the old Settings controls behind** - every
+  rebuild of the Settings page (language change, settings import) kept the replaced cards
+  alive in the background, about 23 window objects each time. They are now released.
+
+### Changed
+- **Messages from the tray are GhostDeck cards** - an available update, an announcement, the end
+  of travel mode, a charge limit changed outside the app, the temperature and SSD alerts and the
+  "Windows refused N shortcuts" notice used to be Windows notifications, which Focus Assist can
+  silence. They are GhostDeck cards now, shown without taking the focus, so one that arrives
+  during a game does not pull you out of it (the on-screen toast in a game is unchanged). The
+  update card's "Install" opens the Updates tab with the download already running, progress
+  bar and restart included.
+- **Fewer administrator prompts** - the exe no longer demands administrator rights at launch;
+  the app asks for them itself when it starts for real (one UAC prompt, as before; none from the
+  Start-with-Windows task). A launch that only hands a command to the running app - the jump
+  list, a link, a script, a double-click on the exe to bring the window up - runs without any
+  prompt. The running app has exactly the rights it had.
+- **Clearer overlay labels** ([discussion #150](../../discussions/150)) - the gaming overlay's
+  labels say what they show: "CPU%" next to "GPU%" (was "Load"), "Frametime" (was "Frame"),
+  "CPU clock" (was "CPU clk"), "Battery" (was "Bat"), "Time left" (was "Left") and "Charge
+  limit" (was "Limit"). They stay in English in every language, as before.
+- **The fan percentage is labelled "curve target"** - the two rings on Status ("CPU curve
+  target", "GPU curve target", were "CPU fan" / "GPU fan"), the history chart ("Fan curve
+  target (%)", was "Fans (duty %)"), the overlay item ("Curve target", was "Fans") and the EC
+  view rows, in all 15 languages. The number is the fan curve's target for the current
+  temperature, not the fan's speed: the chosen profile caps the real speed on top of it (on a
+  GE76 the ring reads 85 % in every profile while the fan runs 2800 / 3580 / 5065 rpm in
+  Silent / Balanced / Extreme). The measured speed is the rpm readout under the rings. The
+  value itself is unchanged; a new FAQ entry explains the two numbers. Each ring has a help
+  dot with the same explanation, the ring scale runs to 150 % (MSI's own fan scale) instead of
+  filling up at 100 %, and a target of 0 reads "0 %" instead of a dash - the history chart
+  uses the same 0-150 scale and plots 0 as a value.
+- **Windows power card: "turbo is off, no saved values" is an amber note, not a red one** -
+  the state is information (turbo is off in the active Windows plan and GhostDeck has nothing
+  of its own to bring back), so it now uses the same amber strip with the "!" chip as the
+  card's other notes. The text is unchanged.
+- **Settings no longer rebuilds the whole page after a single change** - adding, editing,
+  moving or removing a schedule rule, switching the charge limit to or from Custom, starting
+  or stopping travel mode, entering a custom Fan Boost time and the two "Defaults" buttons
+  (notifications, temperature icons) used to recreate every control of the Settings page,
+  which froze the window for about 0.4 s on a busy desktop. Each of them now refreshes only
+  its own card (about 0.05 s), and the page keeps its scroll position. The page is still
+  rebuilt when the language changes or settings are imported.
+- **Switching tabs is faster, and the Status and Fan curve tabs open without a pause** - the
+  app asked Windows whether autostart is on by starting a system tool on every repaint of the
+  tab strip (20-30 ms each time, four times when opening Fan curve), and the Status tab waited
+  about 0.4 s for the disk list whenever it had not been opened for ten seconds. The autostart
+  answer is now remembered, and the disk list and the Windows counters are read in the
+  background. Opening Fan curve: about 145 -> 25 ms; Status: no more 0.4-0.9 s stalls.
+
 ## [1.37.0] - 2026-10-04
 ### Fixed
 - **A wrapped toast no longer clips its last line at the bottom edge** - the toast measured

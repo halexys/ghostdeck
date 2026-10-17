@@ -34,6 +34,11 @@ public sealed class SceneDef
     public bool? WinLock { get; set; }             // software Windows-key lock
     public bool? Touchpad { get; set; }            // devnode-level touchpad switch
     public bool? FanBoost { get; set; }
+    public bool? Turbo { get; set; }               // CPU turbo boost in the active Windows plan, both sources
+    public bool? Mic { get; set; }                 // default recording device: true = on, false = muted
+    public bool? Crosshair { get; set; }           // the crosshair window (roadmap #118)
+    public string? CrosshairPreset { get; set; }   // with Crosshair = true: the preset to load first (null = current look)
+    public int? TrueColor { get; set; }            // MSI True Color profile id (roadmap #119); null = leave the profile alone
 
     [JsonIgnore] public string HotkeyKey => "Scene:" + Id;
 
@@ -52,13 +57,17 @@ public sealed class SceneDef
         var parts = new List<string>();
         if (Profile is { } p) parts.Add(Profiles.All.FirstOrDefault(d => d.Key == p)?.Label ?? p);
         if (CurvePreset is { } c) parts.Add(c.Length == 0 ? Lang.T("fc_preset_auto") : c);
+        if (Turbo is { } tb) parts.Add(Lang.T("pw_turbo_label") + " " + Lang.T(tb ? "st_on" : "st_off").ToLowerInvariant());
         if (RefreshHz is { } hz) parts.Add(hz + " Hz");
         if (BrightnessPct is { } bp) parts.Add(Lang.T("bri_title") + " " + bp + " %");
         if (Hdr is { } hd) parts.Add("HDR " + Lang.T(hd ? "st_on" : "st_off").ToLowerInvariant());
         if (Overlay is { } ov) parts.Add(Lang.T("overlay_title") + " " + Lang.T(ov ? "st_on" : "st_off").ToLowerInvariant());
+        if (Crosshair is { } ch) parts.Add(Lang.T("ch_title") + " " + (ch && CrosshairPreset is { Length: > 0 } cp ? cp : Lang.T(ch ? "st_on" : "st_off").ToLowerInvariant()));
+        if (TrueColor is { } tc) parts.Add("True Color " + (GhostDeck.TrueColor.Name(tc) ?? tc.ToString()));
         if (ChargeLimit is { } cl) parts.Add(cl > 0 ? cl + " %" : Lang.T("st_charge") + " " + Lang.T("st_off").ToLowerInvariant());
         if (KbdLight is { } kl) parts.Add(Lang.T("kbd_title") + " " + Lang.T(kl switch { 0 => "kbd_off", 1 => "kbd_low", 2 => "kbd_mid", _ => "kbd_high" }).ToLowerInvariant());
         if (Webcam is { } wc) parts.Add(Lang.T("webcam_title") + " " + Lang.T(wc ? "st_on" : "st_off").ToLowerInvariant());
+        if (Mic is { } mc) parts.Add(Lang.T("mic_title") + " " + Lang.T(mc ? "st_on" : "st_off").ToLowerInvariant());
         if (WinLock is { } wl) parts.Add(Lang.T("winlock_title") + " " + Lang.T(wl ? "st_on" : "st_off").ToLowerInvariant());
         if (Touchpad is { } tp) parts.Add(Lang.T("tp_title") + " " + Lang.T(tp ? "st_on" : "st_off").ToLowerInvariant());
         if (FanBoost is { } fb) parts.Add(Lang.T("cooler_boost") + " " + Lang.T(fb ? "st_on" : "st_off").ToLowerInvariant());

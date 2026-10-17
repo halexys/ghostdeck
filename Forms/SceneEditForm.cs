@@ -62,6 +62,10 @@ public sealed class SceneEditForm : GhostCardForm
             Icon = i => (g, r, onFill) => IconPainter.Scenario(g, order[i], r, onFill ? Color.White : d.ColorOf(order[i]), 1.6f * UiScale),
         });
 
+        // "on" / "off" are lower-case words in the status texts they come from; a picker cell is a caption
+        static string Cap(string t) => t.Length == 0 ? t : char.ToUpperInvariant(t[0]) + t[1..];
+        var onOff = new[] { Cap(Lang.T("st_on")), Cap(Lang.T("st_off")) };
+
         if (d.HasFanCurve())
         {
             var curveItems = new List<string> { Lang.T("fc_preset_auto") };
@@ -70,6 +74,12 @@ public sealed class SceneEditForm : GhostCardForm
             Row(Lang.T("fc_title"), curveItems.ToArray(), scene.CurvePreset != null, cSel,
                 (on, i) => _scene.CurvePreset = !on ? null : i == 0 ? "" : curveItems[i]);
         }
+
+        // the turbo row follows the Windows plan, not the EC: offered whenever the plan's boost
+        // setting can be read, and "Off" first-picked because switching turbo off is why a scene has it
+        if (PowerPlan.TryGetActiveScheme(out var plan) && PowerPlan.TryReadBoost(plan, out _, out _))
+            Row(Lang.T("pw_turbo_label"), onOff, scene.Turbo != null, scene.Turbo == true ? 0 : 1,
+                (on, i) => _scene.Turbo = on ? i == 0 : null);
 
         var rates = Display.SupportedRates();
         if (rates.Count > 0)
@@ -87,14 +97,40 @@ public sealed class SceneEditForm : GhostCardForm
                 (on, i) => _scene.BrightnessPct = on ? briVals[i] : null);
         }
 
-        // "on" / "off" are lower-case words in the status texts they come from; a picker cell is a caption
-        static string Cap(string t) => t.Length == 0 ? t : char.ToUpperInvariant(t[0]) + t[1..];
-        var onOff = new[] { Cap(Lang.T("st_on")), Cap(Lang.T("st_off")) };
         if (Hdr.Supported())
             Row("HDR", onOff, scene.Hdr != null, scene.Hdr == true ? 0 : 1, (on, i) => _scene.Hdr = on ? i == 0 : null);
 
         Row(Lang.T("overlay_title"), onOff, scene.Overlay != null, scene.Overlay == false ? 1 : 0,
             (on, i) => _scene.Overlay = on ? i == 0 : null);
+
+        // MSI True Color (roadmap #119): the row exists when the application is installed, whatever
+        // its version; a switched-off row = the scene leaves the profile alone. Names are True
+        // Color's own (product names), so they stay untranslated.
+        if (TrueColor.Detect(d.Settings.TrueColorUserVerified).Installed)
+        {
+            var tcIds = TrueColor.Profiles.Select(p => p.Id).ToArray();
+            int tSel = scene.TrueColor is { } stc ? Math.Max(0, Array.IndexOf(tcIds, stc)) : 0;
+            Row(Lang.T("tc_title"), TrueColor.Profiles.Select(p => p.Name).ToArray(), scene.TrueColor != null, tSel,
+                (on, i) => _scene.TrueColor = on ? tcIds[i] : null);
+        }
+
+        // the crosshair: on with the current look, off, or on with one of the saved presets
+        var chItems = new List<string> { onOff[0], onOff[1] };
+        var chPresets = d.Settings.CrosshairPresets.Select(p => p.Name).ToList();
+        chItems.AddRange(chPresets);
+        int xSel = 0;
+        if (scene.Crosshair == false) xSel = 1;
+        else if (scene.Crosshair == true && scene.CrosshairPreset is { Length: > 0 } scp)
+        {
+            int pi = chPresets.FindIndex(n => n.Equals(scp, StringComparison.OrdinalIgnoreCase));
+            if (pi >= 0) xSel = 2 + pi;
+        }
+        Row(Lang.T("ch_title"), chItems.ToArray(), scene.Crosshair != null, xSel,
+            (on, i) =>
+            {
+                _scene.Crosshair = on ? i != 1 : null;
+                _scene.CrosshairPreset = on && i >= 2 ? chPresets[i - 2] : null;
+            });
 
         // The three presets plus, when one is in play, the custom threshold: the scene the user is
         // editing may already carry one, or their current setting may be custom - either way it has
@@ -116,6 +152,10 @@ public sealed class SceneEditForm : GhostCardForm
         if (d.WebcamState() >= 0)
             Row(Lang.T("webcam_title"), onOff, scene.Webcam != null, scene.Webcam == false ? 1 : 0,
                 (on, i) => _scene.Webcam = on ? i == 0 : null);
+
+        if (d.MicState() >= 0)
+            Row(Lang.T("mic_title"), onOff, scene.Mic != null, scene.Mic == true ? 0 : 1,
+                (on, i) => _scene.Mic = on ? i == 0 : null);
 
         Row(Lang.T("winlock_title"), onOff, scene.WinLock != null, scene.WinLock == true ? 0 : 1,
             (on, i) => _scene.WinLock = on ? i == 0 : null);

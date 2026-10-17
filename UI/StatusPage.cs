@@ -155,6 +155,8 @@ public sealed class StatusPage : ThemedPage
         _sessExport.Enabled = list.Count > 0;
     }
 
+    private int _laidDisks;   // disk count the Charts view was laid out for
+
     public override void LiveRefresh() { _canvas.Rebuild(); RefreshAsync(); }
 
     // EC/WMI reads take tens of ms each and the full snapshot is dozens of them; doing that
@@ -171,6 +173,7 @@ public sealed class StatusPage : ThemedPage
             byte[]? live = null;
             (int[], int[], int[], int[])? curve = null;
             try { hw = D.Hw(); } catch { }
+            Perf.Warm();   // disks, counters, battery estimate: queried here, the window thread reads the cached answers
             if (dev != null)
             {
                 try { live = Ec.ReadMany(new[] { dev.ShiftMode, (byte)0x34, (byte)0xEB, dev.FanMode }); } catch { }
@@ -186,6 +189,7 @@ public sealed class StatusPage : ThemedPage
                     _refreshing = 0;
                     // Gaming: the last-session card / picker can change between ticks -> keep in sync
                     if (Visible && _statusSub == 2) { RefreshSessions(); Relayout(); }
+                    if (Visible && _statusSub == 0 && Perf.DisksCached().Count != _laidDisks) Relayout();   // the storage box grew or shrank
                     if (Visible) _canvas.Rebuild();
                 });
             }
@@ -231,7 +235,8 @@ public sealed class StatusPage : ThemedPage
             // the graphics-clock tile adds a fourth on the right when Windows reports a card
             int subY3 = SecTop + ring + 68 + 54 + 14 + 54 + 14;
             int rightH = GpuTelemetry.Read().Ok ? 54 * 2 + 14 : 54;
-            int storageH = Math.Max(54, Perf.Disks().Count * 58);
+            _laidDisks = Perf.DisksCached().Count;   // RefreshAsync re-lays the page out when the list arrives or changes
+            int storageH = Math.Max(54, _laidDisks * 58);
             int cardTop = subY3 + Math.Max(storageH, rightH) + 40;
             return cardTop + RowH * Rows.Length + 14 + 40;
         }
@@ -389,8 +394,15 @@ public sealed class StatusPage : ThemedPage
         bool temps = info.Known || info.Telemetry;
         DrawRing(g, X(0), top, ring, hw.CpuTemp, 100, "°C", Lang.T("st_cpu_temp"), TempColor(hw.CpuTemp), temps);
         DrawRing(g, X(1), top, ring, hw.GpuTemp, 100, "°C", Lang.T("st_gpu_temp"), TempColor(hw.GpuTemp), temps);
-        DrawRing(g, X(2), top, ring, info.Known ? hw.CpuFan : 0, 100, "%", Lang.T("st_cpu_fan"), Theme.Accent, info.Known);
-        DrawRing(g, X(3), top, ring, info.Known ? hw.GpuFan : 0, 100, "%", Lang.T("st_gpu_fan"), Theme.Violet, info.Known);
+        // The fan rings show the curve target (0x71 / 0x89), not the fan speed, on MSI's own
+        // 0-150 scale; 0 is a real target (the first curve point), so it reads "0", not a dash.
+        // TECHNICAL §76.
+        DrawRing(g, X(2), top, ring, info.Known ? hw.CpuFan : 0, 150, "%", Lang.T("st_cpu_fan"), Theme.Accent, info.Known, allowZero: true);
+        DrawRing(g, X(3), top, ring, info.Known ? hw.GpuFan : 0, 150, "%", Lang.T("st_gpu_fan"), Theme.Violet, info.Known, allowZero: true);
+        _fanHelpBtns[0] = new RectangleF(X(2) + ring - 22, top, 22, 22);
+        _fanHelpBtns[1] = new RectangleF(X(3) + ring - 22, top, 22, 22);
+        HelpDot.Render(g, _fanHelpBtns[0]);
+        HelpDot.Render(g, _fanHelpBtns[1]);
         DrawRing(g, X(4), top, ring, cpuUse, 100, "%", Lang.T("st_cpu_usage"), CpuUseColor, true, allowZero: true);
 
         // --- sub-row under the rings (clear gap above and below) ---
@@ -454,11 +466,27 @@ public sealed class StatusPage : ThemedPage
             Box2(4, $"{Lang.T("ov_m_vram")}: " + (vm >= 0 ? $"{vm} MB" : "—"));
         }
 
+        // Integrated card, two-card laptops only (roadmap #114): the free slot under the CPU-usage
+        // ring, next to the GPU load, or one row down beside the graphics clock when VRAM took that
+        // slot as a box. Its shared memory rides along only when it fits at a comfortable size.
+        // "iGPU" stays untranslated, like the "CPU:" / "GPU:" boxes above it.
+        int ig = Perf.IgpuUsage();
+        void IgpuBox(float y)
+        {
+            var box = new RectangleF(X(4) + 14, y, ring - 28, subH);
+            int sm = Perf.IgpuSharedMb();
+            string shortText = $"iGPU: {ig} %";
+            string full = sm > 0 ? $"{shortText} · {sm / 1024f:0.0} GB" : shortText;
+            using var fit = new Font("Segoe UI", 10f, FontStyle.Bold);
+            MetricBox(box, TextRenderer.MeasureText(g, full, fit).Width <= box.Width - 20 ? full : shortText);
+        }
+        if (ig >= 0 && vramBar) IgpuBox(subY2);
+
         // third sub-row: storage panel (#17) on the left - every physical disk with its name,
         // used/total space (usage bar, like the RAM/VRAM bars) and S.M.A.R.T. temperature -
         // plus a compact battery-time box (#15) under the rings
         int subY3 = subY2 + subH + 14;
-        var disks = Perf.Disks();
+        var disks = Perf.DisksCached();
         const int diskBlockH = 58;   // same rhythm as the RAM/VRAM rows: 28px text line, bar at +36
         int storageH = Math.Max(subH, disks.Count * diskBlockH);
         var nameF = new Font("Segoe UI", 10.5f, FontStyle.Bold);
@@ -522,7 +550,9 @@ public sealed class StatusPage : ThemedPage
             HelpDot.Render(g, _gpuHelpBtn);
         }
 
-        int bm = Perf.BatteryMinutesLeft();
+        if (ig >= 0 && !vramBar) IgpuBox(subY3);
+
+        int bm = Perf.BatteryMinutesLeftCached();
         MetricBox(new RectangleF(X(2) + 14, gt.Ok ? subY4 : subY3, wideW, subH),
             $"{Lang.T("ov_m_batttime")}: " + (bm > 0 ? $"{bm / 60} h {bm % 60:00} min" : "—"));
 
@@ -573,10 +603,14 @@ public sealed class StatusPage : ThemedPage
     // circle, and the same bubble.
     private RectangleF _gpuHelpBtn;
     private string _gpuHelpText = "";
+    private readonly RectangleF[] _fanHelpBtns = new RectangleF[2];
 
     private void ChartsClick(Point p)
     {
-        if (_statusSub != 0 || _gpuHelpBtn.IsEmpty || !_gpuHelpBtn.Contains(p)) return;
+        if (_statusSub != 0) return;
+        foreach (var b in _fanHelpBtns)
+            if (!b.IsEmpty && b.Contains(p)) { HelpPopup.Toggle(_canvas, Rectangle.Round(b), Lang.T("st_fan_target_tip"), this); return; }
+        if (_gpuHelpBtn.IsEmpty || !_gpuHelpBtn.Contains(p)) return;
         HelpPopup.Toggle(_canvas, Rectangle.Round(_gpuHelpBtn), _gpuHelpText, this);
     }
 
@@ -600,7 +634,7 @@ public sealed class StatusPage : ThemedPage
     // BLabel == "" means a single-series chart (FPS) — the cursor readout skips the B side.
     private sealed record HistPlot(RectangleF Plot, int MaxVal, string Unit,
         Func<HwSample, int> A, Func<HwSample, int> B, float LegendLeft, int CardTop,
-        string ALabel, string BLabel);
+        string ALabel, string BLabel, bool AllowZero = false);
     private readonly List<HistPlot> _histPlots = new();
     private List<HwSample>? _histData;
     private DateTime _histT0;
@@ -631,8 +665,9 @@ public sealed class StatusPage : ThemedPage
         int top = SecTop + 44;
         top = DrawHistoryChart(g, top, avail, Lang.T("st_hist_temps"), "°C", data,
             s => s.CpuTemp, s => s.GpuTemp, "CPU", "GPU") + 24;
+        // the fan curve target on the same 0-150 scale as the Status rings, 0 included (TECHNICAL §76)
         top = DrawHistoryChart(g, top, avail, Lang.T("st_hist_fans"), "%", data,
-            s => s.CpuFan, s => s.GpuFan, "CPU", "GPU") + 24;
+            s => s.CpuFan, s => s.GpuFan, "CPU", "GPU", maxVal: 150, gridSteps: 3, allowZero: true) + 24;
         if (HwHistory.HasRpm)
         {
             // dynamic RPM ceiling: at least 500 RPM of headroom above the observed peak
@@ -656,8 +691,11 @@ public sealed class StatusPage : ThemedPage
     // One line chart card (two series, 0..maxVal scale) over the last _histMin minutes.
     private int DrawHistoryChart(Graphics g, int top, int avail, string title, string unit,
         List<HwSample> data, Func<HwSample, int> serA, Func<HwSample, int> serB, string aLabel, string bLabel,
-        int maxVal = 100, string? hint = null)
+        int maxVal = 100, string? hint = null, int gridSteps = 4, bool allowZero = false)
     {
+        // A reading counts when it is above 0 (0 = no reading) and not far past the scale. The fan
+        // target chart follows the rings instead: 0 is a real target, above the scale is a misread.
+        bool Valid(int v) => allowZero ? v >= 0 && v <= maxVal : v > 0 && v <= maxVal * 1.3f;
         var card = new RectangleF(Pad, top, avail, HistChartH);
         Ui.FillCard(g, card);
         TextRenderer.DrawText(g, title, GTitle, new Rectangle(Pad + 16, top + 10, avail - 200, GTitle.Height + 4),
@@ -680,13 +718,13 @@ public sealed class StatusPage : ThemedPage
 
         // 50 px reserved under the plot so the time labels never clip against the card edge
         var plot = new RectangleF(Pad + 62, top + 46, avail - 62 - 20, HistChartH - 46 - 50);
-        _histPlots.Add(new HistPlot(plot, maxVal, unit, serA, serB, lx, top, aLabel, bLabel));
+        _histPlots.Add(new HistPlot(plot, maxVal, unit, serA, serB, lx, top, aLabel, bLabel, allowZero));
         using (var grid = new Pen(Theme.Border))
         using (var axisFont = new Font("Segoe UI", 8.5f))
         {
-            for (int i = 0; i <= 4; i++)
+            for (int i = 0; i <= gridSteps; i++)
             {
-                int v = maxVal * i / 4;
+                int v = maxVal * i / gridSteps;
                 float y = plot.Bottom - v / (float)maxVal * plot.Height;
                 g.DrawLine(grid, plot.Left, y, plot.Right, y);
                 TextRenderer.DrawText(g, v + unit, axisFont, new Rectangle(Pad + 6, (int)y - 9, 52, 18),
@@ -706,7 +744,7 @@ public sealed class StatusPage : ThemedPage
         // The FPS chart passes a hint ("fills in while a game runs") shown both on an empty
         // window and when the window has samples but none carried an FPS reading.
         bool noA = true;
-        foreach (var s in data) { int v = serA(s); if (v > 0 && v <= maxVal * 1.3f) { noA = false; break; } }
+        foreach (var s in data) { if (Valid(serA(s))) { noA = false; break; } }
         if (data.Count < 2 || (hint != null && noA))
         {
             TextRenderer.DrawText(g, hint ?? Lang.T("st_hist_empty"), new Font("Segoe UI", 10.5f),
@@ -724,7 +762,7 @@ public sealed class StatusPage : ThemedPage
             foreach (var s in data)
             {
                 int v = sel(s);
-                if (v <= 0 || v > maxVal * 1.3f) continue;   // unknown reads leave a gap rather than plotting 0
+                if (!Valid(v)) continue;   // unknown reads leave a gap rather than plotting 0
                 float x = plot.Left + (float)((s.Time - t0).TotalSeconds / span) * plot.Width;
                 float y = plot.Bottom - Math.Clamp(v, 0, maxVal) / (float)maxVal * plot.Height;
                 pts.Add(new PointF(x, y));
@@ -998,7 +1036,8 @@ public sealed class StatusPage : ThemedPage
 
     private void ChartsMouse(Control owner, Point? p)
     {
-        bool onDot = _statusSub == 0 && p is { } pt && _gpuHelpBtn.Contains(pt);
+        bool onDot = _statusSub == 0 && p is { } pt
+            && (_gpuHelpBtn.Contains(pt) || _fanHelpBtns[0].Contains(pt) || _fanHelpBtns[1].Contains(pt));
         var want = onDot ? Cursors.Hand : Cursors.Default;
         if (owner.Cursor != want) owner.Cursor = want;
     }
@@ -1048,7 +1087,8 @@ public sealed class StatusPage : ThemedPage
             int Val(Func<HwSample, int> f, HwSample s)
             {
                 int v = f(s);
-                return v > 0 && v <= hp.MaxVal * 1.3f ? v : -1;
+                bool ok = hp.AllowZero ? v >= 0 && v <= hp.MaxVal : v > 0 && v <= hp.MaxVal * 1.3f;
+                return ok ? v : -1;
             }
             int va = -1, vb = -1;
             if (hasCur)
@@ -1069,7 +1109,7 @@ public sealed class StatusPage : ThemedPage
                 Dot(vb, Theme.Violet);
             }
 
-            string Fmt(int v) => v > 0 ? v + hp.Unit : "--";
+            string Fmt(int v) => v >= 0 ? v + hp.Unit : "--";
             string ta = $"{hp.ALabel} {Fmt(va)} · {now} {Fmt(Val(hp.A, last))}";
             int xRight = (int)hp.LegendLeft - 16;
             if (hp.BLabel.Length > 0)
@@ -1281,7 +1321,8 @@ public sealed class StatusPage : ThemedPage
 
     private static void DrawRing(Graphics g, int x, int y, int size, int value, int max, string unit, string label, Color color, bool known, string? sub = null, bool allowZero = false)
     {
-        bool ok = known && (allowZero ? value >= 0 : value > 0) && value < 130;
+        // above the ring's own scale is a misread; temperatures and loads keep the old 130 guard
+        bool ok = known && (allowZero ? value >= 0 : value > 0) && value <= Math.Max(max, 129);
         float frac = ok ? Math.Clamp(value / (float)max, 0, 1) : 0;
         IconPainter.Ring(g, new RectangleF(x, y, size, size), frac, color, ok ? value.ToString() : "—", unit, label, sub);
     }

@@ -64,7 +64,9 @@ internal static class Ui
     public static void BatchRedraw(Control c, Action work)
     {
         const int WM_SETREDRAW = 0x000B;
-        if (!c.IsHandleCreated) { work(); return; }
+        // A batch inside a batch (three cards rebuilt in one go, each through RebuildCard) must
+        // not switch painting back on halfway: the outermost call owns the single repaint.
+        if (!c.IsHandleCreated || !Batching.Add(c)) { work(); return; }
         SendMessage(c.Handle, WM_SETREDRAW, IntPtr.Zero, IntPtr.Zero);
         c.SuspendLayout();
         try { work(); }
@@ -73,8 +75,11 @@ internal static class Ui
             c.ResumeLayout(true);
             SendMessage(c.Handle, WM_SETREDRAW, (IntPtr)1, IntPtr.Zero);
             c.Invalidate(true);
+            Batching.Remove(c);
         }
     }
+
+    private static readonly HashSet<Control> Batching = new();
 
     public static void StyleGhost(Button b)
     {

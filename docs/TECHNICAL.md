@@ -354,7 +354,8 @@ It provides, all gated on the normal write-safety rules (Tested / opted-in Exper
   a single byte - `0xC8:0xC9` (CPU) / `0xCA:0xCB` (GPU) on every carrier so far, still with
   `RPM = 478000 / value`. A single-byte read of such a pair is exactly what produced the
   ~10000-RPM garbage that kept RPM disabled on these boards. Carriers: `17L5EMS1` (found in
-  issue #76), `1585EMS1` (#90), `15Q3EMS1` (CPU pair only - single fan, #145), `15T1EMS1`
+  issue #76; the 1.37.0 readout matches HWiNFO64 to the rpm on both fans under load,
+  5901 / 5690 RPM), `1585EMS1` (#90), `15Q3EMS1` (CPU pair only - single fan, #145; confirmed against HWiNFO64 on 1.37.0), `15T1EMS1`
   (CPU pair only - single fan, #174), `1545IMS1` (#164), `1833EMS1` (#180), `1841EMS1`
   (#183), `1585EMS2` (#184, on the sibling 1585EMS1's evidence), `17T3EMS1` (#196 - the
   power-test dumps all sat in the coinciding zone; the curve capture caught the GPU fan at
@@ -363,8 +364,10 @@ It provides, all gated on the normal write-safety rules (Tested / opted-in Exper
   byte `0x41` of the pair `01:41` = 321 = ~1489 rpm), `15PKIMS1` (#228 - every capture so far
   sits in the coinciding zone at ~1904 rpm or reads 00 with the fans stopped; enabled as
   pairs because the 16-bit read equals the single-byte read while the high byte is `00` and
-  is the right one once it is not - a HWiNFO64 side-by-side at idle is the open
-  confirmation). Detection caveat: above ~1870 RPM the
+  is the right one once it is not; confirmed by the owner's HWiNFO64 side-by-side, where
+  716 / 728 rpm - below the coinciding zone - read identically in both programs), `1822EMS1`
+  (#239 - the idle capture read the CPU pair as `01:1C` / `01:1B` in every column, a high byte a
+  single-byte scheme never sets; the GPU pair read `00:00` with that fan stopped). Detection caveat: above ~1870 RPM the
   raw divisor fits in one byte and the high byte reads `00`, so a capture taken under load or
   with Fan Boost cannot tell the two formats apart - classify the format from an idle reading
   (raw > 255), where the pair and the single byte diverge. In the signed
@@ -532,6 +535,45 @@ Issue #100: the submenu listed presets but never showed which one was live. Thre
 - **The active preset is recognised by its POINTS** (`SequenceEqual` on all four tables against the recorded active curve), not by name - the Fan curve tab records applied curves without a name, so a name match alone would never tick anything applied from the tab. A hand-edited curve matches no preset and ticks nothing, which is correct.
 - **Applying a preset from the tray mirrors into the Fan curve tab** (`MainForm.SyncFanCurvePreset` -> `FanCurvePage.SyncExternalPreset`): the picker and the chart follow without re-applying to the EC, so both surfaces tell the same story.
 
+### 17.9 MSI Center Pro, the vendor app of the business line
+
+MSI ships two different vendor apps. Gaming laptops get **MSI Center** (versions `2.0.x`). Part of
+the business and productivity line gets **MSI Center Pro**, a separate application with its own `2.1.x`
+numbering. Its user guide describes it as the app created only for the Summit, Prestige and Modern
+series with 11th-gen Intel Core or 4th-gen Ryzen processors, and it does not install on gaming
+machines. Two reports so far came from it, both version `2.1.42.0`: a Creator Z17 A12UGST (#77,
+where the owner named the app and said regular MSI Center does not support the machine) and a
+Modern 14 B11MOU (#170). The other business-line owners who reported (Modern 14 C12M, Prestige 14 AI
+Studio, Prestige 16 Studio, Summit E14 Flip / Prestige 14 H, Creator M14) ran regular MSI Center
+`2.0.x`.
+
+What it changes for GhostDeck:
+
+- **Nothing in the transport.** GhostDeck calls neither app: it writes the EC through `MSI_ACPI`,
+  and the vendor app matters only as the source of the WMI schema ([MSI-WMI-SCHEMA.md](MSI-WMI-SCHEMA.md))
+  and as the reference for what a board's profiles write. Both Pro machines ran GhostDeck: the Z17
+  ran a power test and its fan-curve tables were verified against Pro's own curve editor, and the
+  B11MOU switched profiles with a clean readback through two power tests.
+- **The reference values can differ from the gaming standard, and Pro is where that happened.** On
+  the Modern 14 B11MOU, Pro's top tile writes shift `0xD2 = C0` instead of `C4`, and the board keeps
+  a vendor flag in bit 7 of `0xEB` (preserved by the masked write, see the `0xEB` row in §17.1). Both
+  were taken from two agreeing captures, the same rule as every other exception in §17.1.
+- **The tiles have different names.** Pro's four user scenarios are **High Performance**, Balanced,
+  Silent and Super Battery. High Performance is the counterpart of "Extreme Performance", and Pro
+  offers its fan speed choice (Auto / Advanced / Cooler Boost) only under it. A capture from Pro is
+  read by those names; the version field (`2.1.x`) is what identifies the app. The "Report my
+  model" steps (`ReportPage.Steps`) carry the alternative name of each tile as a second line and a
+  tooltip, and the instruction line repeats the short ones ("EXTREME PERFORMANCE (High Performance
+  in MSI Center Pro)"), so an owner with a different app in front of him is not left guessing;
+  the same applies to "ECO-Silent", the renamed Super Battery of MSI Center 2.0.49+.
+- **Business-line entries stay Experimental until an owner's measurement promotes them**, so a write
+  on them needs the owner's per-model consent (`ExperimentalWriteFw`), the same as on any other
+  unconfirmed board.
+
+Source: MSI Center Pro user guide (MSI, 2021),
+`download-2.msi.com/archive/mnu_exe/nb/Notebook_MSI_Center_Pro_eng.pdf`, sections "Introduction"
+and "How to Use User Scenario".
+
 ## 18. Supported model families (bulk import)
 
 Beyond the tested GE78HX, the app recognises **145 MSI models**, seeded in bulk from the [msi-ec](https://github.com/BeardOverflow/msi-ec) EC register maps (`msi-ec.c`, the `CONF_*` config blocks) and cross-checked against [MControlCenter](https://github.com/dmitry-s93/MControlCenter), a working Linux app that drives the same EC interface. They fall into two EC families:
@@ -641,8 +683,10 @@ we read extra metrics, and it matters doubly for a *gaming* overlay (anti-cheat)
 | CPU load | `GetSystemTimes` | driver-free |
 | RAM used | `GlobalMemoryStatusEx` | driver-free |
 | Battery % / charging | `SystemInformation.PowerStatus` | driver-free |
-| **GPU load %** | PDH counter `\GPU Engine(*engtype_3D)\Utilization Percentage` (summed) | same source as Task Manager; driver-free |
-| **VRAM used** | PDH counter `\GPU Adapter Memory(*)\Dedicated Usage` (summed) | driver-free |
+| **GPU load %** | PDH counter `\GPU Engine(*engtype_3D)\Utilization Percentage`, the main card only (§73) | same source as Task Manager; driver-free |
+| **VRAM used** | PDH counter `\GPU Adapter Memory(*)\Dedicated Usage`, the main card only (§73) | driver-free |
+| **iGPU load % / shared memory** | the same two counters plus `\GPU Adapter Memory(*)\Shared Usage`, the integrated card (§73) | two-card laptops only; driver-free |
+| **CPU model** | registry `ProcessorNameString`, shortened (`SysInfo.CpuShortName`) | read once |
 | **CPU clock (approx.)** | PDH `\Processor Information(_Total)\% Processor Performance` × base MHz (registry `~MHz`) | estimate, not an MSR read; driver-free |
 
 All PDH counters are added via **`PdhAddEnglishCounter`** (see `Perf.cs`), so the paths resolve on a
@@ -700,13 +744,24 @@ background and enables click-through.
 
 ### 20.5 Bold-text option for the metric labels
 
-Metric **values** are already `FontStyle.Bold`, but the small **labels** (`CPU`, `GPU`, `Load`, `RAM`
+Metric **values** are already `FontStyle.Bold`, but the small **labels** (`CPU`, `GPU`, `CPU%`, `RAM`
 …) render in a muted grey at 9 pt, which becomes hard to read once the overlay is scaled down — users
 compared it unfavourably with NVIDIA's HUD. `OverlayBoldText` (settings toggle **Bold text**, default
 **on**) switches only the label font family from `Segoe UI` to **`Segoe UI Semibold`**. Semibold is a
 distinct installed family, so this is a genuine weight step *lighter* than `FontStyle.Bold` — enough to
 lift legibility without making the labels shout over the values. Values/header stay `Bold` either way.
 The toggle lives in the overlay **Options** group and is reset by "Restore defaults".
+
+### 20.6 What the labels say
+
+The labels stay English in every UI language - short, and the convention of gaming overlays - but
+each one says what it shows (changed after discussion #150, where a user asked for clearer
+labels): `CPU%` next to `GPU%` and `iGPU%` (was `Load`), `Frametime` (was `Frame`), `CPU clock`
+(was `CPU clk`), `Battery` (was `Bat`), `Time left` (was `Left`), `Charge limit` (was `Limit`), and
+the processor model as `CPU model`, so it is not a second `CPU` row next to the temperature.
+User-defined labels were considered and not built (roadmap #115): an editor with a field per
+metric, a length limit, more translated texts, screenshots in reports that no longer match what
+support expects, and settings an older version would drop, for a cosmetic gain.
 
 ## 21. Sub-tabs and the report/verify flows
 
@@ -848,7 +903,7 @@ by an `Interlocked` busy flag — same reasoning as the Status page's `RefreshAs
 `max(CpuTemp, GpuTemp)` must stay at/above `TempAlertDegrees` (default 90 °C; UI offers
 70–100 °C — the 70/75 steps exist mainly so the alert can be tried without heating the laptop
 up first) continuously for
-`TempAlertSeconds` (default 10 s); then an OSD toast + tray balloon fire and a `Thermal` entry is
+`TempAlertSeconds` (default 10 s); then an OSD toast + a GhostDeck card (§78; a tray balloon before 1.38) fire and a `Thermal` entry is
 logged. A fixed 5-minute cool-down between alerts keeps a hot gaming session from spamming.
 `EnsureDefaults` clamps hand-edited values (60–105 °C, 3–120 s).
 
@@ -928,7 +983,8 @@ print into the parent terminal.
   ChangeLog side effect behaves identically. Response format `<exitcode>|<message>`.
 - **App not running** → one-shot mode: load settings, detect the device, same gates
   (`Tier.Tested` or per-model consent, below), apply directly via `Ec.*`, log to the shared
-  ChangeLog file, exit. `--overlay` is the one command that requires the running app.
+  ChangeLog file, exit. Commands that live in the running app (`--overlay`, `--crosshair`,
+  `--scene`, `--winlock`, the `--fanboost` timer) start it and hand the command over (1.38, §77.4).
 
 **Per-model experimental consent (1.36).** The old global `ExperimentalEnabled` switch is
 replaced by `ExperimentalWriteFw`, a list of firmware prefixes the owner explicitly allowed
@@ -941,7 +997,8 @@ experimental) and the flag is cleared; the CLI still honours a not-yet-migrated 
 read-only, so a one-shot call cannot disagree with a settings file the tray has not touched yet.
 
 CLI profile changes count as user-initiated (the user ran the command), mirroring hotkeys; log
-entries use the `Cli` source. Elevation is required for EC access exactly like the app itself.
+entries use the `Cli` source. Administrator rights: §77.1 - since 1.38 the exe itself does not
+demand them at launch; only the one-shot path, which touches the EC, asks for them.
 
 ## 28. Display refresh-rate auto-switch (v1.22, discussion #18)
 
@@ -1498,7 +1555,7 @@ Two routes for GhostDeck follow from that stack, both rejected:
 
 The route GhostDeck takes on such firmware is neither of these: the data blocks themselves
 accept writes, and on a model whose block layout is on record the app reads and switches
-profiles through them - see §73. A model without a layout on record stays in the
+profiles through them - see §81. A model without a layout on record stays in the
 telemetry-only mode described above.
 
 ## 40. Fan Boost auto-off timer (v1.24.x, discussion #51)
@@ -1581,14 +1638,14 @@ the machine to stock - and a full EC reset does the same at the hardware level.
 
 A scene (`Core/Scene.cs`, `AppSettings.Scenes`) is a named macro over existing controls:
 profile, fan-curve preset, refresh rate, overlay, charge limit, keyboard backlight, webcam,
-Fan Boost. Every field is nullable - null means "leave as is" - so the editor
+Fan Boost, and since the release after 1.37 CPU turbo boost and the microphone. Every field is nullable - null means "leave as is" - so the editor
 (`Forms/SceneEditForm`, a GhostDeck card since v1.37 - RENDERING.md §11) pairs each row with
 an on/off switch and only enabled rows are stored.
 
 `TrayContext.ApplyScene` runs the fields in a deliberate order: **profile first** (its recipe
 rewrites the fan byte), then the curve (via the same `ApplyPresetFromTray` path the tray
-uses, including the leave-Silent-first rule), then Fan Boost, charge limit, refresh rate,
-overlay, backlight, webcam. Sub-steps run with `osd: false` and write their usual per-feature
+uses, including the leave-Silent-first rule), then Fan Boost, CPU turbo boost, charge limit,
+refresh rate, overlay, backlight, webcam, microphone. Sub-steps run with `osd: false` and write their usual per-feature
 change-log entries; the scene adds one `ChangeSource.Scene` summary entry and shows a single
 OSD toast. Because the profile and curve go through the normal paths, `LastProfile` and the
 active-curve snapshot (#49) stay correct for the startup/resume restore for free.
@@ -1609,6 +1666,18 @@ them - or the whole Scenes section (`scenes`) - via Settings → General → "Sc
 The grid switches to three columns when the available width fits three 280 px segments.
 The hard camera block confirms inline (an amber warning label + a confirm button that
 appears when the toggle is armed) instead of a popup.
+
+**Turbo and microphone fields.** `SceneDef.Turbo` switches CPU turbo boost on both sources of
+the active Windows plan through the same calls as the Windows power card and `--turbo`
+(`PowerPlan.TurboOn/TurboOff`, §71), so the snapshot of the previous modes is kept and "comes
+back: ..." stays truthful. `SetTurboFromScene` skips "on" when both sources already boost:
+`TurboOn` would otherwise overwrite a working non-default mode with the snapshot or GhostDeck's
+fallback. The editor row appears whenever the plan's boost setting can be read and starts on
+"Off", because switching turbo off is the usual reason to put it in a scene ("Work = Silent +
+turbo off"). `SceneDef.Mic` sets the default recording device's mute flag through
+`SetMicState` (§72); its row appears when Windows has a recording device. Both labels reuse
+existing keys (`pw_turbo_label`, `mic_title`). Like every other field they run only on a
+machine where scenes run at all (`ApplyScene` declines when the EC is not writable).
 
 ## 45. EC live view (v1.25)
 
@@ -1942,7 +2011,33 @@ things decide how large they end up, and the naive version loses on all three:
 
 Measured ink height of "71": 10 px → 13 px at a 16 px icon, 14 px → 19 px at 24 px.
 
-Both are off by default. Thresholds (default 70 / 85 °C) and the three colours are configurable
+A third icon, **SSD temperature** (`TempTraySsd`, discussion #150), shows the hottest disk -
+the same reading the SSD alert watches (§63) - with the same thresholds and colours: the
+70 / 85 °C defaults sit where NVMe drives report their own warning and critical temperatures.
+The disk read happens in the background sampler next to the EC read (`Perf.Disks()` caches for
+10 s), never on the UI thread. The card says in amber (`temptray_ssd_note`) that this icon is the
+hottest drive, which matters on two-drive laptops.
+
+**Source mark.** Three icons with bare digits look alike, so each one carries a mark in its
+source's own colour. The style is a choice in the same card (`TempTrayMarkStyle` = `TrayMarker`):
+a **bar under the digits** (default), a **dot** in the top-right corner, a **corner** triangle in
+the top-left, or **none**. The colours (`TempTrayMarkCpu/Gpu/Ssd`) default to the profile colours
+of Silent (blue), Extreme (pink) and Super Battery (green) - none of them a threshold colour - and
+are editable as a colour row; "reset" restores style and colours with the rest of the card. The
+bar is the default because it costs the digits nothing: two digits are wider than tall, so they
+are fitted by width and leave a band above and below; the bar (`max(2, S/7)` px with a 1 px gap)
+sits in the lower band and the digits move up into the upper one (`TrayIconFactory.TextBitmap`).
+The dot and the corner cover a sliver of a digit at 16 px (render harness `trayvariants`), which
+is why they are offered, not chosen.
+
+![The four marker styles, magnified and at real size, on a dark and a light taskbar](images/tray_marker_styles.png)
+
+![Settings → System → Temperature in the tray](images/temperature_tray_settings.png)
+ The icon is rebuilt when the text, the digit colour, the mark
+colour or the style changes - the cache key carries all four, so a change in Settings shows on the
+next update.
+
+All three icons are off by default. Thresholds (default 70 / 85 °C) and the three colours are configurable
 in Settings → System, card "Temperature in the tray" (`temptray_grp`), which is a different card
 from "Tray menu" (`set_grp_tray`, the mouse actions).
 
@@ -2317,7 +2412,9 @@ raised budget is one the two chips share, the only way to see it is to be asking
 So the run loads the discrete graphics chip for its whole duration, started before the first settle so
 temperatures stabilise with it already going, and identical in every phase - it has to be, or the
 comparison between phases measures the load rather than the profile. `Core/GpuLoad.cs` creates a
-Direct3D 11 device on the adapter with the most dedicated memory, compiles a small arithmetic compute
+Direct3D 11 device on the main card of §73 (the discrete one on a two-card laptop, chosen from the
+driver's own integrated / discrete report; most dedicated memory only when that report is
+unavailable, because an integrated chip can be given more of it), compiles a small arithmetic compute
 shader, and dispatches it into a buffer nothing ever reads. No window, no swap chain, nothing drawn.
 Every call goes through raw vtable pointers, so the app takes no dependency on a graphics package for
 one file. Failure anywhere leaves `Active` false and the run continues on the processor alone; the
@@ -2372,6 +2469,28 @@ Balanced rather than shown raw - so the row prints the drift of the whole run, a
 a big gap means heat soak or the running order carried the table, and the run says so itself. The
 case that motivated it: a Creator Z17 run (#77) sat at 94-95 °C in all three phases and read
 Silent *above* Balanced - order, not profiles. Cost: one more settle + load, about 75 s.
+
+### 60.11 A phase that was not one steady state
+
+The drift figure of §60.10 compares two 25-second windows, and it assumes each window describes a
+steady machine. Two runs on a Modern 14 B11MOU (#170, nine days apart) broke that assumption the
+same way: about 35 s into the first Balanced phase the processor clock fell from 2.49 to about
+2.05 GHz and stayed there, with the CPU temperature falling alongside (70 → 62 °C), so the window
+measured the slow stretch; the repeat Balanced at the end ran at full speed throughout, and the
+second run added a five-second burst to 4.2 GHz inside its window. The report read 20 % and then
+31 % "faster than it started" and pointed the reader at heat soak, which the samples rule out.
+
+The report now looks at the clock across each phase's whole minute (`Shape`): the average of the
+seconds between the ramp and the window against the window's own average, and the window's
+extremes against its median. A gap of 12 % or more between the two averages is a **step**, and
+the second the clock first left the early average's band is reported with it; a second 25 % or
+more away from the window's median is a **burst**. Phases with either go into a new "Inside the
+phases" section with the two levels (the window level is its median, since the average is what the
+burst already moved), and when either Balanced phase is among them the baseline check says that
+the drift figure measures that, not the whole run. The report states no cause: a step with the
+temperature falling is not throttling, and the test cannot see what else moved. Both #170
+reports, replayed through `BuildReport` from their own samples, print the step at second 35 and
+the burst at second 41.
 
 ### 60.5 Where it lives
 
@@ -2443,8 +2562,8 @@ performance profile moves. It is the same story a wattage would tell, from a sou
 need anything installed.
 
 `Core/GpuTelemetry.cs` is the only place that reads it, over `D3DKMTQueryAdapterInfo` from
-gdi32.dll - the interface Task Manager itself uses. The adapter is picked by most dedicated memory
-(DXGI `EnumAdapters1`/`GetDesc1`, the same rule as the power test's load in §60.9), then two query
+gdi32.dll - the interface Task Manager itself uses. The adapter is the main card of §73, the same
+one the GPU load and VRAM readings describe, then two query
 codes from the Windows SDK's `d3dkmthk.h` supply the data: `KMTQAITYPE_NODEPERFDATA` (61) for the
 engine's clock and ceiling, `KMTQAITYPE_ADAPTERPERFDATA` (62) for temperature. Engine ordinals are
 the driver's own numbering, so the node that carries the core clock is found (first one reporting a
@@ -2533,7 +2652,7 @@ than mutate the system.
 **SSD alert** (Settings → Automation; off by default). The 3-second tray poll asks
 `Perf.Disks()` for the hottest drive (the same 10-second-cached path Status and the overlay
 already use: `MSFT_StorageReliabilityCounter`, then the temperature IOCTL, then the NVMe
-SMART log) and raises the same OSD + balloon + change-history alert the CPU/GPU alert uses.
+SMART log) and raises the same OSD + card (§78) + change-history alert the CPU/GPU alert uses.
 Differences from the CPU/GPU alert, and why:
 
 - **Fixed 30 s dwell instead of a second setting.** Disk heat moves slowly - a single hot
@@ -2558,9 +2677,8 @@ minutes later. Design decisions:
   poll acts once when the date passes - and once at startup, before the regular
   charge-limit apply, so a trip that ended while the app was off reverts cleanly - then
   re-applies the previous limit through the same `TryApplyChargeLimit()` gate as every
-  other automatic write. The startup revert's balloon is deferred until the tray icon is
-  in the shell (`ShowBalloonTip` before that is a silent no-op - same ordering rule as the
-  firmware warning).
+  other automatic write. The startup revert's message is a GhostDeck card since 1.38 (§78),
+  shown with the rest of the start-up state.
 - **A one-shot CLI invocation catches the expiry up too**: without the tray app running
   there is no poll, so `RunOneShot` checks `TravelUntil` before executing any command
   (except `--diag`, which keeps its read-only promise). A scheduled-task user who only
@@ -2711,7 +2829,7 @@ wake, and on an explicit change.
 The fix costs one comparison. `Ec.TryReadHw` already reads `ChargeCtrl & 0x7F` in every sample, so
 `OnChargeSample` compares it with our setting and, when they differ, **adopts** the EC value: writes
 it to settings, refreshes the tray and Status, logs it as an external change, and - unless switched
-off in Settings → Automation - shows an OSD toast and a tray notification naming both limits.
+off in Settings → Automation - shows an OSD toast and a GhostDeck card (§78) naming both limits.
 
 Deliberate choices:
 
@@ -2799,7 +2917,6 @@ gated on a per-board measured verdict: the write is the same register the vendor
 uses for its top scenario, the probe showed refusal is answered by a readback rather than by
 harm, and the Power test exists precisely so an owner can measure their own board instead of
 trusting a table.
->>>>>>> origin/main
 
 ## 71. The Windows power card: turbo boost and the Windows power mode (v1.37, discussion #141)
 
@@ -2860,8 +2977,7 @@ it clears only the HIDE bit of the setting attributes after storing the full ori
 **Card layout (final, owner-approved 2026-10-04).** A flat card, nothing collapsible, two
 groups set apart by extra space, each under a caption with a coloured marker. Group one, CPU
 TURBO BOOST: the main switch with its help dot; one status sentence (plain when on, an amber
-strip when the app switched it off or the two sources differ, a red one when it is off
-without a snapshot); an open table "Technical details" - a header row naming the active plan
+strip when it is off, with or without a snapshot, or when the two sources differ); an open table "Technical details" - a header row naming the active plan
 and the two sources, then *Now*, *Saved* (amber when a snapshot exists, "none" otherwise) and
 *Control separately* with one switch per source. Group two, WINDOWS POWER MODE: the
 four-segment control; under it the Auto sentence and, only on a real override, the amber
@@ -2931,9 +3047,574 @@ switched, and the state shown is the ordinary one. Surfaces, mirroring the touch
 a brick on Scenarios (hideable, key `mic`), a card in Settings → System, the hotkey `Mic`
 (`Ctrl+Alt+F11`, shipped disabled), `--mic on|off`, the `mic` field of `--status`, an OSD
 toast and a change-log line. A panic reset deliberately leaves the microphone alone: turning
-a muted microphone back on is not a "safe state". Scenes carry no microphone field yet.
+a muted microphone back on is not a "safe state". A scene can set the microphone too (§44).
 
-## 73. The backup WMI path: data blocks when the method interface is refused (issues #48, #117, #230)
+## 73. Per-card GPU readings and the integrated GPU (roadmap #114, discussions #101 and #150)
+
+Windows reports GPU load and memory per adapter: every instance of `\GPU Engine(*)` and
+`\GPU Adapter Memory(*)` carries the adapter in its name as `luid_0x<high>_0x<low>`, the same
+identifier DXGI returns (checked on a GE78HX against `GetDesc1`). Until this change `Perf.cs`
+added all instances up, so "GPU load" and "VRAM" were the sum of every adapter: the integrated
+chip, the discrete card and Windows' software renderer (the Basic Render Driver, which also
+shows up in the counters, with hundreds of per-process instances). On a two-card laptop whose
+discrete card sleeps, the integrated chip's load appeared as "GPU" - measured on the GE78HX:
+Intel UHD 7.9 %, RTX 4080 0 %, Status showed about 8 %.
+
+**Which card is which** (`GpuTelemetry.GetRoles`, cached, re-read when a counter instance names
+an adapter that was not listed - a driver update or a disabled and re-enabled card changes the
+identifiers). Every adapter from DXGI `EnumAdapters1` is kept as "known"; software adapters
+(`DXGI_ADAPTER_FLAG_SOFTWARE`, or `SoftwareDevice` in the kernel adapter type) are dropped. A
+hardware adapter is integrated when the driver says so through either source:
+
+- DXCore `IsIntegrated` (property 12, Windows 10 2004+), read with `GetAdapterByLuid`. `false`
+  is an answer - "not integrated" - not a missing one;
+- `D3DKMT_ADAPTERTYPE.HybridIntegrated` (`KMTQAITYPE_ADAPTERTYPE` = 15), which drivers set on
+  two-card laptops (its sibling `HybridDiscrete` marks the other card).
+
+On the GE78HX both sources agree: Intel UHD integrated, RTX 4080 discrete, Basic Render Driver
+software. The **main card** (what the app calls "GPU": load, VRAM, the clock tile of §61, the
+VRAM total) is the first non-integrated hardware adapter ordered by `HybridDiscrete`, then
+Windows' own high-performance order (`IDXGIFactory6::EnumAdapterByGpuPreference`, documented as
+external, then discrete, then integrated), then dedicated memory. Memory comes last on purpose:
+AMD's Variable Graphics Memory presents the integrated chip's carve-out as dedicated memory, and
+public `dxdiag` reports show a Radeon 890M with 8, 16 and 32 GB of it - more than the RTX next to
+it. On an integrated-only laptop the one card is the main card. The **integrated card** is the
+first integrated adapter that is not the main one; with no integrated adapter (one card, a MUX
+switched to the discrete card, or a driver that reports neither) nothing new appears.
+
+**Counting load** follows Task Manager: per adapter, the processes on one engine add up, and the
+adapter shows its busiest engine (instance key = adapter + `phys_N_eng_M`). Summing every engine
+would count a card with two 3D engines twice. A sleeping card has no instances and reads 0 %.
+When the roles are unknown, the readings fall back to adding every adapter up, as before, so
+nothing regresses where the classification fails.
+
+![Status on a GE78HX: "GPU load" is the sleeping RTX, the iGPU box sits under the CPU-usage ring](images/status_igpu.png)
+
+**What is shown.** Status: an `iGPU: N % · X.X GB` box in the free slot under the CPU-usage ring,
+beside "GPU load" (one row down beside the graphics clock when the VRAM total is unknown and VRAM
+takes that slot as a box). The shared memory (`Shared Usage`: the integrated chip has no memory
+of its own) is shown only when the whole text fits at 10 pt in the box; "iGPU" stays
+untranslated like the "CPU:" / "GPU:" boxes. Overlay: `OverlayMetric.IgpuUsage` ("iGPU%",
+default off; the check box appears only when an integrated card exists) and
+`OverlayMetric.CpuName` (discussion #150: the processor model, e.g. "i9-13980HX", from the
+registry `ProcessorNameString` with vendor marks, generation prefixes and the integrated
+graphics cut away; "Core" is removed only before i3/i5/i7/i9 and Ultra, because in "Core 7 240H"
+it is part of the model).
+
+Not offered: a temperature for the integrated chip (it sits in the processor and shares its
+temperature) and its power draw.
+
+## 74. Settings: one card is rebuilt, not the page (v1.38)
+
+`SettingsPage.BuildForm()` recreates every control of the page. It used to run after many
+single changes; measured on the owner's machine it blocks the window for 0.33 - 0.42 s
+(RENDERING.md §8.1). It now runs only when everything on the page changes: a language change
+(from the list on the page or from the tray menu), a settings import, and a model-database
+update that changes what the detected machine can do.
+
+Everything else updates what it touches:
+
+| Change | What happens now |
+|---|---|
+| schedule rule added, edited, removed, moved | the schedule card is rebuilt |
+| charge limit enters or leaves Custom; travel mode started or stopped, on the page or from outside (CLI, scene, expiry) | the battery card is rebuilt |
+| display-mode switch (dock, second screen) | the display card is rebuilt; the Scenarios-visibility card too when its refresh-rate row has to appear or go |
+| temperature-icon defaults | the temperature-icons card is rebuilt |
+| custom Fan Boost time | the list is re-filled in place (`Refill`) |
+| notification defaults | the three switches and four lists of the card are set in place, their handlers muted by a flag |
+| model-database update, same machine capabilities | the version row is re-read (`_syncDbVersion`) |
+
+`RebuildCard(old, build)` is the one mechanism: the builders are local functions of
+`BuildForm` (so a card is built by the same code in both cases), the fresh card takes the old
+one's slot in its column list, its position in `Controls` and its `TabIndex`, and the old card
+is disposed through `BeginInvoke` - the rebuild usually runs inside a click handler of a
+control that sits on the old card. Entries of `_orderSync` (§72) carry the card they belong
+to and leave with it. `DeviceSig()` lists what `BuildForm` asks the detected device before it
+adds a card or a row; `OnDeviceDbChanged` rebuilds the page only when that changed.
+
+A full rebuild releases the cards it replaces (`Dispose` through `BeginInvoke`, for the same
+reason as above). Taking them off the page alone left their windows alive: eight rebuilds
+added about 185 window objects to the process, measured; now the count stays level.
+
+## 75. Nothing that waits on Windows runs on the window thread (v1.38)
+
+Three waits sat on the window thread, found with step timers in `MainForm.ShowTab`,
+`StatusPage` and `FanCurvePage` on the live app:
+
+- **`MainDeps.Status()` started `schtasks.exe`.** The snapshot carries the autostart flag, and
+  `Autostart.IsEnabled()` asks the Task Scheduler by running `schtasks /Query` and waiting:
+  22-32 ms per call. The tab strip builds a snapshot on every repaint (tier badge), the
+  Settings Start header too, and the Fan curve page four times per entry. `Autostart.Known`
+  now returns the remembered answer; `IsEnabled()` (at startup) and `Set()` refresh it. A task
+  created or deleted outside the app while it runs is seen at the next start.
+- **`Perf.Disks()` queried WMI** (`MSFT_PhysicalDisk`, reliability counters): 350-400 ms, cached
+  for 10 s, so entering Status after a pause waited for it. The window thread reads
+  `Perf.DisksCached()` - the last known list at once, a stale one refreshed on a worker - and
+  `BatteryMinutesLeftCached()` likewise. `StatusPage.RefreshAsync` calls `Perf.Warm()` on its
+  worker and re-lays the Charts view out when the number of disks changed.
+- **The first `Perf.Tick()` opened the PDH query** (215-264 ms) inside the first paint of
+  Status. `TrayContext` runs `Perf.Warm()` on a worker at startup.
+
+`Perf.Disks()` and `BatteryMinutesLeft()` keep their blocking form for the callers that are
+already off the window thread (the SSD sampler, `--status`).
+
+Measured on the live app, medians of three runs, the switch itself without the repaint:
+entering Fan curve 144 -> 26 ms, entering Status 62 -> 23 ms (first entry 273 -> 43 ms),
+entering Settings 19 -> 8 ms, Scenarios 22 -> 11 ms.
+
+## 76. The fan rings show the curve target, not the fan speed (v1.38)
+
+The two percentage rings on Status (and the history chart "Fan curve target (%)", the overlay item
+of the same name and the EC view rows) show the raw EC bytes `0x71` (CPU) and `0x89` (GPU) - the
+same bytes msi-ec exposes as `realtime_fan_speed`. Until v1.38 they were labelled "CPU fan" /
+"GPU fan", which reads as a speed. They are not one:
+
+- **The byte is a value from the fan-curve speed table.** Across about 400 EC dumps from 70
+  power-test reports on 37 boards, `0x71` equals one of the speeds at `0x72`-`0x78` of the same
+  dump and `0x89` one of `0x8A`-`0x90` (a single exception, one `1833EMS1` dump).
+- **The chosen value follows the current temperature.** Counting the temperature thresholds the
+  current reading has passed (`0x68` against `0x6A`-`0x6F`, `0x80` against `0x82`-`0x87`) picks
+  the same table slot in 304 of 360 GPU dumps (44 more one slot away) and in 179 of 386 CPU
+  dumps (119 more one slot away).
+- **The profile caps the real speed on top of it.** In Balanced (`0xD2=C1`, `0xD4=0D`) the CPU
+  fan settles at 3553-3581 rpm on nine different boards while the curve target there ranges from
+  45 to 85; on the GE76 / GP76 (`17K3EMS1`, #200) the target sits at 84-85 in every profile while
+  the fan runs 2802 (Silent), 3581 (Balanced) and 5065 rpm (Extreme). When the target is below
+  the cap the fan follows it (`15M1IMS2`: target 48 -> 2840 rpm, target 60 -> 3567 rpm). The caps
+  differ between boards (Balanced reaches 4361-4482 rpm on `15M3EMS1`).
+
+YAMDCC's EC research describes `0x71` the same way ("realtime CPU fan speed target") and `0xC1`
+as capping the fans at about 3500 rpm; MControlCenter does not show these bytes at all and
+reports only the tachometers. The measured speed is the rpm readout under the rings, which
+matches HWiNFO64 on every board checked. The rings were therefore relabelled "CPU curve target" /
+"GPU curve target", each with a help dot whose bubble says what the number is (with "EC fan
+target" as the alternative name) and that the profile can cap the real speed below it. The ring
+scale is now MSI's own 0-150 (a full arc at 150, not at 100), a target of 0 - the first curve
+point on boards whose table starts at 0 - reads "0 %" instead of a dash, and only values above
+150 are treated as a misread. The history chart of the same value follows the same rules: a
+0-150 axis with grid lines at 0 / 50 / 100 / 150, 0 plotted as a value, values above 150
+dropped. The fan-curve page and the value itself are unchanged.
+Two readings outside the table are still unexplained (40 / 126 on a `17L5EMS1` under FurMark,
+#76; 1 on a `15PKIMS1`, #228) - they appeared on screenshots, never in a report.
+
+## 77. Taskbar jump list, ghostdeck:// links and the elevation model (v1.38, roadmap #88 and #89)
+
+Two new doors to the CLI of §27, and the change in how the exe gets its administrator rights
+that both of them needed.
+
+### 77.1 Why the manifest changed
+
+Up to 1.37 `app.manifest` said `requireAdministrator`. Windows honours that before any code
+runs, so every launch of `GhostDeck.exe` went through a UAC prompt - including the short-lived
+launch that only hands `--profile Silent` to the running instance over the pipe. A jump-list
+entry is launched by Explorer and a `ghostdeck://` link by a browser, both unelevated, so each
+click would have meant a prompt. The manifest now says `asInvoker` and `Core/Elevation.cs`
+decides per launch:
+
+| Launch | Running instance | What happens |
+|---|---|---|
+| no arguments (icon, pinned button, double-click) | yes | the show-window event is set and the process ends; no prompt (1.37 prompted here too) |
+| no arguments | no | unelevated: the exe relaunches itself with the `runas` verb (one prompt, as before) and ends; elevated (the autostart task, `RL HIGHEST`; the restart after an update, which inherits the token): the tray starts |
+| arguments (CLI, jump list, link) | yes | the command goes over the pipe, unelevated; no prompt |
+| arguments, a one-shot against the EC | no | unelevated: the same command line is relaunched elevated and waited for, its exit code relayed (the child attaches to the caller's console, as the manifest-elevated process did); elevated: runs straight |
+| `--help`, `--dump-models`, `--verify-models`, `--dump-supported-md` | - | never elevate (no EC involved); CI is unchanged |
+
+The running app has exactly the rights it had: nothing about the EC path changed. What changed
+is who asks.
+
+Two kernel objects had to open up for this. An object created by an elevated process gets the
+elevated token's default permissions, which let the same user's *unelevated* processes read it
+but not write to it (the filtered token carries the Administrators group as deny-only). The
+pipe `GhostDeck_Cli` is therefore created through `NamedPipeServerStreamAcl` with full control
+for the user's own SID, and the event `GhostDeck_ShowMainWindow` through `EventWaitHandleAcl`
+the same way; the launcher opens the event with `EventWaitHandleAcl.TryOpenExisting(Modify)`.
+Objects created by a process above Medium integrity get no explicit integrity label by default,
+so the mandatory-integrity check should not stand in the way; the live test on the owner's
+machine is what confirms the whole chain. Consequence worth stating: any program running as the
+user, elevated or not, can now hand the pipe a command. The commands are the ones in the tray
+menu, none writes a file, and the same user could already run the exe elevated - the pipe adds
+no capability, it removes a prompt.
+
+An older build that is still running (the update step) owns an event without that permission:
+`TryOpenExisting` then throws `UnauthorizedAccessException`, which the launcher treats as
+"running, nothing more to do". The updater restarts the app elevated anyway, so this is a corner.
+
+### 77.2 The jump list
+
+`UI/Taskbar.cs` holds the shell interop (`ICustomDestinationList`, `IObjectCollection`,
+`IShellLinkW`, `IPropertyStore`; no library). The list is written for an explicit Application
+User Model ID, `Wygodad.GhostDeck`, set on the process (`SetCurrentProcessExplicitAppUserModelID`
+before the first window) and on the main window's property store. Three groups: a category with
+the profiles in `Profiles.Shown` order (only when writes are allowed), a category with the
+scenes, and the task group with Fan Boost on, Fan Boost off and the panic reset. Every entry is a
+shell link to this exe with the CLI command line as its arguments and `PKEY_Title` as its label,
+so clicking one is `GhostDeck.exe --scene "Gaming"` - which, with the app running, is the
+unelevated pipe launch above. The list is rebuilt at the end of `BuildMenu`, so it follows every
+menu rebuild (startup, language, scenes, profile order, settings import), and after an icon
+rewrite. All groups empty (unsupported hardware, no scenes) deletes the list.
+
+The shell refuses `AppendCategory` for an item the user removed from the list earlier
+("Remove from this list"); `Rebuild` then calls `DeleteList` once and writes again, because our
+entries are commands, not documents, and have to stay. Everything is best-effort inside `try`:
+a shell that refuses leaves the app as it was.
+
+**The pinned icon.** Windows takes a pin's icon from the exe unless the window names another
+through `System.AppUserModel.RelaunchIconResource` - and honours that property only on a window
+with an explicit ID, which is the second reason for the ID. `Taskbar.WriteIcons` renders the
+chosen style (`TrayIconFactory.AppIconBytes`, seven sizes 16-256, PNG entries) to
+`%APPDATA%\GhostDeck\taskbar.ico` and one profile-coloured icon per profile
+(`taskbar-<profile>.ico`) for the list entries; the window points `RelaunchIconResource` at the
+first, with `RelaunchCommand` = the exe and `RelaunchDisplayNameResource` = GhostDeck. The files
+are rewritten only when the style or a colour changed (a signature of both), with
+`SHChangeNotify(SHCNE_UPDATEITEM)` on each so the shell drops its cached image.
+
+**Pins from before 1.38.** A pin made from the 1.37 window has no ID, so next to a 1.38 window
+with an explicit ID it would be a second button. `Taskbar.HealPins` walks
+`%APPDATA%\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar\*.lnk`, and every
+shortcut whose target is this exe and whose ID is not ours gets the ID and the icon file. The
+taskbar reads pins at its own start, so the change shows after the next sign-in; a pin made
+after the update is right at once.
+
+### 77.3 ghostdeck:// links
+
+`Core/Protocol.cs`. Grammar: `ghostdeck://<command>/<argument>[/<second>]`, mapped onto the CLI
+one to one (`ghostdeck://fanboost/on/300` = `--fanboost on 300`); `ghostdeck:` without the
+slashes, a trailing slash and a query or fragment are tolerated, parts are URL-decoded, and a
+part that is empty, longer than 100 characters or holds a control character refuses the link
+(the pipe carries the arguments tab-separated). The allow-list is the state-changing commands;
+`--status`, `--help`, `--diag` and the model dumps are not reachable, so a web page cannot make
+the exe write a file. `Cli.Parse` recognises a link as the first argument and swaps in the
+parsed command line, so both the pipe and the one-shot path see an ordinary command - the
+server only looks at the raw line again to turn a refusal (non-zero code) into a GhostDeck
+card (`GhostCardForm`, acknowledge-only, the #212 convention - not a Windows notification,
+which Focus Assist can swallow), since a link has no console to answer into.
+
+Registration is per user: `HKCU\Software\Classes\ghostdeck` with `URL Protocol`, `DefaultIcon`
+and `shell\open\command` = `"<exe>" "%1"`, written at startup when `AppSettings.ProtocolLinks`
+holds (default on) and re-pointed when the exe moved (compare-then-write, like
+`Autostart.Heal`). The Settings → System toggle removes the key when switched off.
+
+### 77.4 Commands that live in the app, with no app running
+
+Before 1.38 `--scene`, `--overlay`, `--winlock` and the `--fanboost` timer answered "needs the
+GhostDeck app running" from the one-shot. A jump list on a pinned icon exists while the app is
+not running, so those entries would have been dead there. The one-shot now starts the tray
+(`Elevation.StartTray`, elevated already at that point) and polls the pipe for up to 15 s, then
+hands the command over; the app stays. The answer is prefixed "GhostDeck started; ".
+
+### 77.5 The pipe client closed its pipe in the wrong order
+
+`Cli.TrySendToRunning` declared the `StreamWriter` before the `StreamReader`, so at scope exit
+the reader (disposed first) closed the pipe and the writer's final flush threw inside the
+`try`; the catch answered "nobody listening" and the caller fell through to the one-shot. With
+the app running, every CLI command was therefore carried out twice - by the app over the pipe
+and then by the calling process against the EC (two "CLI" history entries per profile switch,
+`--status` printed twice, `--scene` ending in exit code 1 and "needs the app running" although
+the scene had been applied). Present since the CLI's first version (1.21). The reader is now
+declared first and disposed last. Verified with the render harness (`taskbar` mode), which
+drives the private method against an in-process server: `returned False` before the fix,
+`returned True` after.
+
+### 77.6 Verification
+
+The harness mode `taskbar` (no administrator): the link grammar on eleven inputs, the five icon
+files (7 images each, loadable), one fresh `*.customDestinations-ms` in the shell's folder after
+`Rebuild`, the ACL'd event and pipe round trip. The harness mode `jumplist-shot` takes the
+documentation picture of the list itself: a window of the harness process under the app's ID,
+the list written for it, the taskbar button found through UI Automation, a right-click sent
+to it and the screen above it captured. What only a live test shows: the UAC prompt
+count per launch kind, the pinned icon's style and the jump list on the pinned button, a
+pre-1.38 pin after a sign-in, a link from a browser and from Win+R, the autostart task after a
+sign-in, and the one-shot from an unelevated terminal with its output relayed.
+
+## 78. Messages from the tray are GhostDeck cards (v1.38)
+
+Eight messages left the tray as Windows notifications (`NotifyIcon.ShowBalloonTip`): an
+available update, an announcement from the repo, the end of travel mode (at start-up and from
+the poll), a charge limit changed outside the app, the temperature alert, the SSD alert, Windows
+refusing a hotkey and, new in 1.38, a refused ghostdeck:// link. A Windows notification can be
+silenced by Focus Assist and looks like someone else's; the #212 convention (RENDERING.md §11)
+says user-facing messages are GhostDeck cards. `TrayContext.ShowCard` now shows each as a
+`GhostCardForm`: acknowledge-only ("OK") unless the message has somewhere to go, then "Open" /
+"Later" - the update card opens the Updates tab with the one-click install (what the tray entry
+does; its text no longer says "click to download"), a notice opens its link. These cards are
+shown with `Quiet` set, which overrides `ShowWithoutActivation`, so a card that arrives on its
+own does not pull the focus out of a game; the OSD toast remains the in-game channel of the
+alerts, unchanged. The two messages that answer a user action - a refused link, refused hotkeys
+after a settings save - are shown active. `BalloonTipClicked` and the URL it opened went with
+the balloons. The harness mode `cards` renders every card with sample texts.
+
+![The eight cards](images/cards.png)
+
+Two refinements from the owner's review. The temperature and the SSD alert each have two
+channels with their own switches (`TempAlertOsd` / `TempAlertCard`, `SsdAlertOsd` / `SsdAlertCard`,
+all true by default; Settings → Automation, under each alert's threshold): the OSD alone is the
+in-game choice, the card alone the desk one. And the update card's accent button is not "Open"
+but "Install vX": `MainForm.InstallUpdate` shows the Updates tab and `UpdatesPage.InstallRelease`
+takes the tray's find as the page's own and starts the same download the page's Install button
+does, progress bar and restart included - one click from the card to the end.
+
+## 79. The crosshair (v1.39, roadmap #118, discussion #247)
+
+A user asked for MSI Center's `Fn+↓` crosshair in GhostDeck. The key combination itself is
+out of reach: the Fn key goes from the laptop's controller to MSI's service, which draws the
+crosshair, so no third program can take it over (roadmap #106 keeps that question open).
+What GhostDeck can do is draw its own crosshair with its own hotkey, the way the gaming
+overlay works. This chapter is the record of how.
+
+### 79.1 Shape: a second layered window, not part of the overlay
+
+`Forms/CrosshairForm.cs` is a small per-pixel layered window (`WS_EX_LAYERED` +
+`UpdateLayeredWindow`, premultiplied ARGB; RENDERING.md §3) with `WS_EX_NOACTIVATE`,
+`WS_EX_TOOLWINDOW`, `WS_EX_TOPMOST` and, permanently, `WS_EX_TRANSPARENT`: it never takes
+the focus and every click passes to the game. It is its own window, not a part of the gaming
+overlay, because it has to work with the overlay off. It sits at the centre of the full
+bounds (not the working area: a borderless game covers the taskbar) of the screen the overlay
+uses - the one holding the overlay's saved position, else the main screen - shifted by the
+style's X / Y offset in logical pixels times the window's DPI scale. In the follow-the-pointer
+mode a 16 ms timer reads the cursor and moves the window (an accessibility-style use, like
+PowerToys' mouse crosshair). A 2 s timer re-asserts the topmost order quietly, because a game
+that comes up after the crosshair can land above it. When a future monitor choice for the
+overlay arrives (roadmap #20) the crosshair follows the same choice: `TargetScreen` is the one
+place to change.
+
+![Settings → Gaming → Crosshair: the shape tiles, the preview on a dark and a light half, and the look card](images/settings_crosshair.png)
+
+Nothing is drawn inside the game. There are no DirectX hooks, no injection, no reading of
+the game process; in exclusive full-screen mode a window over the screen may stay invisible,
+which the Settings card and the FAQ say plainly. Anti-cheat: no documented ban for a plain
+window over the screen was found (October 2026); FACEIT's client blocks programs it does not
+recognise rather than banning, EA Javelin had false-positive bans around overlay suites in
+2026, and game rules can be broader than the technology. The card carries an amber note.
+
+### 79.2 The style and the painter
+
+`Core/Crosshair.cs` holds `CrosshairStyle` - the look as data (kind, colour, size, thickness,
+rim, opacity, offset, rotation, softness, click effect, aim-hide, follow) with `Normalize`
+clamping every field, `Clone`, `CopyFrom` and `LooksLike` - and `CrosshairPainter`, the one
+routine that turns a style into a bitmap:
+
+1. `Geometry` builds the shape as primitives (lines, rings, boxes, filled dots) in logical
+   units around the origin, for the eleven built-in kinds. The click effect's progress
+   (0..1) feeds in here: *spread* pushes the arms outwards along a sine wave, *pulse* grows
+   everything by up to 25 %, *flash* changes nothing in the geometry (it brightens the colour).
+2. `Render` draws the primitives twice into a `Format32bppPArgb` bitmap - first a wider pass
+   in dark (alpha 220) for the rim, then the colour at the line thickness - rotated about the
+   centre with `RotateTransform`. The custom picture is drawn into the size box with its
+   proportions kept; a missing file falls back to a plain cross, so the window is never blank.
+3. `PostProcess` runs three box-blur passes (radius softness / 1.7, which approximates a
+   Gaussian of the softness radius) on the premultiplied pixels - blurring all four channels
+   alike is correct in that format - and multiplies every channel by the opacity.
+
+The screen window, the Settings preview, the shape tiles and the PNG export all call
+`Render`, so what the preview shows is what the game gets. Sizes are logical pixels scaled by
+the window's DPI; the bitmap's extent is odd, so the shape has a true centre pixel.
+
+![The eleven shapes at 140 % on a dark and a light strip](images/crosshair_shapes.png)
+
+![Three looks: the default, a bold rim, a soft rotated cyan one](images/crosshair_looks.png)
+
+![The three click effects, frame by frame](images/crosshair_effects.png)
+
+### 79.3 Mouse hook, only when asked for
+
+The click effect and the aim-hide option need the mouse buttons system-wide. `Core/MouseWatch.cs`
+is a low-level mouse hook (`WH_MOUSE_LL`) on its own message-loop thread, the same pattern as
+`WinKeyLock` (keyboard) and `TrayWheel` (wheel): the callback only posts the button to the UI
+thread and passes every event on untouched. The hook is installed only while the crosshair is
+shown *and* one of the two options is on (`CrosshairStyle.NeedsMouseHook`); both options ship
+off, and the Settings card says what they do. Aim-hide pushes a fully transparent frame instead
+of hiding the window, which is cheaper and safer than Hide / Show churn while the right button
+is held.
+
+### 79.4 Presets, share code, export, backup
+
+Presets are `CrosshairStyle` copies with a `Name` in `AppSettings.CrosshairPresets`, with no
+limit; `EnsureDefaults` drops nameless or duplicate ones and clamps their fields, and a scene
+whose preset was deleted falls back to "on with the current look". The preset the live look
+came from is remembered by name (`CrosshairActivePreset`), so an edit does not detach it: the
+list keeps its name with a "(modified)" mark, *Save* writes the look back into it, *Save as...*
+adds a preset or overwrites the one whose name is typed (the prompt says so), and *Delete* is
+two-step (the first click arms the button for three seconds). Loading a preset from the CLI or
+a scene sets the active name; a pasted share code clears it. The share code is
+`"GDX1." + base64url` of 20 bytes: kind, RGB, size (2), thickness, rim, opacity, offset X and
+Y (2 each, biased by 32768), rotation (2), softness, click effect, aim-hide, flags, and a
+checksum byte - 32 characters, pasteable in a chat; a later layout gets a new prefix and this
+decoder keeps reading the old one. The code carries the look, never the picture; the card says
+so when the picture kind is selected. Export: PNG at 100 % scale with everything applied, SVG
+for the built-in kinds only (lines, circles and rectangles; the rim as a wider dark stroke
+underneath, the softness as `feGaussianBlur`, the rotation as a transform). SVG import is not
+offered: .NET has no SVG renderer and GhostDeck stays one exe without libraries.
+
+The custom picture is one file, `%AppData%\GhostDeck\crosshair\custom.png`; an import checks
+the limits (512 × 512 px, 1 MB) and re-encodes BMP / JPG as PNG, the next import replaces it.
+The settings export carries it as base64 in `CrosshairImageBase64`, a property written only
+when not null, so `settings.json` never holds the picture; the import writes it back.
+
+### 79.5 Three fixes the owner's test turned up
+
+*Card widths after the scrollbar.* On entering a Settings view tall enough for a vertical
+scrollbar, the two card columns were laid out for the client width without the scrollbar and
+stayed so until the next card rebuild, which then moved them by half the scrollbar's width.
+`ThemedPage.LayoutAndSyncScroll` drops the re-entrant Resize its own pass raises (the v1.34
+rule), and that Resize was the one reporting the new client width; the helper now compares
+the client width before and after the pass and runs the pass once more when it changed.
+
+*Spread on shapes without arms.* The click effect's spread moved arms apart, so a dot, a
+circle, a square or the picture did nothing on a click; those now grow their ring, box or
+picture by up to 30 % and come back, with a centre dot staying put.
+
+*Exact slider values.* The offset sliders put a thousand values on about 190 pixels of
+track, five units a pixel, so zero could not be hit by dragging. `Slider` takes the mouse
+wheel (one step, ten with Ctrl; the event is marked handled so the page does not scroll
+underneath), the arrow, Page and Home / End keys after a click, a double-click back to a
+`DefaultValue`, and an optional `SnapTo` value reached when the drag lands within half a
+percent of the range; the help dot by the first slider says so.
+
+### 79.6 Where it lives
+
+| Piece | Place |
+|---|---|
+| Style, painter, codec, SVG, picture import | `Core/Crosshair.cs` |
+| Mouse hook | `Core/MouseWatch.cs` |
+| Window | `Forms/CrosshairForm.cs` |
+| Settings → Gaming: the Start view (a tile per feature), the overlay / crosshair switch, the three crosshair cards (crosshair, look, sharing), tiles, preview | `UI/SettingsCrosshair.cs` (partial `SettingsPage`), the switch and the Gaming layout in `SettingsPage` |
+| Tray: menu entry, hotkey `Crosshair` (`Ctrl+Alt+F12`, shipped disabled), tray-click action, jump list, scene field, `--crosshair`, status JSON | `TrayContext.cs`, `Core/TrayWheel.cs`, `Core/Cli.cs`, `Core/Protocol.cs` |
+| Scenarios tile (`crosshair`, hideable), scene editor row (on / off / on with a preset) | `UI/ScenariosPage.cs`, `Forms/SceneEditForm.cs` |
+| Harness: `crosshair` mode (shape sheets at 100 % and 140 %, effect frames, picture, code and SVG round trip, glyph sheet), `GAMINGSUB=1` and `CROSSHAIR=<code>` for the page mode | private render harness |
+
+## 80. MSI True Color profiles (v1.39, roadmap #119, discussions #150 and #204)
+
+### 80.1 What it is and what it is not
+
+MSI True Color is MSI's own display-colour application (made by Portrait Displays): seven
+profiles (sRGB, Gamer, Movie, Anti-Blue, Office, AdobeRGB, Display P3) that MSI Center used
+to switch together with its scenario. GhostDeck now switches them too: by hand (a card under
+Settings → System), from the tray, as a scene field, from `--truecolor` and from
+`ghostdeck://truecolor/...`. It does so by **asking the running True Color application**; it
+never calculates colours, never writes True Color's files, ICC profiles, calibration data or
+registry, and never starts True Color. Discussion #204 (an own calibration / own colour
+profiles) remains declined; this is the opposite thing: one message to the vendor's app.
+
+Everything lives in `Core/TrueColor.cs`; every entry goes through `TrueColor.Set`.
+
+![Settings → System → MSI True Color: the confirmed version, the switch with its standing disclaimer, the seven tiles, the recorded profile and GhostDeck's own last request](images/settings_truecolor.png)
+
+### 80.2 The protocol
+
+True Color keeps a resident hidden window (class `MSITrueColorClass`, title `MSI True Color`)
+for its whole lifetime, with or without the main window open. Its helper talks to it with
+registered window messages. The one that applies a profile:
+
+```text
+hwnd = FindWindowW("MSITrueColorClass", "MSI True Color")
+msg  = RegisterWindowMessageW("SetChromaTuneColorSpace")      // a per-session id, never a constant
+SendMessageTimeout(hwnd, msg, wParam = profile id, lParam = 0,
+                   SMTO_BLOCK | SMTO_ABORTIFHUNG, 1500 ms)
+```
+
+True Color applies the profile (the screen changes) and records it as two `REG_DWORD`
+values under `HKCU\Software\Portrait Displays\MSI True Color`: `CurrentColorSpace` and
+`UserMode`. GhostDeck polls those two for up to 3 s (every 50 ms) and counts the request as
+done when both equal the requested id; measured on the test machine they do so after about
+60 ms. The message's return value is 0 on success as well, so it carries no information.
+
+The profile ids True Color records: `0` sRGB, `2` Gamer, `3` Movie, `4` Anti-Blue,
+`5` Office, `6` AdobeRGB, `9` Display P3. Ids 1, 7 and 8 exist in True Color's pages
+(Customize, Power Savings, DCI-P3) but were not mapped as switchable profiles and are not
+accepted. The names are True Color's own and stay untranslated in every UI language.
+
+The matching `GetChromaTuneColorSpace` message answers 0 whatever the profile, so there is
+no native readback. The registry record is the only one, and it is **what True Color
+recorded**, not what the panel shows: it follows a switch made in True Color's window and
+Fn+A too, and it can be stale when True Color is not running. The UI says so: *Recorded in
+True Color: Office* and, separately, *Last set by GhostDeck: Movie, 17.10.2026 19:59*
+(`AppSettings.TrueColorLast`, GhostDeck's own memory). The word "current" is not used.
+
+Writing the two registry values directly changes the numbers and nothing on the screen;
+True Color's HTML pages reach the same function through `window.external.jsSetColorSpace`,
+which needs a page to exist (the main window or the three-second Fn+A panel), and starting
+`MsiTrueColor.exe` shows its window for at least a frame. Those are the reasons the
+message, and only the message, is used.
+
+### 80.3 Detection and the version gate
+
+`TrueColor.Detect` (cheap: the install lookup is cached for ten seconds, the window and the
+registry are read live):
+
+1. the install folder from the Uninstall hive (`DisplayName` containing "True Color",
+   `InstallLocation`), else `Program Files\Portrait Displays\MSI True Color`; `MsiTrueColor.exe`
+   must exist there, its `FileVersion` is the version;
+2. the resident window, accepted only when its owning process runs from that exe
+   (`GetWindowThreadProcessId` + `QueryFullProcessImageName`; the limited query right works
+   from GhostDeck's elevated process to True Color's user-level one). A window of that class
+   from any other process is "not running";
+3. the recorded profile (null when the two values disagree or the key is missing).
+
+The protocol is undocumented and confirmed on one machine (MSI Raider GE78HX 13VH, built-in
+display, True Color 5.1.24.0, Windows 11 Home 26H2 build 26300.9711, 17 October 2026: all
+seven profiles, confirmation within 60 ms each, no window appeared, back to the start
+profile). Switching is therefore allowed only when the installed version is in
+`TrueColor.ConfirmedVersions` (one line per version) **or** equals
+`AppSettings.TrueColorUserVerified`, a version the owner confirmed with the card's own test
+on that machine: one request for another profile, five seconds, one request back, and a card
+asking whether the colours visibly changed and came back. A *yes* stores the version; the
+value is not exported with the settings (another laptop has another True Color). Detection,
+the status and `--truecolor status` work on any version; nothing is ever sent to an
+unconfirmed one outside that test. The exe's SHA-256 goes into the diagnostic zip for triage
+and gates nothing.
+
+![An unconfirmed version: the status line in amber, the switch off, the tiles greyed and the test button](images/settings_truecolor_unconfirmed.png)
+
+![The question after the test; "Yes" records the version as verified on this machine](images/truecolor_verify.png)
+
+### 80.4 Threads, gates and reporting
+
+`TrueColor.Set` is synchronous and may wait up to 4.5 s, so it never runs on the window
+thread: the Settings card, the tray and a scene hand it to a worker
+(`TrayContext.ApplyTrueColor`), the in-app CLI runs it on the pipe thread
+(`StartCliServer` takes `--truecolor` before the UI post), the one-shot CLI runs it in the
+calling process without elevation (a window message needs no administrator and no EC). One
+request at a time (a monitor with a five-second wait, then `Busy`). A scene with the field
+set fires the request after its other steps and does not wait; the result arrives in the
+change history on its own (`True Color: Movie`, `(already recorded)`, `failed` with the
+reason, `skipped` when the switch is off). A card appears only for a manual action; an
+automatic scene never shows one. Errors land in `errors.log` through `AppLifecycle.Report`.
+The one-time consent card (`TrueColorConfirmed`) follows the Apex pattern; the switch
+(`TrueColorEnabled`) is off by default and the tray submenu exists only while it is on and
+the version is confirmed.
+
+A profile True Color records on its own (its window, Fn+A, AppSync) reaches the card and the
+tray dots at once: a background thread sleeps on `RegNotifyChangeKeyValue` for True Color's
+key (`TrueColor.StartWatch`, event-driven, nothing polled) and raises `TrueColor.Changed` on
+the window thread after each change. The thread exists only when True Color is installed.
+
+### 80.5 Known limits
+
+- One machine, one version. Other True Color versions: the owner's test (80.3) or a
+  confirmed report; a new confirmed version is one line in `ConfirmedVersions`.
+- The message carries no monitor parameter. External monitors and HDR were not tested;
+  the request goes to True Color and acts on whatever True Color itself acts on.
+- True Color's own automatic profile switching (AppSync per application) is left alone:
+  one request per action, no background re-assertion, no tug of war.
+- True Color must be running. GhostDeck does not start it (its window would show); the
+  card says so and a scene skips the field with a history line.
+- The same profile again: when the record already shows the requested id nothing is sent
+  (`already recorded`).
+
+### 80.6 Where it lives
+
+| Piece | Place |
+|---|---|
+| Profiles, detection, version gate, the message, the registry readback, the diagnostic line | `Core/TrueColor.cs` |
+| Settings → System card (status, switch + consent, disclaimer, tiles, state lines, the owner's test) | `UI/SettingsTrueColor.cs` (partial `SettingsPage`) |
+| Worker, history, cards, tray submenu, scene step, in-app CLI | `TrayContext.cs` |
+| Scene field (`SceneDef.TrueColor`), editor row, chip | `Core/Scene.cs`, `Forms/SceneEditForm.cs` |
+| `--truecolor`, status JSON field `trueColor`, the one-shot path, link allow-list | `Core/Cli.cs`, `Core/Protocol.cs` |
+| Settings (`TrueColorEnabled`, `TrueColorConfirmed`, `TrueColorUserVerified`, `TrueColorLast`) | `Core/AppSettings.cs` |
+| Harness: `TRUECOLOR=<none|old|notrunning|ready|verified>` for the page mode, `tccards` | private render harness |
+
+## 81. The backup WMI path: data blocks when the method interface is refused (issues #48, #117, #230)
 
 **When it applies.** Some MSI firmware answers `0x8004100C` ("not supported") to every call on the `MSI_ACPI` method interface (§39). The same firmware still serves MSI's data blocks, and on a model whose block layout is on record GhostDeck works through them instead: it reads the active profile, temperatures, fan duty and fan speed, and - once the path test below has passed on that machine - switches profiles. Nothing else changes for the user: tiles, hotkeys, tray, scenes and the CLI drive the same recipes. Two machines carry a layout today, both from the Dragon Center era: the Delta 15 A5EFK (`15CKEMS1`) and the GF65 Thin 10UE (`16W2EMS1`). The path uses the Windows ACPI-WMI mapper only; no driver is involved (§12).
 

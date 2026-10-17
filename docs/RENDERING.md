@@ -97,6 +97,12 @@ driven by settings flags.
 
 Why it looks great: correct-DPI bitmap + GDI+ text + 1 : 1 layered blit + a drop-shadow.
 
+The **crosshair** ([`CrosshairForm.cs`](../Forms/CrosshairForm.cs), v1.39) is a second window of
+this kind, always click-through, drawn by [`CrosshairPainter`](../Core/Crosshair.cs): the shape
+as GDI+ paths into a premultiplied bitmap, a wider dark pass under the colour for the rim, a
+three-pass box blur for the softness, and the opacity as one multiply per channel. The same
+bitmap feeds the Settings preview, the shape tiles and the PNG export - see TECHNICAL.md §79.
+
 ---
 
 ## 4. Status tab — DPI-aware buffered canvas
@@ -437,9 +443,22 @@ Consequences for new UI:
 - every child control is a system window; a card that paints its rows itself costs one;
 - no system list controls (`ComboBox`, `ListBox`) on pages — their cost is per item;
 - a change that affects a few controls updates those controls. A full `BuildForm()` recreates
-  every window of the page and is reserved for changes that touch all of it (language). The
-  profile order, for one, re-fills four colour rows and the profile lists in place
-  (`SettingsPage.SyncProfileOrder`).
+  every window of the page and is reserved for changes that touch all of it (language, a
+  settings import). The profile order re-fills four colour rows and the profile lists in place
+  (`SettingsPage.SyncProfileOrder`); a card whose rows come and go (schedule rules, the Custom
+  charge slider, travel mode, the display modes) is rebuilt alone (`SettingsPage.RebuildCard`,
+  TECHNICAL.md §74).
+
+Measured on the live app after v1.37 (same machine, medians of three runs, action plus the
+repaint that follows):
+
+| | time |
+|---|---|
+| a switch / a list value | 4 ms / 3 ms |
+| re-entering the Settings tab | 65 ms |
+| changing the Settings sub-tab | 35 - 100 ms |
+| full rebuild of the Settings page | 340 - 450 ms |
+| rebuild of one card (v1.38) | 50 - 76 ms |
 
 **Do NOT add `WS_EX_COMPOSITED`** to the pages. It was tried against scroll tearing and reverted
 (a comment in `ThemedPage.CreateParams`… note marks it): compositing the whole child tree made
@@ -576,3 +595,10 @@ in the scene editor: two to four choices whose captions fit side by side become 
 visible at once; anything longer (profile, fan curve, brightness) becomes a select field with
 a `CardPopupList`. Touching the picker of a row that is off switches the row on. Rows shrink
 from 40 to 32 logical px when the screen is low, so the whole card always fits.
+
+Since 1.38 every message the tray sends is one of these cards as well (TECHNICAL.md §78): the
+update, announcements, the end of travel mode, a charge limit changed outside the app, the
+temperature and SSD alerts, refused hotkeys and refused ghostdeck:// links. The `Quiet` property
+shows a card without activating it, for the messages that arrive on their own.
+
+![The eight tray messages as cards](images/cards.png)

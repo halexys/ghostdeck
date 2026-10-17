@@ -24,6 +24,7 @@ public static class Diagnostics
         sb.AppendLine($"Detected model: {model}   Tier: {tier}");
         if (Ec.OnBackupPath) sb.AppendLine("EC path: backup WMI path (data blocks), read-only in this build");
         sb.AppendLine($"Windows: {Environment.OSVersion.VersionString}   64-bit: {Environment.Is64BitOperatingSystem}");
+        sb.AppendLine(TrueColor.DiagLine());   // roadmap #119: version, path, running, recorded profile, exe hash (triage only)
         sb.AppendLine();
         sb.AppendLine("Contents: ec-dump.txt (read-only EC snapshot, or the exact error it produced),");
         sb.AppendLine("wmi-interface.txt (schema registration and its source file), settings.json,");

@@ -17,6 +17,7 @@ public enum OverlayMetric
     GpuUsage = 2048, Vram = 4096, CpuClock = 8192,
     Fps = 16384, FrameTime = 32768,
     SsdTemp = 65536, BatteryTime = 131072,
+    IgpuUsage = 262144, CpuName = 524288,
 }
 
 public sealed class HotkeyDef
@@ -57,6 +58,8 @@ public sealed class AppSettings
     public bool ShowGrid { get; set; } = true;             // faint background grid on the pages
     public Dictionary<string, string> Colors { get; set; } = new();   // klucz profilu -> hex
     public bool Autostart { get; set; }
+    /// <summary>ghostdeck:// links registered for this user (roadmap #89); off removes the registration.</summary>
+    public bool ProtocolLinks { get; set; } = true;
 
     public bool AutoSwitchEnabled { get; set; } = false;              // domyslnie OFF (nie gryzc sie z MSI)
     public string ProfileOnAC { get; set; } = "Balanced";
@@ -132,15 +135,19 @@ public sealed class AppSettings
 
     public string LastFirmware { get; set; } = "";                     // ostatnio widziany firmware EC (ostrzezenie o zmianie)
 
-    // ---- Thermal alert: opt-in OSD + tray balloon when CPU/GPU stays hot (todo #8) ----
+    // ---- Thermal alert: opt-in OSD and/or GhostDeck card when CPU/GPU stays hot (todo #8) ----
     public bool TempAlertEnabled { get; set; } = false;                // user opts in explicitly
     public int TempAlertDegrees { get; set; } = 90;                    // alert threshold (max of CPU/GPU, °C)
     public int TempAlertSeconds { get; set; } = 10;                    // must stay above threshold this long
+    public bool TempAlertOsd { get; set; } = true;                     // the channels (1.38): on-screen toast ...
+    public bool TempAlertCard { get; set; } = true;                    // ... and/or a GhostDeck card; both on by default
 
     // ---- SSD temperature alert: same opt-in pattern. Data comes from Windows storage APIs
     // (Perf.Disks), not the EC, so it works on every machine incl. unrecognised firmware.
     public bool SsdAlertEnabled { get; set; } = false;
     public int SsdAlertDegrees { get; set; } = 70;                     // hottest disk, °C
+    public bool SsdAlertOsd { get; set; } = true;
+    public bool SsdAlertCard { get; set; } = true;
 
     public int OsdSeconds { get; set; } = 3;                           // how long OSD toasts stay visible (1-15 s)
 
@@ -175,6 +182,26 @@ public sealed class AppSettings
         OverlayMetric.CpuRpm | OverlayMetric.GpuRpm | OverlayMetric.Profile | OverlayMetric.CpuLoad | OverlayMetric.Ram |
         OverlayMetric.Fps);
     public bool OverlayBoldText { get; set; } = true;                  // pogrubione etykiety (Segoe UI Semibold) dla czytelnosci przy malej skali
+
+    // ---- Crosshair (roadmap #118, discussion #247) ----
+    public bool CrosshairEnabled { get; set; }                          // last visibility, restored at start like the overlay
+    public CrosshairStyle Crosshair { get; set; } = new();              // the live look
+    public List<CrosshairStyle> CrosshairPresets { get; set; } = new(); // named copies of the look, no limit
+    public string? CrosshairActivePreset { get; set; }                  // the preset the look came from (kept while edited; Save writes back)
+    // The custom picture travels inside an EXPORTED settings file only: the export fills this
+    // from crosshair\custom.png, the import writes it back and clears it. Never saved to
+    // settings.json (null is skipped), so the picture is not duplicated on every save.
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? CrosshairImageBase64 { get; set; }
+    // Settings -> Gaming: 0 = the overlay, 1 = the crosshair (machine-local UI state, like SettingsSubTab)
+    public int SettingsGamingSub { get; set; }
+
+    // ---- MSI True Color (roadmap #119, discussions #150 and #204) - experimental, opt-in ----
+    public bool TrueColorEnabled { get; set; }                          // the switch under Settings -> System
+    public bool TrueColorConfirmed { get; set; }                        // the one-time consent card was acknowledged (not asked again)
+    public string? TrueColorUserVerified { get; set; }                  // a True Color version the owner confirmed with the in-app test ON THIS MACHINE; not exported
+    public int? TrueColorLast { get; set; }                             // the profile GhostDeck last asked for: its own memory, shown as such, not True Color's state
+    public DateTime TrueColorLastUtc { get; set; } = DateTime.MinValue;
     public bool FpsMetricSeeded { get; set; }                          // one-time: dosianie metryki FPS istniejacym uzytkownikom (bitmaska sprzed v1.23)
 
     // ---- game-session report (Status -> Gaming + popup) ----
@@ -287,11 +314,12 @@ public sealed class AppSettings
     // wherever it was left. Default false = the behaviour so far.
     public bool SettingsAlwaysStart { get; set; }
 
-    // (discussion #9) Separate CPU/GPU temperature icons in the tray - two of them, because a
-    // tray icon at 100 % scaling fits TWO digits. Threshold colours: below Warn = Ok, below Hot =
-    // Warn, above = Hot. Off by default.
+    // (discussion #9) Separate temperature icons in the tray - one per reading, because a tray
+    // icon at 100 % scaling fits TWO digits. Threshold colours: below Warn = Ok, below Hot =
+    // Warn, above = Hot. Off by default. SSD (discussion #150) = the hottest disk.
     public bool TempTrayCpu { get; set; }
     public bool TempTrayGpu { get; set; }
+    public bool TempTraySsd { get; set; }
     public int TempTrayWarn { get; set; } = 70;
     public int TempTrayHot { get; set; } = 85;
     // The digits carry a dark outline (TrayIconFactory.TextIcon), which is what lets this
@@ -299,6 +327,14 @@ public sealed class AppSettings
     public string TempTrayColorOk { get; set; } = "#3DE3FF";   // brand cyan
     public string TempTrayColorWarn { get; set; } = "#F5B301";   // amber
     public string TempTrayColorHot { get; set; } = "#FF4D4F";   // red
+    // A mark in the source's own colour says which reading an icon carries, so the icons can be
+    // told apart without hovering. Style = TrayMarker (0 none, 1 bar under the digits - default,
+    // 2 dot, 3 corner); the colours default to the profile colours of Silent, Extreme and Super
+    // Battery, none of which is a threshold colour.
+    public int TempTrayMarkStyle { get; set; } = 1;
+    public string TempTrayMarkCpu { get; set; } = "#3C7DFF";    // Silent blue
+    public string TempTrayMarkGpu { get; set; } = "#FF2F7D";    // Extreme pink
+    public string TempTrayMarkSsd { get; set; } = "#61E7A4";    // Super Battery green
 
     // zapamietana geometria glownego okna (0 = nieustawione -> domyslny rozmiar/center)
     public int WinX { get; set; }
@@ -393,6 +429,7 @@ public sealed class AppSettings
         DefOff("WinLock",  0x77, "Ctrl+Alt+F8");   // F8 — Windows-key lock (gaming)
         DefOff("Touchpad", 0x78, "Ctrl+Alt+F9");   // F9 — touchpad on/off (keyboard escape hatch)
         DefOff("Mic",      0x7A, "Ctrl+Alt+F11");  // F11 — microphone mute (discussion #231); F10 is the panic reset
+        DefOff("Crosshair", 0x7B, "Ctrl+Alt+F12"); // F12 - crosshair on/off (roadmap #118)
 
         // migrate the earlier dev defaults (Ctrl+Alt+O/G, Win+Alt+G/L) to the new Ctrl+Shift ones
         void MigrateTo(string k, uint vk, string disp, (uint mods, uint vk)[] olds)
@@ -443,7 +480,21 @@ public sealed class AppSettings
             if (s.RefreshHz is null) s.RefreshTarget = null;   // the identity travels with the rate
             if (s.BrightnessPct is { } bp && bp is < 0 or > 100) s.BrightnessPct = null;
             if (s.Profile is { } p && !Enum.TryParse<ProfileId>(p, out _)) s.Profile = null;
+            if (s.Crosshair is null or false) s.CrosshairPreset = null;   // a preset only goes with "on"
+            if (s.TrueColor is { } tc && !TrueColor.IsProfile(tc)) s.TrueColor = null;   // only the seven ids True Color records
         }
+        if (TrueColorLast is { } tcl && !TrueColor.IsProfile(tcl)) TrueColorLast = null;
+        // Crosshair sanity: every value in range, presets named and unique, a scene's preset
+        // that no longer exists falls back to "on with the current look".
+        Crosshair ??= new CrosshairStyle();
+        Crosshair.Normalize();
+        CrosshairPresets.RemoveAll(p => p == null || string.IsNullOrWhiteSpace(p.Name));
+        var seenCh = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        CrosshairPresets.RemoveAll(p => !seenCh.Add(p.Name.Trim()));
+        foreach (var p in CrosshairPresets) { p.Name = p.Name.Trim(); p.Normalize(); }
+        foreach (var s in Scenes)
+            if (s.CrosshairPreset is { } cp && FindCrosshairPreset(cp) == null) s.CrosshairPreset = null;
+        if (CrosshairActivePreset is { } acp && FindCrosshairPreset(acp) == null) CrosshairActivePreset = null;
         foreach (var k in Hotkeys.Keys.Where(k => k.StartsWith("Scene:", StringComparison.OrdinalIgnoreCase)
                                                   && !Scenes.Any(s => s.HotkeyKey.Equals(k, StringComparison.OrdinalIgnoreCase))).ToList())
             Hotkeys.Remove(k);
@@ -465,6 +516,7 @@ public sealed class AppSettings
         // to its default profile; an action pointing at a deleted scene falls back too.
         TempTrayWarn = Math.Clamp(TempTrayWarn, 40, 110);
         TempTrayHot = Math.Clamp(TempTrayHot, TempTrayWarn + 1, 120);
+        if (TempTrayMarkStyle is < 0 or > 3) TempTrayMarkStyle = 1;
         BattLowPct = Math.Clamp(BattLowPct, 5, 95);
         BattHighPct = Math.Clamp(BattHighPct, 5, 95);
         bool ValidAction(string a) =>
@@ -505,6 +557,7 @@ public sealed class AppSettings
         IconTabs = new List<string>(src.IconTabs);
         ShowGrid = src.ShowGrid;
         Autostart = src.Autostart;
+        ProtocolLinks = src.ProtocolLinks;
         AutoSwitchEnabled = src.AutoSwitchEnabled;
         ProfileOnAC = src.ProfileOnAC;
         ProfileOnBattery = src.ProfileOnBattery;
@@ -518,13 +571,21 @@ public sealed class AppSettings
         ExperimentalWriteFw = new List<string>(src.ExperimentalWriteFw ?? new());
         ApexFw = new List<string>(src.ApexFw ?? new());
         ApexConfirmed = src.ApexConfirmed;
+        // True Color: the switch and the consent travel; the owner-verified version and the last
+        // profile are this machine's (another laptop has another True Color)
+        TrueColorEnabled = src.TrueColorEnabled;
+        TrueColorConfirmed = src.TrueColorConfirmed;
         UpdateCheckEnabled = src.UpdateCheckEnabled;
         DarkMode = src.DarkMode;
         TempAlertEnabled = src.TempAlertEnabled;
         TempAlertDegrees = src.TempAlertDegrees;
         TempAlertSeconds = src.TempAlertSeconds;
+        TempAlertOsd = src.TempAlertOsd;
+        TempAlertCard = src.TempAlertCard;
         SsdAlertEnabled = src.SsdAlertEnabled;
         SsdAlertDegrees = src.SsdAlertDegrees;
+        SsdAlertOsd = src.SsdAlertOsd;
+        SsdAlertCard = src.SsdAlertCard;
         OsdSeconds = src.OsdSeconds;
         RefreshSwitchEnabled = src.RefreshSwitchEnabled;
         RefreshOnAC = src.RefreshOnAC;
@@ -569,12 +630,33 @@ public sealed class AppSettings
         foreach (var s in src.Scenes) Scenes.Add(s.Clone());   // (#21)
         ScenHidden = new List<string>(src.ScenHidden);
         SettingsAlwaysStart = src.SettingsAlwaysStart;
-        TempTrayCpu = src.TempTrayCpu; TempTrayGpu = src.TempTrayGpu;
+        TempTrayCpu = src.TempTrayCpu; TempTrayGpu = src.TempTrayGpu; TempTraySsd = src.TempTraySsd;
         TempTrayWarn = src.TempTrayWarn; TempTrayHot = src.TempTrayHot;
         TempTrayColorOk = src.TempTrayColorOk; TempTrayColorWarn = src.TempTrayColorWarn;
         TempTrayColorHot = src.TempTrayColorHot;
+        TempTrayMarkStyle = src.TempTrayMarkStyle; TempTrayMarkCpu = src.TempTrayMarkCpu;
+        TempTrayMarkGpu = src.TempTrayMarkGpu; TempTrayMarkSsd = src.TempTrayMarkSsd;
+        CrosshairEnabled = src.CrosshairEnabled;
+        Crosshair = (src.Crosshair ?? new CrosshairStyle()).Clone();
+        CrosshairPresets.Clear();
+        foreach (var p in src.CrosshairPresets) CrosshairPresets.Add(p.Clone());
+        CrosshairActivePreset = src.CrosshairActivePreset;
+        // the picture carried by the file replaces the stored one; a file without one leaves it alone
+        if (!string.IsNullOrEmpty(src.CrosshairImageBase64))
+        {
+            try
+            {
+                Directory.CreateDirectory(CrosshairPainter.ImageDir);
+                File.WriteAllBytes(CrosshairPainter.ImagePath, Convert.FromBase64String(src.CrosshairImageBase64));
+            }
+            catch { }
+        }
+        CrosshairImageBase64 = null;
         EnsureDefaults();
     }
+
+    public CrosshairStyle? FindCrosshairPreset(string name) =>
+        CrosshairPresets.FirstOrDefault(p => p.Name.Equals(name.Trim(), StringComparison.OrdinalIgnoreCase));
 
     public Color ColorFor(ProfileId id)
     {
@@ -592,6 +674,7 @@ public sealed class AppSettings
         {
             Language = Language,
             Autostart = Autostart,
+            ProtocolLinks = ProtocolLinks,
             AutoSwitchEnabled = AutoSwitchEnabled,
             ProfileOnAC = ProfileOnAC,
             ProfileOnBattery = ProfileOnBattery,
@@ -602,6 +685,8 @@ public sealed class AppSettings
             BackupPathPassed = new List<string>(BackupPathPassed),
             ApexFw = new List<string>(ApexFw),
             ApexConfirmed = ApexConfirmed,
+            TrueColorEnabled = TrueColorEnabled,
+            TrueColorConfirmed = TrueColorConfirmed,
             UpdateCheckEnabled = UpdateCheckEnabled,
             HotkeysEnabled = HotkeysEnabled,
             TrayShowStatus = TrayShowStatus, TrayShowFanCurve = TrayShowFanCurve, TrayShowModels = TrayShowModels,
@@ -619,8 +704,12 @@ public sealed class AppSettings
             TempAlertEnabled = TempAlertEnabled,
             TempAlertDegrees = TempAlertDegrees,
             TempAlertSeconds = TempAlertSeconds,
+            TempAlertOsd = TempAlertOsd,
+            TempAlertCard = TempAlertCard,
             SsdAlertEnabled = SsdAlertEnabled,
             SsdAlertDegrees = SsdAlertDegrees,
+            SsdAlertOsd = SsdAlertOsd,
+            SsdAlertCard = SsdAlertCard,
             OsdSeconds = OsdSeconds,
             TravelUntil = TravelUntil,
             TravelPrevLimit = TravelPrevLimit,
@@ -667,10 +756,19 @@ public sealed class AppSettings
         c.ProfileOrder = new List<string>(ProfileOrder);
         c.ScenHidden = new List<string>(ScenHidden);
         c.SettingsAlwaysStart = SettingsAlwaysStart;
-        c.TempTrayCpu = TempTrayCpu; c.TempTrayGpu = TempTrayGpu;
+        c.TempTrayCpu = TempTrayCpu; c.TempTrayGpu = TempTrayGpu; c.TempTraySsd = TempTraySsd;
         c.TempTrayWarn = TempTrayWarn; c.TempTrayHot = TempTrayHot;
         c.TempTrayColorOk = TempTrayColorOk; c.TempTrayColorWarn = TempTrayColorWarn;
         c.TempTrayColorHot = TempTrayColorHot;
+        c.TempTrayMarkStyle = TempTrayMarkStyle; c.TempTrayMarkCpu = TempTrayMarkCpu;
+        c.TempTrayMarkGpu = TempTrayMarkGpu; c.TempTrayMarkSsd = TempTrayMarkSsd;
+        c.CrosshairEnabled = CrosshairEnabled;
+        c.Crosshair = Crosshair.Clone();
+        foreach (var p in CrosshairPresets) c.CrosshairPresets.Add(p.Clone());
+        c.CrosshairActivePreset = CrosshairActivePreset;
+        c.SettingsGamingSub = SettingsGamingSub;
+        c.TrueColorEnabled = TrueColorEnabled; c.TrueColorConfirmed = TrueColorConfirmed;
+        c.TrueColorUserVerified = TrueColorUserVerified; c.TrueColorLast = TrueColorLast; c.TrueColorLastUtc = TrueColorLastUtc;
         return c;
     }
 }

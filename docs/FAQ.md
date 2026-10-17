@@ -22,6 +22,28 @@ Not the way this app works - and that's actually the core reason it exists. The 
 
 You can run both. MSI Center caches its own UI state and doesn't live-read the EC, so it **won't reflect** changes made by anything else - but that's purely a display thing: the change still applies (GhostDeck writes the *exact same* EC bytes MSI Center writes; verify it in HWiNFO). Each app only touches the EC when you actually do something, so they don't fight over it. GhostDeck also **reads live state**, so if you switch a profile in MSI Center, GhostDeck syncs on its own. The only niche caveat: if you enable automatic AC/battery profile switching in **both** apps at once, their automations could ping-pong - but that's off by default here.
 
+## Does GhostDeck work on business laptops with MSI Center Pro?
+
+Yes, the same way as on gaming laptops. Some business laptops (Modern, Prestige, Summit, Creator) come with a separate MSI app, **MSI Center Pro**, which does not install on gaming laptops; others, and all gaming laptops, use **MSI Center**. GhostDeck uses neither of them: it talks to the laptop's embedded controller through MSI's interface in the firmware, and that works the same on both lines. The MSI app only serves as the reference for which values each profile writes on your model.
+
+Business laptops are in the [model list](SUPPORTED_MODELS.md) like any other; as of 7 October 2026, five of them were confirmed on hardware by their owners, and GhostDeck has run on MSI Center Pro machines with profiles switching normally ([#77](../../../issues/77), [#170](../../../issues/170)). Where a board's MSI app writes a different value than the usual set, the model's entry writes that value too: on the Modern 14 B11MOU, MSI Center Pro's top scenario uses a different performance value, and GhostDeck uses the same one.
+
+## My MSI app names the scenarios differently. Which one is which?
+
+The names depend on the app, its version and sometimes the model. This is how they match GhostDeck's profiles:
+
+| GhostDeck | MSI Center up to 2.0.48 | MSI Center 2.0.49 and newer | MSI Center Pro |
+|---|---|---|---|
+| **Silent** | Silent | missing on most models | Silent |
+| **Balanced** | Balanced | Balanced | Balanced |
+| **Extreme** | Extreme Performance | Extreme Performance | High Performance |
+| **Super Battery** | Super Battery | ECO-Silent | Super Battery |
+
+- **ECO-Silent is the old Super Battery**, the lowest-power mode, despite "Silent" in its name. It is not the classic Silent that GhostDeck brings back.
+- **MSI AI Engine** is not one of the four, so do not use it for a capture.
+- Some models show an **Apex** switch inside the top scenario - see [What is the APEX switch](#what-is-the-apex-switch-on-my-extreme-tile-why-dont-i-see-it).
+- If your app has only three of the four, capture the ones it has and say in your report which one is missing.
+
 ## GhostDeck worked before, but after a clean Windows install it says "unsupported". Is my laptop no longer supported?
 
 Your laptop is fine - a freshly installed Windows is just missing one piece. Windows needs a small description file (the **MSI WMI schema**, `msiapcfg.dll`) before it will expose MSI's hardware interface as the WMI class GhostDeck talks to, and MSI ships that file **only with its own software** - it is not in the firmware and there is no standalone download.
@@ -57,6 +79,10 @@ No, and it's not planned. "Freeing" RAM (trimming working sets or the standby li
 ## I turned on the temperature icons in the tray and nothing appeared
 
 They are there, Windows just hid them. Windows 11 puts every newly registered notification icon into the hidden overflow area (the `^` arrow next to the clock) until you say otherwise. Click the arrow, then drag the temperature icons down onto the taskbar and they stay there. The same happens to the GhostDeck ghost icon on a fresh install. If the overflow area has no temperature icons at all, check Settings -> System, card "Temperature in the tray": the card is hidden entirely on machines whose temperatures the app cannot read.
+
+To tell the icons apart without hovering over them, each one carries a small mark in its own colour - by default a bar under the digits, blue for CPU, pink for GPU and green for SSD (the SSD icon shows the hottest drive). The same card lets you pick a dot, a corner or no mark instead, and change the colours.
+
+![Tray icon marker styles](images/tray_marker_styles.png)
 
 ## Does Silent lower power on every laptop?
 
@@ -160,6 +186,16 @@ Usually not, and MSI Center does the same thing on the same machine. Two separat
 
 If a fan is audibly roaring and still shows "--", that is worth reporting: open an issue with your model, firmware and what MSI Center or HWiNFO64 shows at that moment.
 
+## The "curve target" ring says 85 %, but the fan speed changes with the profile. Which one is right?
+
+Both are right - they answer different questions. The rpm number under the rings ("CPU: 3581 RPM") is the **measured** fan speed, read from the fan's tachometer; it matches HWiNFO64. The ring ("CPU curve target", "GPU curve target") is the **target from the fan curve**: the curve is a small table "at this temperature, run the fan at this percentage", and the controller shows which entry of that table it picked for the current temperature.
+
+The profile you choose (Silent, Balanced, Extreme) then limits how fast the fan may actually go. Example from a GE76 Raider under the same heavy load: the ring stays at 85 % in all three profiles, while the fan runs at about 2800 rpm in Silent, 3580 rpm in Balanced and 5065 rpm in Extreme. On many boards Balanced stops the CPU fan at about 3560 rpm whatever the curve asks for. When the curve asks for less than that limit, the fan follows the ring.
+
+The ring's scale goes up to 150 %, the same scale MSI's own fan settings use, and the "?" next to each ring repeats this explanation.
+
+So: for "how fast is my fan spinning", read the rpm. For "how hard does the curve want it to spin at this temperature", read the ring. Up to v1.37 the rings were labelled "CPU fan" / "GPU fan", which suggested a speed; the value itself has not changed. Details and the data behind this: [TECHNICAL.md §76](TECHNICAL.md#76-the-fan-rings-show-the-curve-target-not-the-fan-speed-v138).
+
 ## Why does my laptop boot with a different profile than the one I picked? Do settings survive a reboot?
 
 They are not supposed to survive, and that is by design, not a fault. Profiles, fan curves and Fan Boost live in the Embedded Controller's working memory, which is **volatile**: every shutdown or reboot clears it, and the firmware starts the machine with its own defaults, exactly as if no tool had ever run. GhostDeck deliberately flashes nothing permanent - that is what keeps every change fully reversible.
@@ -186,9 +222,51 @@ Nothing is broken - you have run into **Smart App Control**, a Windows 11 securi
 
 The fix: unpin the app, right-click the GhostDeck exe → **Properties** → tick **Unblock** at the bottom of the General tab → OK, then pin it again. If the button still fails, also delete the leftover shortcut: Win+R → `%AppData%\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar` → delete `GhostDeck.lnk` → pin again. (First reported in discussion #106.)
 
+## I pinned GhostDeck to the taskbar. Where is the jump list, and why does the pin show a plain icon?
+
+Right-click the GhostDeck taskbar button (or the pinned icon) and the jump list is there: the profiles in your order, every scene, Fan Boost on / off and the panic reset. The button exists while the main window is open; the pinned icon works at any time, also through Win+Alt+<its position on the taskbar>. The tray icon has no jump list - Windows offers that only on the taskbar.
+
+![The jump list on the pinned GhostDeck icon](images/jumplist.png)
+
+Since 1.38 a pinned GhostDeck shows the icon style you chose in Settings (*Application icon*). A pin made with an older version keeps the plain exe icon and may show up next to the running window as a second button until the next sign-in - GhostDeck brings such a pin under its new identity when it starts, and Windows reads pins again when you sign in. Unpinning and pinning again does it at once.
+
+## Can a Stream Deck, AutoHotkey or a browser bookmark switch my profile?
+
+Yes - as a link: `ghostdeck://profile/silent`, `ghostdeck://scene/Gaming` (spaces as `%20`), `ghostdeck://fanboost/on/300`, `ghostdeck://refresh/max`, `ghostdeck://panic` and every other state-changing command of the [CLI](CLI.md). A Stream Deck *Open* or *Website* action, AutoHotkey's `Run`, the Run dialog (Win+R) or a shortcut launch it directly; a browser asks once whether to open GhostDeck, as it does for any such link. With the app running there is no administrator prompt. The registration lives in your own user profile (Settings → System → *ghostdeck:// links* removes it); `--status`, `--diag` and the maintainer commands are deliberately not reachable from a link, so a web page can never make GhostDeck write a file.
+
+## Can GhostDeck give me the Fn+↓ crosshair from MSI Center?
+
+Not that key, but yes to a crosshair. The `Fn+↓` combination is handled by MSI's own software: the Fn key goes from the laptop's controller to MSI's service, which draws the crosshair, so no other program can take that combination over. GhostDeck draws **its own crosshair** instead (Settings → Gaming → *Crosshair*): eleven shapes or your own PNG, with colour, size, line thickness, a dark rim, opacity, softness, rotation and an X/Y offset for games that aim a little below the centre. Switch it with a hotkey (`Ctrl+Alt+F12`, off until you enable it under Shortcuts), the tile on Scenarios, the tray menu, a scene, `--crosshair on` or `ghostdeck://crosshair/on`. Presets, a share code and PNG/SVG export are there too.
+
+## The crosshair does not show in my game. Is it safe in online games?
+
+GhostDeck draws the crosshair as a small window **over the screen**; it does not touch the game at all (no injection, no hooks into the game's process). That is also its one limit: a game running in **exclusive full-screen** mode owns the screen, and a window over it may stay invisible. Switch the game to *windowed* or *borderless windowed* mode and the crosshair appears; most modern games lose nothing in borderless mode.
+
+On anti-cheat: plain windows over the screen (Discord, Steam, OBS and this one) are not what anti-cheat systems look for, and we found no documented ban for one. Two cautions remain, and the Settings card repeats them: some anti-cheat clients (FACEIT, for example) **block programs they do not recognise** from running next to the game, and a game's rules can be broader than the technology. In ranked online games, prefer the crosshair built into the game. The two options that watch the mouse buttons (the click effect and hide-while-aiming) use a low-level hook like the Windows-key lock; both are off by default.
+
+## How do I keep several crosshairs, share one, or switch it automatically?
+
+Settings → Gaming → *Crosshair* (the Gaming group opens on a Start view with a tile per feature). **Presets:** *Save as...* keeps the current look under a name, without limit; a preset stays selected while you edit it, marked *(modified)*, and *Save* writes the changes back. **Sharing:** *Copy code* puts a short share code (`GDX1.…`) on the clipboard, *Paste code* applies one from a friend; the code carries the settings, not a picture, so a custom image travels as an exported PNG. *Export* writes the crosshair as PNG, or as SVG for the built-in shapes. The settings backup (Settings → System) carries the presets and the custom picture. **Switching:** a hotkey (`Ctrl+Alt+F12`, enable it under Shortcuts), the tile on Scenarios, the tray menu, a tray-click action, the taskbar jump list, a scene field (off / on / on with a preset, so a gaming scene can bring its own crosshair), `GhostDeck.exe --crosshair on|off|preset "Name"|code GDX1.…` or `ghostdeck://crosshair/on`.
+
+## Does GhostDeck switch MSI True Color profiles? (sRGB, Gamer, Movie, Anti-Blue, Office, AdobeRGB, Display P3)
+
+Yes, as an **experimental, opt-in** feature since 1.39 (Settings → System → *MSI True Color*). MSI Center used to switch the True Color profile together with its scenario; GhostDeck can do the same with a **scene field** (*MSI True Color: leave alone / sRGB / Gamer / Movie / Anti-Blue / Office / AdobeRGB / Display P3*), by hand on the Settings card, from the tray menu, with `GhostDeck.exe --truecolor movie` or `ghostdeck://truecolor/movie`.
+
+How it works, honestly: GhostDeck does **not** calculate colours and does not touch True Color's files, calibration or settings. It asks the **running True Color application** to switch, through the same undocumented window message True Color's own helper uses, and then reads back the profile True Color recorded in its registry. That record is what the card shows as *Recorded in True Color* (it follows Fn+A and True Color's own window too); *Last set by GhostDeck* is GhostDeck's own memory. Neither is a measurement of what the panel shows.
+
+The limits, as of 17 October 2026: the mechanism is **confirmed on one laptop** (MSI Raider GE78HX 13VH, built-in display, True Color 5.1.24.0, Windows 11 Home 26H2 build 26300.9711), with all seven profiles switching and no True Color window appearing. On any **other True Color version** the switch stays off; the card offers a one-click test instead (it switches to another profile for five seconds and back, you say whether the colours changed, and a *yes* unlocks the switch on that machine). True Color must be **installed and running** (it normally starts with Windows; if you closed it, start it from the Start menu, GhostDeck never starts it for you). **External monitors and HDR** were not tested: the message carries no monitor parameter, so expect it to act on whatever True Color itself acts on. True Color's own automatic switching (AppSync) is left alone; GhostDeck sends one request per action and never re-asserts a profile in the background. No guarantee that it works, use at your own risk; the author is not responsible for the effects of using an undocumented MSI interface.
+
+## My True Color is not version 5.1.24.0, or the card says it is not running. What now?
+
+**Another version.** The card then says *installed, but this version has not been confirmed* and keeps the switch off, because the message GhostDeck sends is undocumented and was checked on 5.1.24.0 only. Press **Test on my version**: after a consent card GhostDeck asks True Color for another profile (Anti-Blue, or Movie when Anti-Blue is the recorded one), waits five seconds, asks for the previous profile again and then asks *you* whether the screen colours visibly changed and came back. Answer **yes only if you saw it** - the switch then turns on for that version on that computer (the answer is not exported with the settings, another laptop has another True Color). Answer no and nothing is recorded. If it worked for you, say so in a GitHub discussion with the True Color version and your laptop: one line in the project's confirmed-version list unlocks it for everyone with that version, without a test.
+
+**Not running.** True Color normally starts with Windows and sits in the tray. If the card says it is not running (or a scene's history line says the True Color step was skipped), start it from the Start menu; GhostDeck never starts it for you, because starting it shows its window. **The switch is off.** Enable it on the card; with the switch off a scene skips its True Color field with a history line, and `--truecolor <profile>` or a link answers with a refusal (`--truecolor status` works always).
+
+**What the card shows.** *Recorded in True Color* is what True Color itself last recorded, so it follows Fn+A and True Color's own window too, within a moment; *Last set by GhostDeck* is only GhostDeck's memory. Neither is a measurement of the panel. Switching to the profile that is already recorded sends nothing (*already recorded* in the history). Not tested, so not promised: external monitors, HDR, other laptops.
+
 ## Why does it ask for administrator (UAC)?
 
-EC access via WMI requires elevation. Launching manually shows one UAC prompt; the *Start with Windows* option uses an elevated scheduled task so there's **no UAC nag at every logon**.
+EC access via WMI requires elevation. Launching the app manually shows one UAC prompt; the *Start with Windows* option uses an elevated scheduled task so there's **no UAC nag at every logon**. Since 1.38 the exe no longer demands administrator rights by itself: the app asks for them when it starts for real, and a launch that only hands a command to the already running app (a jump-list entry, a `ghostdeck://` link, `GhostDeck.exe --profile Silent` from a script, a second double-click on the exe) runs without any prompt. A command run with no app running still prompts once, because it has to talk to the EC itself.
 
 ## Print Screen / screenshot tools do nothing while the GhostDeck window is focused
 

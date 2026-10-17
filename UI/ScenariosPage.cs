@@ -88,6 +88,8 @@ public sealed class ScenariosPage : ThemedPage
                              () => D.Writable() && D.CoolerBoost(), v => D.SetCoolerBoost(v))),
             ("overlay", new FeatureBrick("overlay_title", "▦", "overlay_hint",
                              () => D.OverlayOn(), v => D.SetOverlay(v))),
+            ("crosshair", new FeatureBrick("ch_title", "⌖", "ch_hint",
+                             () => D.CrosshairOn(), v => D.SetCrosshair(v))),
             ("charge", new FeatureBrick("st_charge", "⚡", _charge)),
             ("autoswitch", new FeatureBrick("scen_autoswitch", "⇄", _auto)),
         };
