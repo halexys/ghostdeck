@@ -41,7 +41,7 @@ public sealed partial class SettingsPage
     private void BuildGamingViews()
     {
         _gamingSeg = new SubTabs(new[] { Lang.T("ch_gaming_start"), Lang.T("overlay_title"), Lang.T("ch_title") },
-                                 new[] { "", "", "" });   // home, game controller, ring with dot
+                                 new[] { "", "", "" }) { Nested = true };   // home, game controller, ring with dot
         _gamingSeg.SetActive(GamingSub);
         _gamingSeg.Changed += i => SelectGamingSub(i);
         Controls.Add(_gamingSeg);
@@ -63,11 +63,14 @@ public sealed partial class SettingsPage
         i = Math.Clamp(i, GamingStart, GamingCrosshair);
         if (D.Settings.SettingsGamingSub != i) { D.Settings.SettingsGamingSub = i; D.SaveSettings(); }
         if (_gamingSeg != null && _gamingSeg.Active != i) _gamingSeg.SetActive(i);   // silent (no Changed)
-        AutoScrollPosition = Point.Empty;
-        ApplyVisibility();
-        Layout2();
-        PerformLayout();
-        Invalidate();
+        // one repaint for the whole switch, not one per card that becomes visible
+        Ui.BatchRedraw(this, () =>
+        {
+            AutoScrollPosition = Point.Empty;
+            ApplyVisibility();
+            Layout2();
+            PerformLayout();
+        });
     }
 
     private void RefreshGamingTiles()
@@ -94,13 +97,15 @@ public sealed partial class SettingsPage
         _gRight[SubGaming].Add(_chShareCard);
     }
 
-    private void RebuildCrosshairCards()
+    // One batch around the three rebuilds: painting stays off until the last card is in place,
+    // so the page repaints once instead of card by card.
+    private void RebuildCrosshairCards() => Ui.BatchRedraw(this, () =>
     {
         if (_chCard != null) _chCard = RebuildCard(_chCard, BuildChMain);
         if (_chLookCard != null) _chLookCard = RebuildCard(_chLookCard, BuildChLook);
         if (_chShareCard != null) _chShareCard = RebuildCard(_chShareCard, BuildChShare);
         RefreshGamingTiles();
-    }
+    });
 
     // The window was toggled elsewhere (tray, hotkey, brick, scene): follow it.
     private void SyncCrosshairCards()
@@ -338,10 +343,14 @@ public sealed partial class SettingsPage
         // colour: the GhostDeck palette as swatches (the current one marked) and any colour from the system picker
         var swatches = new List<Panel>();
         var colourFlow = new FlowLayoutPanel { AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, Margin = Padding.Empty, Padding = Padding.Empty, WrapContents = true };
+        var any = Ghost(Lang.T("ch_color_any"));
+        any.Margin = new Padding(8, 0, 0, 0);
+        // the button keeps its natural (auto-sized) height; the swatches get margins that centre them on it
+        int bh = any.GetPreferredSize(Size.Empty).Height, swTop = Math.Max(0, (bh - 22) / 2);
         foreach (var hex in Profiles.Palette)
         {
             string ph = hex;
-            var sw = new Panel { Size = new Size(24, 22), BackColor = ColorTranslator.FromHtml(hex), Cursor = Cursors.Hand, Margin = new Padding(0, 4, 4, 4), Tag = hex };
+            var sw = new Panel { Size = new Size(24, 22), BackColor = ColorTranslator.FromHtml(hex), Cursor = Cursors.Hand, Margin = new Padding(0, swTop, 4, Math.Max(0, bh - 22 - swTop)), Tag = hex };
             sw.Paint += (_, e) =>
             {
                 if (string.Equals(ColorTranslator.ToHtml(st.ColorValue), ph, StringComparison.OrdinalIgnoreCase))
@@ -353,8 +362,6 @@ public sealed partial class SettingsPage
             sw.Click += (_, _) => { st.Color = ph; ChChanged(); foreach (var p in swatches) p.Invalidate(); };
             colourFlow.Controls.Add(sw); swatches.Add(sw);
         }
-        var any = Ghost(Lang.T("ch_color_any"));
-        any.Height = 30; any.Margin = new Padding(8, 0, 0, 0);   // as tall as the swatch row, so the two line up
         any.ForeColor = st.ColorValue;
         any.Click += (_, _) =>
         {

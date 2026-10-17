@@ -23,6 +23,8 @@ public sealed class SubTabs : Control
 
     public event Action<int>? Changed;
     public int Active => _active;
+    /// <summary>A strip nested under another one (Settings -> Gaming) fills a step lighter, so the two read as levels.</summary>
+    public bool Nested { get; set; }
 
     public SubTabs(params string[] labels) : this(labels, null) { }
 
@@ -171,9 +173,9 @@ public sealed class SubTabs : Control
         var outer = new RectangleF(0.5f, 0.5f, Width - 1, Height - 1);
         using (var path = Theme.RoundRect(outer, 9))
         {
-            using var b = new SolidBrush(Theme.Page);
+            using var b = new SolidBrush(Nested ? Theme.RowAlt : Theme.Page);
             g.FillPath(b, path);
-            using var p = new Pen(Theme.Border);
+            using var p = new Pen(Nested ? Theme.BorderStrong : Theme.Border);
             g.DrawPath(p, path);
         }
 
