@@ -23,6 +23,7 @@ public sealed partial class SettingsPage
     private CrosshairPreview? _chPreview;
     private CrosshairKindPicker? _chPicker;
     private Action? _syncChPreset;                // re-points the preset list and its buttons at the live look
+    private Action? _syncChKind;                  // the two controls that depend on the shape kind (the SVG button, the picture note)
     private bool _chSyncing;
     private System.Windows.Forms.Timer? _chSaveTimer;
     private Bitmap? _chImage;                     // the custom picture, for the tiles and the preview
@@ -455,7 +456,9 @@ public sealed partial class SettingsPage
             RebuildCrosshairCards();
         };
         card.AddRow(null, Flow(copy, paste));
-        if (st.KindId == CrosshairKind.Image) card.AddRow(null, Note(Lang.T("ch_code_noimage"), "muted"));
+        var noImage = Note(Lang.T("ch_code_noimage"), "muted");
+        noImage.Visible = st.KindId == CrosshairKind.Image;
+        card.AddRow(null, noImage);
 
         var png = Ghost(Lang.T("ch_export_png"));
         png.Click += (_, _) =>
@@ -471,6 +474,15 @@ public sealed partial class SettingsPage
         };
         var svg = Ghost(Lang.T("ch_export_svg"));
         GhostAvailable(svg, st.KindId != CrosshairKind.Image);   // the picture has no vector form
+        // a shape change updates these two in place - no card is rebuilt for a tile click (TECHNICAL 74)
+        _syncChKind = () =>
+        {
+            bool img = st.KindId == CrosshairKind.Image;
+            bool relayout = noImage.Visible != img;
+            noImage.Visible = img;
+            GhostAvailable(svg, !img);
+            if (relayout) Layout2();
+        };
         svg.Click += (_, _) =>
         {
             if (svg.Tag is "off" || st.ToSvg() is not { } text) return;
@@ -530,8 +542,8 @@ public sealed partial class SettingsPage
             if (i == st.Kind) return;
             st.Kind = i;
             _page.ChChanged();
-            // the sharing card's SVG button and the picture note follow the kind
-            _page.RebuildCrosshairCards();
+            // the sharing card's SVG button and the picture note follow the kind, in place
+            _page._syncChKind?.Invoke();
         }
 
         protected override void OnPaint(PaintEventArgs e)
