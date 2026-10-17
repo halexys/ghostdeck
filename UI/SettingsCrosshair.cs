@@ -16,7 +16,7 @@ namespace GhostDeck;
 public sealed partial class SettingsPage
 {
     private const int GamingStart = 0, GamingOverlay = 1, GamingCrosshair = 2;
-    private SegControl? _gamingSeg;
+    private SubTabs? _gamingSeg;                 // Start | overlay | crosshair, with the MDL2 glyphs like the main strip
     private readonly List<GroupTile> _gamingTiles = new();
     private CardSection? _chCard, _chLookCard, _chShareCard;
     private ToggleSwitch? _chToggle;
@@ -40,8 +40,10 @@ public sealed partial class SettingsPage
     // ---------------- the Gaming switch and its Start view ----------------
     private void BuildGamingViews()
     {
-        _gamingSeg = new SegControl(new[] { Lang.T("ch_gaming_start"), Lang.T("overlay_title"), Lang.T("ch_title") }, GamingSub) { Size = new Size(480, 34) };
-        _gamingSeg.SelectedChanged += i => SelectGamingSub(i);
+        _gamingSeg = new SubTabs(new[] { Lang.T("ch_gaming_start"), Lang.T("overlay_title"), Lang.T("ch_title") },
+                                 new[] { "", "", "" });   // home, game controller, ring with dot
+        _gamingSeg.SetActive(GamingSub);
+        _gamingSeg.Changed += i => SelectGamingSub(i);
         Controls.Add(_gamingSeg);
 
         // Start: one tile per feature, same look as the Settings Start page; the click opens the view
@@ -60,7 +62,7 @@ public sealed partial class SettingsPage
     {
         i = Math.Clamp(i, GamingStart, GamingCrosshair);
         if (D.Settings.SettingsGamingSub != i) { D.Settings.SettingsGamingSub = i; D.SaveSettings(); }
-        if (_gamingSeg != null && _gamingSeg.Selected != i) _gamingSeg.Selected = i;   // silent setter
+        if (_gamingSeg != null && _gamingSeg.Active != i) _gamingSeg.SetActive(i);   // silent (no Changed)
         AutoScrollPosition = Point.Empty;
         ApplyVisibility();
         Layout2();
@@ -352,7 +354,7 @@ public sealed partial class SettingsPage
             colourFlow.Controls.Add(sw); swatches.Add(sw);
         }
         var any = Ghost(Lang.T("ch_color_any"));
-        any.Margin = new Padding(8, 0, 0, 0);
+        any.Height = 30; any.Margin = new Padding(8, 0, 0, 0);   // as tall as the swatch row, so the two line up
         any.ForeColor = st.ColorValue;
         any.Click += (_, _) =>
         {

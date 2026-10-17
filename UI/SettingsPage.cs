@@ -409,6 +409,7 @@ public sealed partial class SettingsPage : ThemedPage
         {
             // the overlay | crosshair switch heads the group; the overlay view is the one
             // full-width panel, the crosshair view the usual two columns of cards below
+            _gamingSeg.FitTo(fullW);
             _gamingSeg.Location = new Point(Pad + ox, top + oy);
             top += _gamingSeg.Height + 18;
             if (GamingSub == GamingStart)
