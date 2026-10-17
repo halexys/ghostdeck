@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "dataVersion": 20261020,
+  "dataVersion": 20261021,
   "models": [
     {
       "name": "MSI Raider GE78HX 13V / Vector 17 HX A14V",
@@ -2792,6 +2792,49 @@
         "verified": false,
         "singleFan": false
       },
+      "recipes": {
+        "Silent": [
+          "0xD2=0xC1",
+          "0xD4=0x1D",
+          "0xEB=0x00"
+        ],
+        "Balanced": [
+          "0xD2=0xC1",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "Extreme": [
+          "0xD2=0xC4",
+          "0xD4=0x0D",
+          "0xEB=0x00"
+        ],
+        "SuperBattery": [
+          "0xD2=0xC2",
+          "0xD4=0x0D",
+          "0xEB=0x0F"
+        ]
+      }
+    },
+    {
+      "name": "MSI Prestige 16 AI Studio B1VFG",
+      "prefixes": [
+        "15A2EMS1"
+      ],
+      "tier": "Tested",
+      "cpuRpmAddr": "0xC9",
+      "gpuRpmAddr": "0xCB",
+      "fanCurve": {
+        "advancedModeValue": "0x8D",
+        "cpuTempBase": "0x69",
+        "cpuSpeedBase": "0x72",
+        "gpuTempBase": "0x81",
+        "gpuSpeedBase": "0x8A",
+        "points": 6,
+        "verified": false,
+        "singleFan": false
+      },
+      "credit": "halexys",
+      "creditUrl": "https://github.com/wygodad/ghostdeck/issues/237",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -5979,6 +6022,7 @@
       "1596EMS1": "0xD3",
       "159KIMS1": "0xD3",
       "15A1EMS1": "0xD3",
+      "15A2EMS1": "0xD3",
       "15A3EMS1": "0xD3",
       "15H1IMS1": "0xD3",
       "15H2IMS1": "0xD3",
@@ -6026,6 +6070,7 @@
     "noWebcamCtrl": [
       "13P5EMS1",
       "159KIMS1",
+      "15A2EMS1",
       "15H5EMS1"
     ],
     "fnWinSwap": {
@@ -6250,6 +6295,10 @@
         "invert": true
       },
       "15A1EMS1": {
+        "addr": "0xE8",
+        "invert": false
+      },
+      "15A2EMS1": {
         "addr": "0xE8",
         "invert": false
       },

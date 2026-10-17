@@ -23,6 +23,11 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   pointing to the Report tab, and "Report my model" captures the data blocks per scenario so
   the model can be added through the signed database. The layout travels in the model database
   (20261020) as an optional `blockPath` key; the diagnostic package lists the blocks in full.
+- **MSI Prestige 16 AI Studio B1VFG (`15A2EMS1`): new model, Tested on arrival** ([#237](../../issues/237),
+  thanks @halexys) - a 157th recognised board, absent from msi-ec, measured by its owner: Silent
+  delivers 77 % of Balanced's work 11 C cooler, Extreme above Balanced, every byte read back as
+  written. Fan RPM on; the EC webcam switch is marked unavailable on this board (it does not
+  control the camera there).
 - **Crosshair** (roadmap #118, [discussion #247](../../discussions/247), thanks @arcfybr) - a
   crosshair drawn at the centre of the screen over the game, as its own small window that never
   takes the focus and lets every click through; nothing is injected into the game. Eleven
@@ -62,6 +67,11 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   the installed version.
 
 ### Fixed
+- **An older version no longer erases the settings of a newer one** - settings.json keeps every
+  field this version does not know (top level, scenes, crosshair presets, hotkeys) and writes it
+  back unchanged, so starting an older build after a newer one no longer drops the newer
+  build's presets, scene fields and switches. Applies from this version on; 1.38.0 and older
+  still rewrite the file with only the fields they know.
 - **Settings cards laid out for the width before the scrollbar** - when a Settings view grew
   tall enough for a vertical scrollbar on entry, the two card columns kept the width they
   had without it until the next rebuild, which then shifted them by half the scrollbar.

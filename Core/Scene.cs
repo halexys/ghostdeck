@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace GhostDeck;
@@ -39,6 +40,9 @@ public sealed class SceneDef
     public bool? Crosshair { get; set; }           // the crosshair window (roadmap #118)
     public string? CrosshairPreset { get; set; }   // with Crosshair = true: the preset to load first (null = current look)
     public int? TrueColor { get; set; }            // MSI True Color profile id (roadmap #119); null = leave the profile alone
+
+    // Scene fields a newer version added: kept and written back unchanged (see AppSettings.Extra).
+    [JsonExtensionData] public Dictionary<string, JsonElement>? Extra { get; set; }
 
     [JsonIgnore] public string HotkeyKey => "Scene:" + Id;
 

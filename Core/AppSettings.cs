@@ -29,11 +29,22 @@ public sealed class HotkeyDef
 
     [JsonIgnore] public bool IsSet => Vk != 0;
 
-    public HotkeyDef Clone() => new() { Mods = Mods, Vk = Vk, Display = Display, Enabled = Enabled };
+    // Fields a newer version wrote and this one does not know: kept and written back unchanged
+    // (see AppSettings.Extra).
+    [JsonExtensionData] public Dictionary<string, JsonElement>? Extra { get; set; }
+
+    public HotkeyDef Clone() => new() { Mods = Mods, Vk = Vk, Display = Display, Enabled = Enabled, Extra = Extra == null ? null : new(Extra) };
 }
 
 public sealed class AppSettings
 {
+    // Every property of settings.json this version does not know lands here and goes back into
+    // the file on the next save, byte for byte. Without it an older version started after a
+    // newer one rewrote the file with only the fields it knew, and the newer version's settings
+    // (presets, scene fields, switches) were gone when it ran again. Applies from the first
+    // version that carries this property on; older versions still drop what they do not know.
+    [JsonExtensionData] public Dictionary<string, JsonElement>? Extra { get; set; }
+
     public string Language { get; set; } = "en";
     public Dictionary<string, HotkeyDef> Hotkeys { get; set; } = new();
     public bool HotkeysEnabled { get; set; } = true;   // master on/off for all keyboard shortcuts (#9)

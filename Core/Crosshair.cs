@@ -2,6 +2,7 @@ using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.Globalization;
 using System.Text;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace GhostDeck;
@@ -55,6 +56,9 @@ public sealed class CrosshairStyle
     {
         get { try { return ColorTranslator.FromHtml(Color); } catch { return ColorTranslator.FromHtml("#61E7A4"); } }
     }
+
+    // Style fields a newer version added: kept and written back unchanged (see AppSettings.Extra).
+    [JsonExtensionData] public Dictionary<string, JsonElement>? Extra { get; set; }
 
     public CrosshairStyle Clone() => (CrosshairStyle)MemberwiseClone();
 
