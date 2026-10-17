@@ -50,6 +50,16 @@ Your laptop is fine - a freshly installed Windows is just missing one piece. Win
 
 **The fix: install MSI Center once.** The schema is deployed during installation and the interface appears; after that you can keep MSI Center or uninstall it - measurements show the schema stays behind (it even survives MSI's own cleanup tool), and GhostDeck never needs MSI Center running. GhostDeck deliberately does not deploy the file itself: it is an MSI-signed system component, and redistributing it is not the project's call to make. Full write-up with sources and measurements: [MSI-WMI-SCHEMA.md](MSI-WMI-SCHEMA.md); the original report: [discussion #56](../../../discussions/56).
 
+## My laptop is not in the list, or Status says "Unsupported model". What do I do?
+
+GhostDeck recognises a laptop by the EC firmware string, not by the name on the lid, so first check the Status tab: the *EC firmware* line (for example `17S1IMS1.11A`) and the *Model* line. Then pick the case that matches.
+
+**The model is recognised but marked experimental.** It works already: the entry comes from the [msi-ec](https://github.com/BeardOverflow/msi-ec) register maps and writes only the documented profile registers. Switch on *Settings → System → Startup & tray → Enable writes for this model* and use it. What promotes it to *tested* is one of two things from your machine: the **Report my model** wizard (tray menu, or the button on Status), which captures the controller in each scenario of your MSI app and opens a pre-filled issue, or the **Power test** on the Report tab, which needs no MSI software at all and measures in numbers whether Silent really lowers power and what Extreme buys.
+
+**The firmware is not recognised at all.** The app runs read-only on purpose, so it never writes registers on a machine nobody has looked at. Run **Report my model** anyway: the report shows the firmware string and the bytes per scenario, and that is enough to add an entry. No MSI app on the machine? Open a [Model support request](../../../issues/new?template=model-support.yml) with the diagnostic package (Settings → System → Diagnostics).
+
+**The badge says "monitoring only" or the note says MSI's EC control interface is not available.** That is the older generation described in the next question and, in plain language with pictures, on its own page: [Older MSI laptops: the backup WMI path](BACKUP-PATH.md). The short version: the app can still work through the device's data blocks, and one report from your machine is what adds your model.
+
 ## Status says "monitoring only", or that MSI's EC control interface is not available. Can GhostDeck still switch profiles?
 
 On some older MSI laptops - the Dragon Center generation, roughly 2018-2021: Delta 15, GF65 Thin, GS75 and their relatives - the firmware does not implement the interface GhostDeck normally uses for profiles. Every call is refused, whatever MSI software is installed, so the clean-install fix above does not apply. The same firmware still serves MSI's **data blocks**, and GhostDeck can work through them: the **backup WMI path**. What you see depends on whether your model's block layout is on record.
@@ -62,7 +72,7 @@ On some older MSI laptops - the Dragon Center generation, roughly 2018-2021: Del
 
 ![The path test: intro, running, result](images/path_test_running.png)
 
-How it works, and why writes are gated: [TECHNICAL.md §81](TECHNICAL.md#81-the-backup-wmi-path-data-blocks-when-the-method-interface-is-refused-issues-48-117-230).
+Step by step with pictures, and the technical detail with diagrams of both paths: [Older MSI laptops: the backup WMI path](BACKUP-PATH.md). The full write-up with the measurements: [TECHNICAL.md §81](TECHNICAL.md#81-the-backup-wmi-path-data-blocks-when-the-method-interface-is-refused-issues-48-117-230).
 
 ## Can GhostDeck control my keyboard backlight? Why not on my laptop?
 

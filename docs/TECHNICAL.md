@@ -3618,6 +3618,8 @@ the window thread after each change. The thread exists only when True Color is i
 
 ## 81. The backup WMI path: data blocks when the method interface is refused (issues #48, #117, #230)
 
+A plain-language guide for owners, with the same material condensed and three diagrams (both WMI paths, the decision at start, the path test), is [BACKUP-PATH.md](BACKUP-PATH.md).
+
 **When it applies.** Some MSI firmware answers `0x8004100C` ("not supported") to every call on the `MSI_ACPI` method interface (§39). The same firmware still serves MSI's data blocks, and on a model whose block layout is on record GhostDeck works through them instead: it reads the active profile, temperatures, fan duty and fan speed, and - once the path test below has passed on that machine - switches profiles. Nothing else changes for the user: tiles, hotkeys, tray, scenes and the CLI drive the same recipes. Two machines carry a layout today, both from the Dragon Center era: the Delta 15 A5EFK (`15CKEMS1`) and the GF65 Thin 10UE (`16W2EMS1`). The path uses the Windows ACPI-WMI mapper only; no driver is involved (§12).
 
 **The blocks.** Each block is a class in `root\wmi` served as instances `ACPI\PNP0C14\0_N`; the value sits in a property named after the class. The layout below comes from GhostDeck's own diagnostic packages of both machines (attached to #48 and #117) and is identical on the two: the same instance count in every block (`MSI_CPU` 19, `MSI_VGA` 18, `MSI_System` 21, `MSI_AP` 8) and the same slots.
