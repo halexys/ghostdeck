@@ -54,6 +54,8 @@ directory and it works even when the app can't start.
 | `--hdr <on\|off>` | HDR / advanced color on every HDR-capable display (DisplayConfig API, any machine) | `hdr: on` |
 | `--touchpad <on\|off>` | Enable/disable the precision touchpad at the device level (same operation as Device Manager; admin, any machine). The in-app hotkey and a panic reset always re-enable it | `touchpad: off` |
 | `--mic <on\|off>` | Unmute / mute the default Windows recording device (the mute flag in the Windows sound settings; when calls use a different default device, both are switched). Works on any laptop, no EC involved | `microphone: off` |
+| `--truecolor <srgb\|gamer\|movie\|antiblue\|office\|adobergb\|displayp3>` | **Experimental.** Ask MSI's True Color application for that display colour profile (a profile id 0/2/3/4/5/6/9 is accepted too). Needs the switch under Settings → System → *MSI True Color* (otherwise exit 1, `True Color switching is off - enable it under Settings -> System first`), True Color installed and running, and a confirmed version (5.1.24.0, or one you confirmed with the in-app test). No EC, no administrator: with no app running the command runs right in the calling process. Confirmed through True Color's own registry record within 3 s; `(already recorded)` when the profile was already the recorded one | `true color: Movie` |
+| `--truecolor status` | Read-only, works with the switch off: installed, version, running, confirmedVersion, enabled, `recorded` (the profile True Color itself last recorded, also after Fn+A), `lastSetByGhostDeck`, the profile words | `{"installed":true,"version":"5.1.24.0","running":true,"confirmedVersion":true,"enabled":true,"recorded":"Office","lastSetByGhostDeck":"Movie","profiles":[…]}` |
 | `--kbd <off\|low\|mid\|high\|0-3>` | Keyboard-backlight level (models with the EC brightness register) | `keyboard backlight: high` |
 | `--webcam on\|off` | EC-level webcam switch - same switch as the Fn camera key. Refused while the hard camera block (Settings → System → Privacy) is active | `webcam: off` |
 | `--fnswap <left\|right>` | Which side the Fn key is on - the EC-persisted Fn/Windows swap (boards in msi-ec's `fn_win_swap` map) | `fn key: left` |
@@ -100,6 +102,7 @@ directory and it works even when the app can't start.
   "fnLeft": false,
   "hdr": false,
   "touchpad": true,
+  "trueColor": "Office",
   "batteryPercent": 76, "batteryCharging": true,
   "batteryMinutesLeft": null, "batteryWearPct": 9,
   "disks": [ { "name": "Samsung MZVL21T0HCLR", "tempC": 41 }, { "name": "KINGSTON SKC3000", "tempC": 37 } ],

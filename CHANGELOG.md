@@ -28,6 +28,20 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   notch or arrow (ten with Ctrl), a double-click puts the slider back to its default, and a
   slider with a natural zero (the crosshair offsets and rotation) snaps to it when dragged
   close. The value column is as wide as the longest value, so "100%" is no longer clipped.
+- **MSI True Color profiles, experimental** (roadmap #119, [discussion #150](../../discussions/150)
+  and [#204](../../discussions/204)) - the display colour profile of MSI's True Color application
+  (sRGB, Gamer, Movie, Anti-Blue, Office, AdobeRGB, Display P3) switched from GhostDeck: a card
+  under Settings → System with seven tiles, a *True Color* submenu in the tray, a scene field
+  (leave alone, or one of the seven), `--truecolor <profile|status>` and
+  `ghostdeck://truecolor/<profile>`. GhostDeck asks the running True Color through the window
+  message its own helper uses and reads the profile True Color records back; it writes nothing to
+  True Color's files or settings and never calculates colours. Off by default, opt-in with a
+  consent card; confirmed on True Color 5.1.24.0 (one GE78HX, 17 October 2026) and off on other
+  versions until the owner runs the one-click test on their own machine. The card shows what True
+  Color recorded and what GhostDeck last asked for, never a measured state. A scene with the field
+  set runs it on a worker and never waits for it; a failure is a history line (and a card only
+  for a manual action). `--truecolor status` works with the switch off; the diagnostic zip lists
+  the installed version.
 
 ### Fixed
 - **Settings cards laid out for the width before the scrollbar** - when a Settings view grew

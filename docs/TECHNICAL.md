@@ -3496,3 +3496,123 @@ percent of the range; the help dot by the first slider says so.
 | Tray: menu entry, hotkey `Crosshair` (`Ctrl+Alt+F12`, shipped disabled), tray-click action, jump list, scene field, `--crosshair`, status JSON | `TrayContext.cs`, `Core/TrayWheel.cs`, `Core/Cli.cs`, `Core/Protocol.cs` |
 | Scenarios tile (`crosshair`, hideable), scene editor row (on / off / on with a preset) | `UI/ScenariosPage.cs`, `Forms/SceneEditForm.cs` |
 | Harness: `crosshair` mode (shape sheets at 100 % and 140 %, effect frames, picture, code and SVG round trip, glyph sheet), `GAMINGSUB=1` and `CROSSHAIR=<code>` for the page mode | private render harness |
+
+## 80. MSI True Color profiles (v1.39, roadmap #119, discussions #150 and #204)
+
+### 80.1 What it is and what it is not
+
+MSI True Color is MSI's own display-colour application (made by Portrait Displays): seven
+profiles (sRGB, Gamer, Movie, Anti-Blue, Office, AdobeRGB, Display P3) that MSI Center used
+to switch together with its scenario. GhostDeck now switches them too: by hand (a card under
+Settings → System), from the tray, as a scene field, from `--truecolor` and from
+`ghostdeck://truecolor/...`. It does so by **asking the running True Color application**; it
+never calculates colours, never writes True Color's files, ICC profiles, calibration data or
+registry, and never starts True Color. Discussion #204 (an own calibration / own colour
+profiles) remains declined; this is the opposite thing: one message to the vendor's app.
+
+Everything lives in `Core/TrueColor.cs`; every entry goes through `TrueColor.Set`.
+
+### 80.2 The protocol
+
+True Color keeps a resident hidden window (class `MSITrueColorClass`, title `MSI True Color`)
+for its whole lifetime, with or without the main window open. Its helper talks to it with
+registered window messages. The one that applies a profile:
+
+```text
+hwnd = FindWindowW("MSITrueColorClass", "MSI True Color")
+msg  = RegisterWindowMessageW("SetChromaTuneColorSpace")      // a per-session id, never a constant
+SendMessageTimeout(hwnd, msg, wParam = profile id, lParam = 0,
+                   SMTO_BLOCK | SMTO_ABORTIFHUNG, 1500 ms)
+```
+
+True Color applies the profile (the screen changes) and records it as two `REG_DWORD`
+values under `HKCU\Software\Portrait Displays\MSI True Color`: `CurrentColorSpace` and
+`UserMode`. GhostDeck polls those two for up to 3 s (every 50 ms) and counts the request as
+done when both equal the requested id; measured on the test machine they do so after about
+60 ms. The message's return value is 0 on success as well, so it carries no information.
+
+The profile ids True Color records: `0` sRGB, `2` Gamer, `3` Movie, `4` Anti-Blue,
+`5` Office, `6` AdobeRGB, `9` Display P3. Ids 1, 7 and 8 exist in True Color's pages
+(Customize, Power Savings, DCI-P3) but were not mapped as switchable profiles and are not
+accepted. The names are True Color's own and stay untranslated in every UI language.
+
+The matching `GetChromaTuneColorSpace` message answers 0 whatever the profile, so there is
+no native readback. The registry record is the only one, and it is **what True Color
+recorded**, not what the panel shows: it follows a switch made in True Color's window and
+Fn+A too, and it can be stale when True Color is not running. The UI says so: *Recorded in
+True Color: Office* and, separately, *Last set by GhostDeck: Movie, 17.10.2026 19:59*
+(`AppSettings.TrueColorLast`, GhostDeck's own memory). The word "current" is not used.
+
+Writing the two registry values directly changes the numbers and nothing on the screen;
+True Color's HTML pages reach the same function through `window.external.jsSetColorSpace`,
+which needs a page to exist (the main window or the three-second Fn+A panel), and starting
+`MsiTrueColor.exe` shows its window for at least a frame. Those are the reasons the
+message, and only the message, is used.
+
+### 80.3 Detection and the version gate
+
+`TrueColor.Detect` (cheap: the install lookup is cached for ten seconds, the window and the
+registry are read live):
+
+1. the install folder from the Uninstall hive (`DisplayName` containing "True Color",
+   `InstallLocation`), else `Program Files\Portrait Displays\MSI True Color`; `MsiTrueColor.exe`
+   must exist there, its `FileVersion` is the version;
+2. the resident window, accepted only when its owning process runs from that exe
+   (`GetWindowThreadProcessId` + `QueryFullProcessImageName`; the limited query right works
+   from GhostDeck's elevated process to True Color's user-level one). A window of that class
+   from any other process is "not running";
+3. the recorded profile (null when the two values disagree or the key is missing).
+
+The protocol is undocumented and confirmed on one machine (MSI Raider GE78HX 13VH, built-in
+display, True Color 5.1.24.0, Windows 11 Home 26H2 build 26300.9711, 17 October 2026: all
+seven profiles, confirmation within 60 ms each, no window appeared, back to the start
+profile). Switching is therefore allowed only when the installed version is in
+`TrueColor.ConfirmedVersions` (one line per version) **or** equals
+`AppSettings.TrueColorUserVerified`, a version the owner confirmed with the card's own test
+on that machine: one request for another profile, five seconds, one request back, and a card
+asking whether the colours visibly changed and came back. A *yes* stores the version; the
+value is not exported with the settings (another laptop has another True Color). Detection,
+the status and `--truecolor status` work on any version; nothing is ever sent to an
+unconfirmed one outside that test. The exe's SHA-256 goes into the diagnostic zip for triage
+and gates nothing.
+
+### 80.4 Threads, gates and reporting
+
+`TrueColor.Set` is synchronous and may wait up to 4.5 s, so it never runs on the window
+thread: the Settings card, the tray and a scene hand it to a worker
+(`TrayContext.ApplyTrueColor`), the in-app CLI runs it on the pipe thread
+(`StartCliServer` takes `--truecolor` before the UI post), the one-shot CLI runs it in the
+calling process without elevation (a window message needs no administrator and no EC). One
+request at a time (a monitor with a five-second wait, then `Busy`). A scene with the field
+set fires the request after its other steps and does not wait; the result arrives in the
+change history on its own (`True Color: Movie`, `(already recorded)`, `failed` with the
+reason, `skipped` when the switch is off). A card appears only for a manual action; an
+automatic scene never shows one. Errors land in `errors.log` through `AppLifecycle.Report`.
+The one-time consent card (`TrueColorConfirmed`) follows the Apex pattern; the switch
+(`TrueColorEnabled`) is off by default and the tray submenu exists only while it is on and
+the version is confirmed.
+
+### 80.5 Known limits
+
+- One machine, one version. Other True Color versions: the owner's test (80.3) or a
+  confirmed report; a new confirmed version is one line in `ConfirmedVersions`.
+- The message carries no monitor parameter. External monitors and HDR were not tested;
+  the request goes to True Color and acts on whatever True Color itself acts on.
+- True Color's own automatic profile switching (AppSync per application) is left alone:
+  one request per action, no background re-assertion, no tug of war.
+- True Color must be running. GhostDeck does not start it (its window would show); the
+  card says so and a scene skips the field with a history line.
+- The same profile again: when the record already shows the requested id nothing is sent
+  (`already recorded`).
+
+### 80.6 Where it lives
+
+| Piece | Place |
+|---|---|
+| Profiles, detection, version gate, the message, the registry readback, the diagnostic line | `Core/TrueColor.cs` |
+| Settings → System card (status, switch + consent, disclaimer, tiles, state lines, the owner's test) | `UI/SettingsTrueColor.cs` (partial `SettingsPage`) |
+| Worker, history, cards, tray submenu, scene step, in-app CLI | `TrayContext.cs` |
+| Scene field (`SceneDef.TrueColor`), editor row, chip | `Core/Scene.cs`, `Forms/SceneEditForm.cs` |
+| `--truecolor`, status JSON field `trueColor`, the one-shot path, link allow-list | `Core/Cli.cs`, `Core/Protocol.cs` |
+| Settings (`TrueColorEnabled`, `TrueColorConfirmed`, `TrueColorUserVerified`, `TrueColorLast`) | `Core/AppSettings.cs` |
+| Harness: `TRUECOLOR=<none|old|notrunning|ready|verified>` for the page mode, `tccards` | private render harness |
