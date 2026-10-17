@@ -176,7 +176,7 @@ Two honest notes: a game in **exclusive full-screen** mode may hide any window o
 | ![Scenes](docs/images/scenes.png) | ![Schedule rule](docs/images/schedule_rule.png) |
 | **Scenes** - every setting the scene touches as a chip; the profile pill wears that profile's color | **Scene schedule** - a rule is a scene + weekdays + a time window (overnight ranges fine) |
 | ![Scene editor](docs/images/scene_editor.png) | ![Settings General](docs/images/settings_general.png) |
-| **Scene editor** - switch on only the settings a scene should apply (brightness, HDR, Windows-key lock and touchpad included); everything else stays as it is | **Settings → General** - pick which bricks and sections the Scenarios tab shows; the gear on Scenarios jumps here and highlights this card |
+| **Scene editor** - switch on only the settings a scene should apply (brightness, HDR, the crosshair with one of your presets, Windows-key lock and touchpad included); everything else stays as it is | **Settings → General** - pick which bricks and sections the Scenarios tab shows; the gear on Scenarios jumps here and highlights this card |
 | ![Status](docs/images/status.png) | ![Settings](docs/images/settings.png) |
 | **Status** - temperature/fan rings, fan RPM, per-disk S.M.A.R.T. temperatures, battery time, RAM | **Settings** - Start dashboard: icon sub-tabs and the live state of every group on its tile |
 | ![Settings Power](docs/images/settings_power.png) | ![Settings System](docs/images/settings_system.png) |
