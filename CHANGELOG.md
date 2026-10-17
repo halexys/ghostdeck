@@ -5,6 +5,11 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 ### Added
+- **MSI Prestige 16 AI Studio B1VFG (`15A2EMS1`): new model, Tested on arrival** ([#237](../../issues/237),
+  thanks @halexys) - a 157th recognised board, absent from msi-ec, measured by its owner: Silent
+  delivers 77 % of Balanced's work 11 C cooler, Extreme above Balanced, every byte read back as
+  written. Fan RPM on; the EC webcam switch is marked unavailable on this board (it does not
+  control the camera there).
 - **Crosshair** (roadmap #118, [discussion #247](../../discussions/247), thanks @arcfybr) - a
   crosshair drawn at the centre of the screen over the game, as its own small window that never
   takes the focus and lets every click through; nothing is injected into the game. Eleven

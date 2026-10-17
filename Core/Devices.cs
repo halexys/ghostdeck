@@ -110,7 +110,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20261019;
+    public const int DataVersion = 20261020;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -203,7 +203,7 @@ public static class Devices
         ["13P3EMS1"] = 0xD3, ["13P5EMS1"] = 0xD3, ["13Q2EMS1"] = 0xD3, ["13Q3EMS1"] = 0xD3, ["14C4EMS1"] = 0xD3, ["14C6EMS1"] = 0xD3, ["14D2EMS1"] = 0xD3, ["14D3EMS1"] = 0xD3,
         ["14F1EMS1"] = 0xD3, ["14J1IMS1"] = 0xD3, ["14L1EMS1"] = 0xD3, ["14N1EMS1"] = 0xD3, ["14N2EMS1"] = 0xD3, ["14P1IMS1"] = 0xD3, ["14P1IWS1"] = 0xD3, ["14QKIMS1"] = 0xD3, ["1552EMS1"] = 0xD3,
         ["1581EMS1"] = 0xD3, ["1582EMS1"] = 0xD3, ["1583EMS1"] = 0xD3, ["1584EMS1"] = 0xD3, ["1584IMS1"] = 0xD3, ["1585EMS1"] = 0xD3, ["1585EMS2"] = 0xD3, ["158PIMS1"] = 0xD3,
-        ["1591EMS1"] = 0xD3, ["1592EMS1"] = 0xD3, ["1594EMS1"] = 0xD3, ["1596EMS1"] = 0xD3, ["159KIMS1"] = 0xD3, ["15A1EMS1"] = 0xD3, ["15A3EMS1"] = 0xD3, ["15H1IMS1"] = 0xD3,
+        ["1591EMS1"] = 0xD3, ["1592EMS1"] = 0xD3, ["1594EMS1"] = 0xD3, ["1596EMS1"] = 0xD3, ["159KIMS1"] = 0xD3, ["15A1EMS1"] = 0xD3, ["15A2EMS1"] = 0xD3, ["15A3EMS1"] = 0xD3, ["15H1IMS1"] = 0xD3,
         ["15H2IMS1"] = 0xD3, ["15H5EMS1"] = 0xD3, ["15K1IMS1"] = 0xD3, ["16R6EMS1"] = 0xD3, ["16R7IMS1"] = 0xD3, ["16R8IMS1"] = 0xD3, ["16R8IMS2"] = 0xD3, ["16RKIMS1"] = 0xD3,
         ["16RKIMS2"] = 0xD3, ["16S6EMS1"] = 0xD3, ["16S8EMS1"] = 0xD3, ["16V6EMS1"] = 0xD3, ["17L1EMS1"] = 0xD3, ["17L2EMS1"] = 0xD3, ["17L3EMS1"] = 0xD3, ["17L4EMS1"] = 0xD3,
         ["17LNIMS1"] = 0xD3, ["17M1EMS2"] = 0xD3,
@@ -224,7 +224,7 @@ public static class Devices
     // (#27) msi-ec documents the webcam switch (0x2E) and webcam block (0x2F) identically on
     // every conf; only these boards are annotated as having no hardware webcam control at all.
     private static readonly HashSet<string> NoWebcamCtrl = new(StringComparer.OrdinalIgnoreCase)
-        { "159KIMS1", "15H5EMS1", "13P5EMS1" };
+        { "159KIMS1", "15H5EMS1", "13P5EMS1", "15A2EMS1" };   // 15A2EMS1: owner-tested, 0x2E moves but the camera stays on (#237)
 
     /// <summary>(#27) Whether the EC webcam switch is expected to exist on this firmware.</summary>
     public static bool WebcamSupported(string firmware) =>
@@ -254,7 +254,7 @@ public static class Devices
         // address 0xE8, invert=false
         ["13P3EMS1"] = (0xE8, false), ["13P5EMS1"] = (0xE8, false), ["13Q2EMS1"] = (0xE8, false), ["13Q3EMS1"] = (0xE8, false), ["14F1EMS1"] = (0xE8, false), ["14J1IMS1"] = (0xE8, false),
         ["14K1EMS1"] = (0xE8, false), ["14K2EMS1"] = (0xE8, false), ["14L1EMS1"] = (0xE8, false), ["14N1EMS1"] = (0xE8, false), ["14N2EMS1"] = (0xE8, false), ["14P1IMS1"] = (0xE8, false), ["14P1IWS1"] = (0xE8, false),
-        ["14Q2EMS1"] = (0xE8, false), ["14QKIMS1"] = (0xE8, false), ["14T2EMS1"] = (0xE8, false), ["15A1EMS1"] = (0xE8, false), ["15A3EMS1"] = (0xE8, false), ["15Q3EMS1"] = (0xE8, false),
+        ["14Q2EMS1"] = (0xE8, false), ["14QKIMS1"] = (0xE8, false), ["14T2EMS1"] = (0xE8, false), ["15A1EMS1"] = (0xE8, false), ["15A2EMS1"] = (0xE8, false), ["15A3EMS1"] = (0xE8, false), ["15Q3EMS1"] = (0xE8, false),
         ["15QKIMS1"] = (0xE8, false),
         // address 0xE8, invert=true
         ["14C4EMS1"] = (0xE8, true), ["14C6EMS1"] = (0xE8, true), ["14D2EMS1"] = (0xE8, true), ["14D3EMS1"] = (0xE8, true), ["1543EMS1"] = (0xE8, true), ["1544EMS1"] = (0xE8, true),
@@ -1006,6 +1006,24 @@ public static class Devices
         new() { Name = "MSI Summit E16 AI Studio A1VETG",   FirmwarePrefixes = new[] { "1596EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Prestige A16 AI+ A3HMG",        FirmwarePrefixes = new[] { "159KIMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Prestige 16 AI Evo B1MG",       FirmwarePrefixes = new[] { "15A1EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
+        // Prestige 16 AI Studio B1VFG (15A2EMS1, board MS-15A2) - owner-verified by measurement
+        // (issue #237, firmware .114, no MSI Center on the machine, a prefix absent from msi-ec;
+        // the siblings 15A1/15A3 sit in CONF_G2_3). The owner built the app with the family
+        // recipes, switched profiles and loaded the processor for 50 s per profile: Silent 77 %
+        // of Balanced's work at 70 vs 81 C, Extreme +6 %, every byte read back as written; Super
+        // Battery (0xEB=0F), Fan Boost (0x98 bit 7), kbd backlight (0xD3 81/83) and the charge
+        // limit (0xD7) confirmed by hand. The EC webcam switch does NOT control the camera here
+        // (0x2E changes, the camera keeps streaming) - listed in NoWebcamCtrl. His GPU-side
+        // measurement: the profile moves the RTX 4060's power limit, 45 W in Silent / Super
+        // Battery, 55 W in Balanced / Extreme (nvidia-smi).
+        //   RPM: 0xC9/0xCB single-byte divisors (~3350 / ~2730 rpm idle, ~6200 with Fan Boost),
+        //   high bytes 00 in every dump. 0xD6 05 -> 03 under Extreme (18th board of the #52
+        //   observation). Fan duty bytes read on the 0-150 scale (MaxFanPct default holds).
+        //   The scenario key Fn+F7 arrives as raw keyboard input from ACPI\MSNB1001, scan code
+        //   E0 11, plus an MSI_Event (0x22001D) - recorded for roadmap #106, nothing wired yet.
+        new() { Name = "MSI Prestige 16 AI Studio B1VFG",   FirmwarePrefixes = new[] { "15A2EMS1" }, Tier = Tier.Tested,
+                CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
+                Credit = "halexys", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/237" },
         new() { Name = "MSI Prestige 16 AI+ Evo B2VMG",     FirmwarePrefixes = new[] { "15A3EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Stealth 15M B12UE",             FirmwarePrefixes = new[] { "15B1EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         // Stealth 16 Studio A13VG (15F2EMS1) - owner-verified via the form path (issue #206,
