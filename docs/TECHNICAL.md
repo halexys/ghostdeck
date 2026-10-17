@@ -3512,6 +3512,8 @@ profiles) remains declined; this is the opposite thing: one message to the vendo
 
 Everything lives in `Core/TrueColor.cs`; every entry goes through `TrueColor.Set`.
 
+![Settings → System → MSI True Color: the confirmed version, the switch with its standing disclaimer, the seven tiles, the recorded profile and GhostDeck's own last request](images/settings_truecolor.png)
+
 ### 80.2 The protocol
 
 True Color keeps a resident hidden window (class `MSITrueColorClass`, title `MSI True Color`)
@@ -3575,6 +3577,10 @@ value is not exported with the settings (another laptop has another True Color).
 the status and `--truecolor status` work on any version; nothing is ever sent to an
 unconfirmed one outside that test. The exe's SHA-256 goes into the diagnostic zip for triage
 and gates nothing.
+
+![An unconfirmed version: the status line in amber, the switch off, the tiles greyed and the test button](images/settings_truecolor_unconfirmed.png)
+
+![The question after the test; "Yes" records the version as verified on this machine](images/truecolor_verify.png)
 
 ### 80.4 Threads, gates and reporting
 

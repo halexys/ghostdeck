@@ -169,6 +169,20 @@ A crosshair drawn at the centre of the screen, over any game running in windowed
 
 Two honest notes: a game in **exclusive full-screen** mode may hide any window over the screen, so use windowed or borderless mode; and in **ranked online games** prefer the crosshair built into the game. We found no documented ban for a plain window over the screen, but some anti-cheat clients (FACEIT, for example) block programs they do not recognise, and game rules can be broader than the technology. More in the [FAQ](docs/FAQ.md) and [TECHNICAL.md §79](docs/TECHNICAL.md).
 
+## MSI True Color (experimental)
+
+MSI's own **True Color** application holds the display colour profiles (sRGB, Gamer, Movie, Anti-Blue, Office, AdobeRGB, Display P3), and MSI Center used to switch them together with its scenario. GhostDeck can switch them too: on a card under Settings → System, from the tray menu, as a **scene field**, with `GhostDeck.exe --truecolor movie` or a `ghostdeck://truecolor/movie` link. It asks the **running** True Color application to do it, through the window message True Color's own helper uses, and reads back the profile True Color recorded; it writes nothing to True Color's files or settings, never calculates colours itself and never starts True Color for you.
+
+![Settings → System → MSI True Color: the installed version, the switch, the seven profile tiles, the recorded profile and what GhostDeck last asked for](docs/images/settings_truecolor.png)
+
+The feature is **off by default**. The first enable shows a consent card, and the card itself keeps the same disclaimer in plain view: experimental, with no guarantee that it works; you use it at your own risk and the author is not responsible for the effects of using an undocumented MSI interface; tested on 17 October 2026 on one MSI Raider GE78HX 13VH with True Color 5.1.24.0 and Windows 11 Home 26H2 (build 26300.9711), built-in display only. On any **other True Color version the switch stays off** - the card offers a one-click test instead: one switch to another profile for five seconds and back, then one question. A *yes* unlocks the switch on that computer, and a line in the project's confirmed-version list is all it takes to unlock it for everyone once a version is reported working.
+
+![Another True Color version: the switch stays off and the card offers the test](docs/images/settings_truecolor_unconfirmed.png)
+
+![The question after the test; a yes unlocks the switch on this computer](docs/images/truecolor_verify.png)
+
+External monitors and HDR were not tested (the message carries no monitor parameter). Details and the limits: [FAQ](docs/FAQ.md), [TECHNICAL.md §80](docs/TECHNICAL.md), [CLI](docs/CLI.md).
+
 ## Screenshots
 
 | | |
@@ -178,7 +192,7 @@ Two honest notes: a game in **exclusive full-screen** mode may hide any window o
 | ![Scenes](docs/images/scenes.png) | ![Schedule rule](docs/images/schedule_rule.png) |
 | **Scenes** - every setting the scene touches as a chip; the profile pill wears that profile's color | **Scene schedule** - a rule is a scene + weekdays + a time window (overnight ranges fine) |
 | ![Scene editor](docs/images/scene_editor.png) | ![Settings General](docs/images/settings_general.png) |
-| **Scene editor** - switch on only the settings a scene should apply (brightness, HDR, the crosshair with one of your presets, Windows-key lock and touchpad included); everything else stays as it is | **Settings → General** - pick which bricks and sections the Scenarios tab shows; the gear on Scenarios jumps here and highlights this card |
+| **Scene editor** - switch on only the settings a scene should apply (brightness, HDR, the crosshair with one of your presets, an MSI True Color profile, Windows-key lock and touchpad included); everything else stays as it is | **Settings → General** - pick which bricks and sections the Scenarios tab shows; the gear on Scenarios jumps here and highlights this card |
 | ![Status](docs/images/status.png) | ![Settings](docs/images/settings.png) |
 | **Status** - temperature/fan rings, fan RPM, per-disk S.M.A.R.T. temperatures, battery time, RAM | **Settings** - Start dashboard: icon sub-tabs and the live state of every group on its tile |
 | ![Settings Power](docs/images/settings_power.png) | ![Settings System](docs/images/settings_system.png) |
@@ -215,6 +229,8 @@ Two honest notes: a game in **exclusive full-screen** mode may hide any window o
 | ![Taskbar jump list: profiles, scenes, Fan Boost, panic reset](docs/images/jumplist.png) | ![Settings: the ghostdeck:// links switch](docs/images/settings_links.png) |
 | ![Settings → Gaming → Crosshair](docs/images/settings_crosshair.png) | ![The eleven crosshair shapes](docs/images/crosshair_shapes.png) |
 | **Settings → Gaming → Crosshair** - shape tiles, your own PNG, a preview on a dark and a light half; colour, size, rim, softness, rotation and offset on the look card, with presets and a share code | **The eleven built-in shapes** at 140 % scaling, each with the dark rim that keeps it readable on a bright and a dark scene |
+| ![Settings → System → MSI True Color](docs/images/settings_truecolor.png) | ![MSI True Color, first enable](docs/images/truecolor_consent.png) |
+| **Settings → System → MSI True Color** - experimental: the installed version and whether it is confirmed, the switch, the seven profile tiles with the profile True Color recorded, and what GhostDeck last asked for | **MSI True Color, first enable** - one card says what the switch does, that it uses an undocumented MSI interface, and where it was tested |
 
 Every message from the tray is a GhostDeck card (an update, an announcement, the end of travel mode, a charge limit changed outside the app, the temperature and SSD alerts, refused shortcuts, a refused link):
 
