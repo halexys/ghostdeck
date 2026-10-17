@@ -5,6 +5,11 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 ### Added
+- **MSI Titan 18 HX A14V / Raider 18 HX A14V (`1822EMS1`) promoted to Tested** ([#239](../../issues/239),
+  thanks @se-240717038) - the owner's per-scenario capture matches the standard recipe set
+  in all four scenarios with the real Silent tile, and all three hardware checks are confirmed.
+  His machine is sold as the Raider 18 HX A14V on the Titan 18 HX A14V board, so the entry
+  carries both names. Fan RPM reads as 16-bit tachometer pairs, proven on his idle capture.
 - **The "Report my model" steps name the tile in the other MSI apps** ([#170](../../issues/170)) -
   each step shows the scenario as MSI Center 2.0.48 names it and, underneath, the name the owner
   may be looking at instead: "High Performance" in MSI Center Pro for Extreme, "ECO-Silent" in

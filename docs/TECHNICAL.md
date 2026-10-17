@@ -365,7 +365,9 @@ It provides, all gated on the normal write-safety rules (Tested / opted-in Exper
   sits in the coinciding zone at ~1904 rpm or reads 00 with the fans stopped; enabled as
   pairs because the 16-bit read equals the single-byte read while the high byte is `00` and
   is the right one once it is not; confirmed by the owner's HWiNFO64 side-by-side, where
-  716 / 728 rpm - below the coinciding zone - read identically in both programs). Detection caveat: above ~1870 RPM the
+  716 / 728 rpm - below the coinciding zone - read identically in both programs), `1822EMS1`
+  (#239 - the idle capture read the CPU pair as `01:1C` / `01:1B` in every column, a high byte a
+  single-byte scheme never sets; the GPU pair read `00:00` with that fan stopped). Detection caveat: above ~1870 RPM the
   raw divisor fits in one byte and the high byte reads `00`, so a capture taken under load or
   with Fan Boost cannot tell the two formats apart - classify the format from an idle reading
   (raw > 255), where the pair and the single byte diverge. In the signed

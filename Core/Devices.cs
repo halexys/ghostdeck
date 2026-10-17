@@ -110,7 +110,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20261011;
+    public const int DataVersion = 20261017;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -1317,7 +1317,23 @@ public static class Devices
         new() { Name = "MSI Crosshair 17 HX AI D2XW",       FirmwarePrefixes = new[] { "17T4EMS1" }, Tier = Tier.Tested,
                 CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
                 Credit = "SpeedPlayzz", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/148" },
-        new() { Name = "MSI Titan 18 HX A14V",              FirmwarePrefixes = new[] { "1822EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
+        // Titan 18 HX A14V / Raider 18 HX A14V (1822EMS1) - owner-verified (issue #239, MSI Center
+        // 2.0.48 with the real Silent tile, firmware .312). Per-scenario capture matches
+        // StdRecipes 1:1 in all four scenarios (shift 0xD2 C1/C1/C4/C2, fan 0xD4 1D/0D/0D/0D,
+        // 0xEB=0F only in Super Battery) and all three hardware checks confirmed - the Tested
+        // bar. The owner's machine is sold as the Raider 18 HX A14V while msi-ec lists this
+        // firmware under the Titan 18 HX A14V; the sibling board 1824 is shared the same way
+        // (Titan 18 HX Dragon Edition / Raider 18 HX AI), so the entry carries both names.
+        //   RPM: 16-bit wide-tach pairs 0xC8:0xC9 / 0xCA:0xCB. Proven directly on the idle
+        //   capture: the CPU pair read 01:1C / 01:1B in every column (~1700 rpm), a high byte
+        //   a single-byte scheme never sets; the GPU pair read 00:00 (fan stopped at idle),
+        //   enabled alongside as on every other carrier of this format.
+        //   0xD6 flips 05 -> 03 under the vendor's Extreme on its own (17th board of the #52
+        //   observation); 0x34 = 00 throughout, left alone. Curve tables hold the family layout
+        //   at the shipped addresses, no test curve run yet - curve stays unverified.
+        new() { Name = "MSI Titan 18 HX A14V / Raider 18 HX A14V", FirmwarePrefixes = new[] { "1822EMS1" }, Tier = Tier.Tested,
+                CpuRpmAddr16 = 0xC8, GpuRpmAddr16 = 0xCA, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
+                Credit = "se-240717038", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/239" },
         // Raider A18 HX A7VIG (182KIMS1) — owner per-scenario dump (issue #50) matches StdRecipes on
         // shift 0xD2 C1/C1/C4/C2 and fan 0xD4 1D/0D/0D/0D, and all three hardware checks passed, so
         // Tested. Super battery: upstream msi-ec maps 0xEB for CONF_G2_10, but MSI Center on this AMD
