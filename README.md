@@ -149,6 +149,24 @@ GhostDeck is a small, focused tool - it deliberately does one thing (power/fan p
 
 ![GhostDeck](docs/images/banner-hologram.png)
 
+## Crosshair
+
+A crosshair drawn at the centre of the screen, over any game running in windowed or borderless mode. It is a small window of GhostDeck's own, like the gaming overlay: it never takes the focus, every click passes through to the game, and nothing is injected into the game or read from it. MSI Center's `Fn+↓` crosshair cannot be taken over (that key goes from the laptop's controller straight to MSI's service), so GhostDeck draws its own, with its own hotkey.
+
+![The eleven built-in shapes on a dark and a light strip](docs/images/crosshair_shapes.png)
+
+**Eleven built-in shapes or your own picture.** Cross, cross with gap, gap cross with dot, dot, circle, circle with dot, T, X, chevron, square with dot and reticle, picked as tiles; or load a PNG with transparency (BMP and JPG work too, up to 512 × 512 px and 1 MB). Every shape has a colour (the GhostDeck palette or any colour), a size, a line thickness, a **dark rim** that keeps it readable on a bright and a dark scene alike, opacity, **softness** (a blur), **rotation** and an **X / Y offset** for games that aim a little below the centre. The position can also follow the mouse pointer.
+
+![Three looks: the default, a bold rim, a soft rotated one](docs/images/crosshair_looks.png)
+
+**Optional reactions to the mouse**, both off by default: a click effect on the left button (spread, pulse or flash, 180 ms) and hide-while-aiming on the right button (held, or toggled per click). They watch the mouse through a low-level hook like the Windows-key lock, installed only while one of them is on.
+
+![The three click effects, frame by frame](docs/images/crosshair_effects.png)
+
+**Presets, share codes, export.** Save as many presets as you like; a preset stays selected while you edit it and *Save* writes the look back. Hand a crosshair to a friend as a short **share code** (`GDX1.…`, *Copy code* / *Paste code*; the picture itself travels as an exported PNG), or export it as **PNG** or **SVG**. Switch the crosshair with a hotkey (`Ctrl+Alt+F12`, enable it under Settings → Shortcuts), the tile on Scenarios, the tray menu, a tray-click action, the taskbar jump list, a scene (off / on / on with a preset), `GhostDeck.exe --crosshair on|off|preset "Name"|code GDX1.…` or `ghostdeck://crosshair/on`. The settings backup carries the presets and the picture. Settings → Gaming opens on a Start view with one tile per feature, then the *Gaming overlay* and *Crosshair* views.
+
+Two honest notes: a game in **exclusive full-screen** mode may hide any window over the screen, so use windowed or borderless mode; and in **ranked online games** prefer the crosshair built into the game. We found no documented ban for a plain window over the screen, but some anti-cheat clients (FACEIT, for example) block programs they do not recognise, and game rules can be broader than the technology. More in the [FAQ](docs/FAQ.md) and [TECHNICAL.md §79](docs/TECHNICAL.md).
+
 ## Screenshots
 
 | | |
