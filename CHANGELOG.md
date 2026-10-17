@@ -5,6 +5,10 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 ### Added
+- **MSI Raider GE68 HX 14VGG (`15M2IMS2`) promoted to Tested** ([#244](../../issues/244),
+  [#245](../../issues/245), thanks @Ghli) - a clean power test (1 % drift): Silent delivers 72 %
+  of Balanced's work at 2.49 instead of 3.46 GHz and 9 C cooler; Extreme level with Balanced
+  under the combined load. Fan RPM readout on, as on the sibling GE68 HX 14VIG.
 - **MSI Titan 18 HX A14V / Raider 18 HX A14V (`1822EMS1`) promoted to Tested** ([#239](../../issues/239),
   thanks @se-240717038) - the owner's per-scenario capture matches the standard recipe set
   in all four scenarios with the real Silent tile, and all three hardware checks are confirmed.
