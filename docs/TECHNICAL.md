@@ -983,8 +983,8 @@ print into the parent terminal.
   ChangeLog side effect behaves identically. Response format `<exitcode>|<message>`.
 - **App not running** → one-shot mode: load settings, detect the device, same gates
   (`Tier.Tested` or per-model consent, below), apply directly via `Ec.*`, log to the shared
-  ChangeLog file, exit. Commands that live in the running app (`--overlay`, `--scene`,
-  `--winlock`, the `--fanboost` timer) start it and hand the command over (1.38, §77.4).
+  ChangeLog file, exit. Commands that live in the running app (`--overlay`, `--crosshair`,
+  `--scene`, `--winlock`, the `--fanboost` timer) start it and hand the command over (1.38, §77.4).
 
 **Per-model experimental consent (1.36).** The old global `ExperimentalEnabled` switch is
 replaced by `ExperimentalWriteFw`, a list of firmware prefixes the owner explicitly allowed
@@ -3367,3 +3367,107 @@ in-game choice, the card alone the desk one. And the update card's accent button
 but "Install vX": `MainForm.InstallUpdate` shows the Updates tab and `UpdatesPage.InstallRelease`
 takes the tray's find as the page's own and starts the same download the page's Install button
 does, progress bar and restart included - one click from the card to the end.
+
+## 79. The crosshair (v1.39, roadmap #118, discussion #247)
+
+A user asked for MSI Center's `Fn+↓` crosshair in GhostDeck. The key combination itself is
+out of reach: the Fn key goes from the laptop's controller to MSI's service, which draws the
+crosshair, so no third program can take it over (roadmap #106 keeps that question open).
+What GhostDeck can do is draw its own crosshair with its own hotkey, the way the gaming
+overlay works. This chapter is the record of how.
+
+### 79.1 Shape: a second layered window, not part of the overlay
+
+`Forms/CrosshairForm.cs` is a small per-pixel layered window (`WS_EX_LAYERED` +
+`UpdateLayeredWindow`, premultiplied ARGB; RENDERING.md §3) with `WS_EX_NOACTIVATE`,
+`WS_EX_TOOLWINDOW`, `WS_EX_TOPMOST` and, permanently, `WS_EX_TRANSPARENT`: it never takes
+the focus and every click passes to the game. It is its own window, not a part of the gaming
+overlay, because it has to work with the overlay off. It sits at the centre of the full
+bounds (not the working area: a borderless game covers the taskbar) of the screen the overlay
+uses - the one holding the overlay's saved position, else the main screen - shifted by the
+style's X / Y offset in logical pixels times the window's DPI scale. In the follow-the-pointer
+mode a 16 ms timer reads the cursor and moves the window (an accessibility-style use, like
+PowerToys' mouse crosshair). A 2 s timer re-asserts the topmost order quietly, because a game
+that comes up after the crosshair can land above it. When a future monitor choice for the
+overlay arrives (roadmap #20) the crosshair follows the same choice: `TargetScreen` is the one
+place to change.
+
+![Settings → Gaming → Crosshair: the shape tiles, the preview on a dark and a light half, and the look card](images/settings_crosshair.png)
+
+Nothing is drawn inside the game. There are no DirectX hooks, no injection, no reading of
+the game process; in exclusive full-screen mode a window over the screen may stay invisible,
+which the Settings card and the FAQ say plainly. Anti-cheat: no documented ban for a plain
+window over the screen was found (October 2026); FACEIT's client blocks programs it does not
+recognise rather than banning, EA Javelin had false-positive bans around overlay suites in
+2026, and game rules can be broader than the technology. The card carries an amber note.
+
+### 79.2 The style and the painter
+
+`Core/Crosshair.cs` holds `CrosshairStyle` - the look as data (kind, colour, size, thickness,
+rim, opacity, offset, rotation, softness, click effect, aim-hide, follow) with `Normalize`
+clamping every field, `Clone`, `CopyFrom` and `LooksLike` - and `CrosshairPainter`, the one
+routine that turns a style into a bitmap:
+
+1. `Geometry` builds the shape as primitives (lines, rings, boxes, filled dots) in logical
+   units around the origin, for the eleven built-in kinds. The click effect's progress
+   (0..1) feeds in here: *spread* pushes the arms outwards along a sine wave, *pulse* grows
+   everything by up to 25 %, *flash* changes nothing in the geometry (it brightens the colour).
+2. `Render` draws the primitives twice into a `Format32bppPArgb` bitmap - first a wider pass
+   in dark (alpha 220) for the rim, then the colour at the line thickness - rotated about the
+   centre with `RotateTransform`. The custom picture is drawn into the size box with its
+   proportions kept; a missing file falls back to a plain cross, so the window is never blank.
+3. `PostProcess` runs three box-blur passes (radius softness / 1.7, which approximates a
+   Gaussian of the softness radius) on the premultiplied pixels - blurring all four channels
+   alike is correct in that format - and multiplies every channel by the opacity.
+
+The screen window, the Settings preview, the shape tiles and the PNG export all call
+`Render`, so what the preview shows is what the game gets. Sizes are logical pixels scaled by
+the window's DPI; the bitmap's extent is odd, so the shape has a true centre pixel.
+
+![The eleven shapes at 140 % on a dark and a light strip](images/crosshair_shapes.png)
+
+![Three looks: the default, a bold rim, a soft rotated cyan one](images/crosshair_looks.png)
+
+![The three click effects, frame by frame](images/crosshair_effects.png)
+
+### 79.3 Mouse hook, only when asked for
+
+The click effect and the aim-hide option need the mouse buttons system-wide. `Core/MouseWatch.cs`
+is a low-level mouse hook (`WH_MOUSE_LL`) on its own message-loop thread, the same pattern as
+`WinKeyLock` (keyboard) and `TrayWheel` (wheel): the callback only posts the button to the UI
+thread and passes every event on untouched. The hook is installed only while the crosshair is
+shown *and* one of the two options is on (`CrosshairStyle.NeedsMouseHook`); both options ship
+off, and the Settings card says what they do. Aim-hide pushes a fully transparent frame instead
+of hiding the window, which is cheaper and safer than Hide / Show churn while the right button
+is held.
+
+### 79.4 Presets, share code, export, backup
+
+Presets are `CrosshairStyle` copies with a `Name` in `AppSettings.CrosshairPresets`, with no
+limit; `EnsureDefaults` drops nameless or duplicate ones and clamps their fields, and a scene
+whose preset was deleted falls back to "on with the current look". The share code is
+`"GDX1." + base64url` of 20 bytes: kind, RGB, size (2), thickness, rim, opacity, offset X and
+Y (2 each, biased by 32768), rotation (2), softness, click effect, aim-hide, flags, and a
+checksum byte - 32 characters, pasteable in a chat; a later layout gets a new prefix and this
+decoder keeps reading the old one. The code carries the look, never the picture; the card says
+so when the picture kind is selected. Export: PNG at 100 % scale with everything applied, SVG
+for the built-in kinds only (lines, circles and rectangles; the rim as a wider dark stroke
+underneath, the softness as `feGaussianBlur`, the rotation as a transform). SVG import is not
+offered: .NET has no SVG renderer and GhostDeck stays one exe without libraries.
+
+The custom picture is one file, `%AppData%\GhostDeck\crosshair\custom.png`; an import checks
+the limits (512 × 512 px, 1 MB) and re-encodes BMP / JPG as PNG, the next import replaces it.
+The settings export carries it as base64 in `CrosshairImageBase64`, a property written only
+when not null, so `settings.json` never holds the picture; the import writes it back.
+
+### 79.5 Where it lives
+
+| Piece | Place |
+|---|---|
+| Style, painter, codec, SVG, picture import | `Core/Crosshair.cs` |
+| Mouse hook | `Core/MouseWatch.cs` |
+| Window | `Forms/CrosshairForm.cs` |
+| Settings → Gaming → Crosshair (two cards, tiles, preview) | `UI/SettingsCrosshair.cs` (partial `SettingsPage`), the overlay / crosshair switch in `SettingsPage` |
+| Tray: menu entry, hotkey `Crosshair` (`Ctrl+Alt+F12`, shipped disabled), tray-click action, jump list, scene field, `--crosshair`, status JSON | `TrayContext.cs`, `Core/TrayWheel.cs`, `Core/Cli.cs`, `Core/Protocol.cs` |
+| Scenarios tile (`crosshair`, hideable), scene editor row (on / off / on with a preset) | `UI/ScenariosPage.cs`, `Forms/SceneEditForm.cs` |
+| Harness: `crosshair` mode (shape sheets at 100 % and 140 %, effect frames, picture, code and SVG round trip, glyph sheet), `GAMINGSUB=1` and `CROSSHAIR=<code>` for the page mode | private render harness |

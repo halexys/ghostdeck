@@ -50,6 +50,7 @@ Built because **MSI Center 2.0 removed the _Silent_ profile**. This app talks to
 - 🎤 **Microphone switch** - mute and unmute the default Windows recording device for every app at once: a brick on Scenarios, a hotkey (`Ctrl+Alt+F11`, off by default) and `--mic on|off`. It is the Windows mute flag itself, so it follows a mute made elsewhere and works on **any** laptop
 - 🔔 On-screen overlay (OSD) on every profile change
 - 🎮 **Detachable gaming overlay (HUD)** - a small always-on-top panel with **FPS / frametime**, temps / fan RPM / profile / load / GPU% / iGPU% / VRAM / clocks / CPU model / RAM / battery, in a **card or bar** layout. Pick which metrics to show, drag it anywhere (position remembered) or snap to a corner, toggle with a hotkey (default `Ctrl+Shift+O`). Rendered per-pixel with **independent background & content opacity**, smooth anti-aliased text, a readability shadow, optional click-through lock (`Ctrl+Shift+L`)
+- ⌖ **Crosshair** - a crosshair drawn at the centre of the screen over any game in windowed or borderless mode, without touching the game (no injection, no hooks into the process). **Eleven built-in shapes** (cross, gap cross, dot, circle, T, X, chevron, reticle, …) or **your own PNG** (transparency kept, up to 512 px / 1 MB), each with colour, size, line thickness, dark rim, opacity, softness, rotation and an X/Y offset; optional click effect (spread / pulse / flash), hide-while-aiming on the right button, follow-the-pointer mode. **Named presets** without limit, a short **share code** (`GDX1.…`) to pass a crosshair to a friend, PNG / SVG export; a live preview on a dark and a light background. Toggle it with a hotkey (`Ctrl+Alt+F12`, disabled by default), the Scenarios tile, the tray menu, a scene, `--crosshair on|off` or `ghostdeck://crosshair/on`
 - 🎯 **FPS & frametime of any game** - measured **driver-free** from Windows' own ETW `Present` events (the same source Intel PresentMon uses): no DLL injection, nothing touches the game, **anti-cheat-safe**. Live FPS + frametime in the overlay, and a **Status → Gaming** tab with a 60 s frametime chart (stutter markers), 1% lows and a stutter counter. The monitor runs **only** while the overlay or the Gaming tab is open - zero idle cost
 - 🏁 **Game-session report** - when a game exits, GhostDeck pairs the FPS story with the EC story nobody else has: *"1 h 42 min · avg 87 FPS · 1% low 54 · CPU max 91 °C"* in a sleek **borderless popup** (frametime sparkline included) with one-click **save as PNG** and **data export (JSON/CSV)**, plus a summary card on Status → Gaming and a change-history entry
 - 🌍 **15 languages** - EN / PL / DE / FR / ES / 中文（简体） / PT-BR / RU / 日本語 / 한국어 / 中文（繁體） / TR / VI / ID / IT - native-speaker corrections welcome as pull requests ([Core/Lang.cs](Core/Lang.cs))
@@ -114,6 +115,7 @@ GhostDeck is a small, focused tool - it deliberately does one thing (power/fan p
 | CPU turbo boost switch (previous values saved and restorable) | ❌ | ✅ *(per power source, any laptop, CLI)* |
 | On-screen overlay (OSD) | ✅ *(profile / Fn keys)* | ✅ *(every function)*⁶ |
 | Detachable gaming overlay (HUD) | ❌ | ✅ *(FPS / frametime / temps / RPM / GPU% / iGPU% / VRAM / clocks / RAM / battery; card or bar)* |
+| Crosshair overlay | ✅ *(Fn+↓, one style)* | ✅ *(11 shapes or your own PNG; colour, size, rim, blur, rotation, offset; presets, share codes, click effect, hide while aiming)* |
 | FPS + frametime counter (any game, no injection) | ❌ | ✅ *(ETW, anti-cheat-safe)* |
 | Game-session report (FPS + temps/fans together) | ❌ | ✅ *(on game exit)* |
 | Live EC profile-byte view / transparency | ❌ | ✅ |
@@ -191,6 +193,8 @@ GhostDeck is a small, focused tool - it deliberately does one thing (power/fan p
 | **Settings → System → Temperature in the tray** - CPU, GPU and SSD icons (the SSD one is the hottest drive), the icon marker with a colour per source, and the warm / hot thresholds with their colours | **Icon marker** - a bar under the digits (default), a dot, a corner or none, shown magnified and at real size on a dark and a light taskbar |
 | ![Status with the integrated GPU](docs/images/status_igpu.png) | ![Gaming overlay](docs/images/overlay_items.png) |
 | ![Taskbar jump list: profiles, scenes, Fan Boost, panic reset](docs/images/jumplist.png) | ![Settings: the ghostdeck:// links switch](docs/images/settings_links.png) |
+| ![Settings → Gaming → Crosshair](docs/images/settings_crosshair.png) | ![The eleven crosshair shapes](docs/images/crosshair_shapes.png) |
+| **Settings → Gaming → Crosshair** - shape tiles, your own PNG, a preview on a dark and a light half; colour, size, rim, softness, rotation and offset on the look card, with presets and a share code | **The eleven built-in shapes** at 140 % scaling, each with the dark rim that keeps it readable on a bright and a dark scene |
 
 Every message from the tray is a GhostDeck card (an update, an announcement, the end of travel mode, a charge limit changed outside the app, the temperature and SSD alerts, refused shortcuts, a refused link):
 
@@ -281,12 +285,13 @@ GhostDeck.exe --webcam off            # EC-level webcam switch (same as the Fn c
 GhostDeck.exe --fnswap left           # which side the Fn key is on (EC-persisted swap)
 GhostDeck.exe --winlock on            # block both Windows keys (needs the app running)
 GhostDeck.exe --overlay on            # gaming overlay (needs the app running)
+GhostDeck.exe --crosshair on          # crosshair; also: --crosshair preset "Name" / --crosshair code GDX1.…
 GhostDeck.exe --panic                 # safe state: Fan Boost off, Balanced, fans auto
 GhostDeck.exe --diag                  # diagnostic zip, works even when the UI won't start
 GhostDeck.exe --status                # rich JSON: profile, temps, fans/RPM, battery, disks, states
 ```
 
-If the tray app is running, the command is executed by it (with the exact same safety gates as the UI - tier, experimental opt-in); otherwise a one-shot mode talks to the EC directly and exits. A command that lives in the app (`--scene`, `--overlay`, `--winlock`, the `--fanboost` timer) starts the app when it is not running and hands the command over. Exit codes: `0` OK, `1` failed, `2` bad usage.
+If the tray app is running, the command is executed by it (with the exact same safety gates as the UI - tier, experimental opt-in); otherwise a one-shot mode talks to the EC directly and exits. A command that lives in the app (`--scene`, `--overlay`, `--crosshair`, `--winlock`, the `--fanboost` timer) starts the app when it is not running and hands the command over. Exit codes: `0` OK, `1` failed, `2` bad usage.
 
 **Links and the taskbar.** The same commands work as `ghostdeck://` links - `ghostdeck://scene/Gaming`, `ghostdeck://profile/silent`, `ghostdeck://fanboost/on/300`, `ghostdeck://refresh/max`, `ghostdeck://panic` - from a browser, the Run dialog, a Stream Deck "open" action, AutoHotkey or a shortcut (Settings → System → *ghostdeck:// links*, on by default). Only state-changing commands are reachable this way; `--status`, `--diag` and the maintainer commands are not. And a right-click on the GhostDeck taskbar button (or on the pinned icon) opens a jump list with the profiles in your order, every scene, Fan Boost on / off and the panic reset.
 

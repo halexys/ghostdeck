@@ -5,6 +5,22 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 ### Added
+- **Crosshair** (roadmap #118, [discussion #247](../../discussions/247), thanks @arcfybr) - a
+  crosshair drawn at the centre of the screen over the game, as its own small window that never
+  takes the focus and lets every click through; nothing is injected into the game. Eleven
+  built-in shapes (cross, cross with gap, gap cross with dot, dot, circle, circle with dot, T, X,
+  chevron, square with dot, reticle) or your own PNG / BMP / JPG (up to 512 × 512 px and 1 MB,
+  copied into the settings folder), each with colour, size, line thickness, a dark rim, opacity,
+  softness, rotation and an X / Y offset; the position can also follow the mouse pointer. Optional
+  click effect on the left button (spread, pulse, flash) and hide-while-aiming on the right button
+  (both off by default; they watch the mouse through a low-level hook like the Windows-key lock).
+  Named presets without limit, a short share code (`GDX1.…`) with *Copy code* / *Paste code*,
+  PNG and SVG export, and a live preview on a dark and a light background. Switch it with a
+  hotkey (`Ctrl+Alt+F12`, shipped disabled), the tile on Scenarios, the tray menu, a tray-click
+  action, the taskbar jump list, a scene field (off / on / on with a preset), `--crosshair
+  on|off|preset|code` and `ghostdeck://crosshair/...`. Settings → Gaming now has two views,
+  *Gaming overlay* and *Crosshair*, behind one switch. The settings backup carries the
+  presets and the custom picture.
 - **MSI Vector GP66 12UGS (`1544EMS1`): fan curve verified, fan RPM on** ([#249](../../issues/249),
   [#250](../../issues/250), thanks @TheOriginalBabu) - his test curve sits byte-for-byte at the
   shipped addresses on both fans, and both tachometers are live. Recipes confirmed in all four
