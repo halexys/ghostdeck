@@ -63,6 +63,9 @@ public sealed class MainDeps
     // Re-assert the fan curve the settings record as live. Anything that rewrites the fan-mode byte
     // (a profile recipe) drops it, and a curve applied from the editor has no preset to fall back on.
     public required Action RestoreActiveCurve { get; init; }
+    // MSI True Color (roadmap #119): a manual switch from the Settings card; the tray context runs
+    // it on a worker, logs it and shows the error card. Enabling/consent lives in the card itself.
+    public required Action<int> SetTrueColor { get; init; }
     public required Func<bool> OverlayOn { get; init; }
     public required Action<bool> SetOverlay { get; init; }
     public required Action ApplyOverlaySettings { get; init; }   // re-read overlay options after a settings edit

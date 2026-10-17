@@ -82,6 +82,12 @@ public sealed partial class SettingsPage : ThemedPage
             try { if (IsHandleCreated && !IsDisposed) BeginInvoke(() => _syncPowerCard?.Invoke()); }
             catch { }
         };
+        // A True Color switch from the tray, a scene or the CLI: the card's state lines follow.
+        TrueColor.Changed += () =>
+        {
+            try { if (IsHandleCreated && !IsDisposed) BeginInvoke(() => _syncTrueColor?.Invoke()); }
+            catch { }
+        };
     }
 
     private IEnumerable<CardSection> AllCards() =>
@@ -1173,6 +1179,7 @@ public sealed partial class SettingsPage : ThemedPage
         tray.AddRow(Lang.T("menu_log"), Toggle(D.Settings.TrayShowChangeLog, v => { D.Settings.TrayShowChangeLog = v; D.SaveSettings(); D.SettingsChanged(); }));
         tray.AddRow(Lang.T("menu_feedback"), Toggle(D.Settings.TrayShowFeedback, v => { D.Settings.TrayShowFeedback = v; D.SaveSettings(); D.SettingsChanged(); }));
         _gRight[SubSystem].Add(tray);
+        _gRight[SubSystem].Add(BuildTrueColorCard());   // MSI True Color, experimental (roadmap #119)
 
         // Interface: background grid on/off + which main tabs collapse to icon buttons on the
         // right of the strip (e.g. keep Models reachable but out of the tab row).

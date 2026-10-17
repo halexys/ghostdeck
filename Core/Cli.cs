@@ -4,7 +4,7 @@ using System.Text.Json;
 
 namespace GhostDeck;
 
-public enum CliKind { Profile, Cycle, FanBoost, Overlay, Curve, Panic, Status, Help, Kbd, Webcam, Scene, FnSwap, Brightness, WinLock, Refresh, Charge, Travel, Diag, HdrSwitch, Touchpad, Mic, Turbo, DumpModels, VerifyModels, DumpSupportedMd, Crosshair }
+public enum CliKind { Profile, Cycle, FanBoost, Overlay, Curve, Panic, Status, Help, Kbd, Webcam, Scene, FnSwap, Brightness, WinLock, Refresh, Charge, Travel, Diag, HdrSwitch, Touchpad, Mic, Turbo, DumpModels, VerifyModels, DumpSupportedMd, Crosshair, TrueColor }
 
 public sealed record CliCommand(CliKind Kind, string Arg = "", string Arg2 = "");
 
@@ -44,6 +44,7 @@ public static class Cli
           GhostDeck.exe --touchpad <on|off>     enable/disable the precision touchpad (device level)
           GhostDeck.exe --mic <on|off>          unmute/mute the default Windows recording device (works on any machine)
           GhostDeck.exe --turbo <on|off|status>   CPU turbo boost via the Windows power plan (works on any machine)
+          GhostDeck.exe --truecolor <srgb|gamer|movie|antiblue|office|adobergb|displayp3|status>   MSI True Color profile (experimental; enable it under Settings -> System first; status works always)
           GhostDeck.exe --winlock <on|off>      block both Windows keys (needs the app running)
           GhostDeck.exe --scene "<name>"        apply a saved scene (needs the app running)
           GhostDeck.exe --panic                 safe state: Fan Boost off, Balanced, fans auto
@@ -139,6 +140,12 @@ public static class Cli
                 return Arg1().ToLowerInvariant() is "on" or "off" or "status" ? new CliCommand(CliKind.Turbo, Arg1().ToLowerInvariant()) : null;
             case "--scene":
                 return Arg1().Length > 0 ? new CliCommand(CliKind.Scene, Arg1()) : null;
+            case "--truecolor":
+            {
+                // a profile word or id (TrueColor.Parse), or "status"; the id travels as text
+                if (Arg1().Equals("status", StringComparison.OrdinalIgnoreCase)) return new CliCommand(CliKind.TrueColor, "status");
+                return TrueColor.Parse(Arg1()) is { } tcId ? new CliCommand(CliKind.TrueColor, tcId.ToString()) : null;
+            }
             case "--panic": return new CliCommand(CliKind.Panic);
             case "--status": return new CliCommand(CliKind.Status);
             case "--help" or "-h" or "/?": return new CliCommand(CliKind.Help);
@@ -201,8 +208,65 @@ public static class Cli
             if (resp.Length > 0) Console.WriteLine(resp);
             return code;
         }
+        // True Color is a window message to MSI's own application: no EC, no administrator, so the
+        // one-shot runs right here without the UAC round trip the EC commands need.
+        if (cmd.Kind == CliKind.TrueColor) return RunTrueColorOneShot(cmd);
         return Elevated(args) ?? RunOneShot(cmd, args);
     }
+
+    /// <summary>
+    /// --truecolor with no app running. The status is read-only and always answers; a profile
+    /// needs the switch under Settings -> System (read from the settings file) and goes through the
+    /// same TrueColor.Set as the app, the tray and the scenes.
+    /// </summary>
+    private static int RunTrueColorOneShot(CliCommand cmd)
+    {
+        var settings = AppSettings.Load();
+        if (cmd.Arg == "status") { Console.WriteLine(TrueColorStatusJson(settings)); return 0; }
+        if (!settings.TrueColorEnabled) { Console.WriteLine("True Color switching is off - enable it under Settings -> System first"); return 1; }
+        int id = int.Parse(cmd.Arg);
+        var r = TrueColor.Set(id, settings.TrueColorUserVerified, out string detail);
+        if (r is TrueColor.Result.Ok or TrueColor.Result.AlreadySet)
+        {
+            settings.TrueColorLast = id; settings.TrueColorLastUtc = DateTime.UtcNow; settings.Save();
+            ChangeLog.Load();
+            ChangeLog.Add(ChangeSource.Cli, "True Color: " + TrueColor.Name(id) + (r == TrueColor.Result.AlreadySet ? " (already recorded)" : ""));
+            Console.WriteLine("true color: " + TrueColor.Name(id) + (r == TrueColor.Result.AlreadySet ? " (already recorded)" : ""));
+            return 0;
+        }
+        Console.WriteLine(TrueColorFailure(r, detail));
+        return 1;
+    }
+
+    /// <summary>The JSON --truecolor status prints (one-shot and in-app alike).</summary>
+    public static string TrueColorStatusJson(AppSettings settings)
+    {
+        var info = TrueColor.Detect(settings.TrueColorUserVerified);
+        return JsonSerializer.Serialize(new
+        {
+            installed = info.Installed,
+            version = info.Installed ? info.Version : null,
+            running = info.Installed ? info.Running : (bool?)null,
+            confirmedVersion = info.Installed ? info.Confirmed : (bool?)null,
+            enabled = settings.TrueColorEnabled,
+            recorded = info.Recorded is { } rec ? TrueColor.Name(rec) : null,
+            lastSetByGhostDeck = settings.TrueColorLast is { } last ? TrueColor.Name(last) : null,
+            profiles = TrueColor.Profiles.Select(p => p.Cli).ToArray(),
+        });
+    }
+
+    /// <summary>English, machine-readable failure text for the console and the pipe.</summary>
+    public static string TrueColorFailure(TrueColor.Result r, string detail) => r switch
+    {
+        TrueColor.Result.NotInstalled => "MSI True Color is not installed",
+        TrueColor.Result.NotRunning => "MSI True Color is not running - start it from the Start menu",
+        TrueColor.Result.Unconfirmed => $"True Color {detail} is not a confirmed version - run the test under Settings -> System first",
+        TrueColor.Result.BadProfile => "not a True Color profile",
+        TrueColor.Result.Timeout => "True Color did not answer within " + TrueColor.SendTimeoutMs + " ms",
+        TrueColor.Result.NotConfirmed => "True Color took the request but did not record the profile (" + detail + ")",
+        TrueColor.Result.Busy => "another True Color request is still running",
+        _ => "True Color request failed (" + detail + ")",
+    };
 
     /// <summary>
     /// A one-shot talks to the EC, which needs administrator rights. From an unelevated launch
@@ -333,6 +397,7 @@ public static class Cli
                         hdr = Hdr.Supported() ? Hdr.Enabled() : (bool?)null,
                         touchpad = Touchpad.State() is >= 0 and var tps ? tps == 1 : (bool?)null,
                         mic = Microphone.State() is >= 0 and var mcs ? mcs == 1 : (bool?)null,
+                        trueColor = TrueColor.Recorded() is { } tcr ? TrueColor.Name(tcr) : null,
                         batteryPercent = noBatt || batt < 0 ? (int?)null : batt,
                         batteryCharging = noBatt ? (bool?)null : ps.PowerLineStatus == PowerLineStatus.Online,
                         batteryMinutesLeft = battMin > 0 ? battMin : (int?)null,

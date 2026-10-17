@@ -103,6 +103,17 @@ public sealed class SceneEditForm : GhostCardForm
         Row(Lang.T("overlay_title"), onOff, scene.Overlay != null, scene.Overlay == false ? 1 : 0,
             (on, i) => _scene.Overlay = on ? i == 0 : null);
 
+        // MSI True Color (roadmap #119): the row exists when the application is installed, whatever
+        // its version; a switched-off row = the scene leaves the profile alone. Names are True
+        // Color's own (product names), so they stay untranslated.
+        if (TrueColor.Detect(d.Settings.TrueColorUserVerified).Installed)
+        {
+            var tcIds = TrueColor.Profiles.Select(p => p.Id).ToArray();
+            int tSel = scene.TrueColor is { } stc ? Math.Max(0, Array.IndexOf(tcIds, stc)) : 0;
+            Row(Lang.T("tc_title"), TrueColor.Profiles.Select(p => p.Name).ToArray(), scene.TrueColor != null, tSel,
+                (on, i) => _scene.TrueColor = on ? tcIds[i] : null);
+        }
+
         // the crosshair: on with the current look, off, or on with one of the saved presets
         var chItems = new List<string> { onOff[0], onOff[1] };
         var chPresets = d.Settings.CrosshairPresets.Select(p => p.Name).ToList();

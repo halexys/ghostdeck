@@ -63,6 +63,7 @@ public sealed class TrayContext : ApplicationContext
     private ToolStripMenuItem? _overlayLockItem;
     private CrosshairForm? _crosshair;         // the crosshair window (roadmap #118; lazy)
     private ToolStripMenuItem? _crosshairItem;
+    private readonly List<ToolStripMenuItem> _tcItems = new();   // True Color submenu entries (Tag = profile id)
     private bool _statusWantsFps;              // Status → Gaming sub-tab visible (keeps FpsMonitor running)
     private TrayWheel? _wheel;                 // (#23) wheel-over-tray hook, installed only while a wheel mode is set
     private int _wheelAccum;                   // raw wheel delta accumulator (one step per ±120)
@@ -245,7 +246,14 @@ public sealed class TrayContext : ApplicationContext
                     // Set() later, which would throw on a disposed event inside a finally
                     var done = new ManualResetEventSlim();
                     var ui = _ui;
-                    if (ui == null) resp = ExecuteCli(line);
+                    if (Cli.Parse(line.Split('\t')) is { Kind: CliKind.TrueColor } tcCmd)
+                    {
+                        // A True Color request waits on MSI's application (up to 4.5 s): it runs on
+                        // this thread, never on the window thread; the bookkeeping is posted back.
+                        resp = ExecuteTrueColorCli(tcCmd);
+                        if (ui != null) { string r2 = resp; ui.Post(_ => LinkRefusalCard(line, r2), null); }
+                    }
+                    else if (ui == null) resp = ExecuteCli(line);
                     else
                     {
                         ui.Post(_ => { try { resp = ExecuteCli(line); } finally { done.Set(); } }, null);
@@ -265,15 +273,19 @@ public sealed class TrayContext : ApplicationContext
         // card (#212 style, not a Windows notification, which Focus Assist can swallow). The
         // card is a window, so only when this runs on the UI thread - which it does once the
         // message loop is up (_ui set); the few commands that arrive before it get no card.
-        if (!resp.StartsWith("0|") && Protocol.IsLink(raw.Split('\t')[0]) && _ui != null)
-        {
-            string text = resp.IndexOf('|') is var bar && bar >= 0 ? resp[(bar + 1)..] : resp;
-            var dlg = new GhostCardForm("//LINK", Lang.T("link_title"), raw.Split('\t')[0] + "\n\n" + text,
-                Lang.T("gen_ok"), "", () => { });
-            dlg.Show();
-            dlg.Activate();
-        }
+        if (_ui != null) LinkRefusalCard(raw, resp);
         return resp;
+    }
+
+    /// <summary>The card a refused ghostdeck:// link gets (nothing for a console command or a success). UI thread.</summary>
+    private static void LinkRefusalCard(string raw, string resp)
+    {
+        if (resp.StartsWith("0|") || !Protocol.IsLink(raw.Split('\t')[0])) return;
+        string text = resp.IndexOf('|') is var bar && bar >= 0 ? resp[(bar + 1)..] : resp;
+        var dlg = new GhostCardForm("//LINK", Lang.T("link_title"), raw.Split('\t')[0] + "\n\n" + text,
+            Lang.T("gen_ok"), "", () => { });
+        dlg.Show();
+        dlg.Activate();
     }
 
     private string ExecuteCliCore(string raw)
@@ -319,6 +331,7 @@ public sealed class TrayContext : ApplicationContext
                         hdr = Hdr.Supported() ? Hdr.Enabled() : (bool?)null,
                         touchpad = Touchpad.State() is >= 0 and var tps ? tps == 1 : (bool?)null,
                         mic = Microphone.State() is >= 0 and var mcs ? mcs == 1 : (bool?)null,
+                        trueColor = TrueColor.Recorded() is { } tcr ? TrueColor.Name(tcr) : null,
                         batteryPercent = noBatt || batt < 0 ? (int?)null : batt,
                         batteryCharging = noBatt ? (bool?)null : ps.PowerLineStatus == PowerLineStatus.Online,
                         batteryMinutesLeft = battMin > 0 ? battMin : (int?)null,
@@ -350,6 +363,8 @@ public sealed class TrayContext : ApplicationContext
                     SetCrosshair(cmd.Arg == "on", osd: false);
                     return "0|crosshair: " + cmd.Arg;
                 }
+                case CliKind.TrueColor:
+                    return ExecuteTrueColorCli(cmd);   // normally taken before the UI post (StartCliServer)
                 case CliKind.Brightness:
                 {
                     // Windows-level (WMI), independent of EC writability.
@@ -759,6 +774,24 @@ public sealed class TrayContext : ApplicationContext
         SetDot(_crosshairItem, CrosshairVisible);
         _crosshairItem.Click += (_, _) => ToggleCrosshair();
         menu.Items.Add(_crosshairItem);
+
+        // MSI True Color (roadmap #119): only with the experimental switch on and a confirmed
+        // version installed; the dot marks the profile True Color last recorded.
+        _tcItems.Clear();
+        if (_settings.TrueColorEnabled && TrueColor.Detect(_settings.TrueColorUserVerified) is { Installed: true, Confirmed: true } tcInfo)
+        {
+            var tcMenu = new ToolStripMenuItem(Lang.T("tc_title"));
+            foreach (var p in TrueColor.Profiles)
+            {
+                int tcId = p.Id;
+                var it = new ToolStripMenuItem(p.Name) { Tag = tcId, CheckOnClick = false };
+                SetDot(it, tcInfo.Recorded == tcId);
+                it.Click += (_, _) => ApplyTrueColor(tcId, ChangeSource.Tray, manual: true);
+                tcMenu.DropDownItems.Add(it);
+                _tcItems.Add(it);
+            }
+            menu.Items.Add(tcMenu);
+        }
 
         menu.Items.Add(new ToolStripSeparator());
 
@@ -1443,6 +1476,9 @@ public sealed class TrayContext : ApplicationContext
                 if (ch != CrosshairVisible) SetCrosshair(ch, osd: false);
                 else if (ch) ApplyCrosshairSettings();
             }
+            // True Color runs on a worker and reports to the history on its own; an automatic
+            // scene never shows a card for it, and nothing below waits for it
+            if (s.TrueColor is { } tcp) ApplyTrueColor(tcp, source, manual: false);
             if (s.KbdLight is { } kl) SetKbdLight(kl, source, osd: false);
             if (s.Webcam is { } wc && _webcamSupported && wc != _webcamOn) SetWebcamState(wc, source, osd: false);
             if (s.Mic is { } mc && Microphone.State() is >= 0 and var mst && (mst == 1) != mc)
@@ -1700,6 +1736,81 @@ public sealed class TrayContext : ApplicationContext
         _settings.Save();
         ApplyCrosshairSettings();
         return true;
+    }
+
+    // ---------------- MSI True Color (roadmap #119, discussions #150 and #204) ----------------
+    // Every entry (Settings card, tray, scene, CLI, link) ends in TrueColor.Set on a worker; the
+    // bookkeeping (settings, history, menu dots, the Settings card) comes back to the UI thread.
+    // A manual request gets a card on failure; an automatic one (a scene) only a history line.
+
+    /// <summary>A profile request from the UI thread; returns at once.</summary>
+    private void ApplyTrueColor(int id, ChangeSource source, bool manual)
+    {
+        string name = TrueColor.Name(id) ?? id.ToString();
+        if (!_settings.TrueColorEnabled)
+        {
+            ChangeLog.Add(source, string.Format(Lang.T("tc_log_skipped"), name), Lang.T("tc_err_disabled"));
+            if (manual) TrueColorCard(Lang.T("tc_err_disabled"));
+            return;
+        }
+        Task.Run(() =>
+        {
+            var (r, detail) = TrueColorApplyCore(id, source);
+            if (manual && r is not (TrueColor.Result.Ok or TrueColor.Result.AlreadySet))
+                _ui?.Post(_ => TrueColorCard(TrueColorReason(r, detail)), null);
+        });
+    }
+
+    /// <summary>The blocking part, on whatever worker called it; the bookkeeping is posted to the UI thread.</summary>
+    private (TrueColor.Result r, string detail) TrueColorApplyCore(int id, ChangeSource source)
+    {
+        var r = TrueColor.Set(id, _settings.TrueColorUserVerified, out string detail);
+        void Done() => AfterTrueColor(id, source, r, detail);
+        if (_ui is { } ui) ui.Post(_ => Done(), null); else Done();
+        return (r, detail);
+    }
+
+    private void AfterTrueColor(int id, ChangeSource source, TrueColor.Result r, string detail)
+    {
+        string name = TrueColor.Name(id) ?? id.ToString();
+        if (r is TrueColor.Result.Ok or TrueColor.Result.AlreadySet)
+        {
+            _settings.TrueColorLast = id;
+            _settings.TrueColorLastUtc = DateTime.UtcNow;
+            _settings.Save();
+            ChangeLog.Add(source, string.Format(Lang.T(r == TrueColor.Result.Ok ? "tc_log_set" : "tc_log_already"), name), detail);
+        }
+        else ChangeLog.Add(source, string.Format(Lang.T("tc_log_failed"), name), TrueColorReason(r, detail));
+        UpdateTrueColorMenu();
+        TrueColor.RaiseChanged();
+    }
+
+    /// <summary>The in-app CLI / link path: runs on the pipe thread (StartCliServer), answers "<code>|<text>".</summary>
+    private string ExecuteTrueColorCli(CliCommand cmd)
+    {
+        if (cmd.Arg == "status") return "0|" + Cli.TrueColorStatusJson(_settings);
+        if (!_settings.TrueColorEnabled) return "1|True Color switching is off - enable it under Settings -> System first";
+        int id = int.Parse(cmd.Arg);
+        var (r, detail) = TrueColorApplyCore(id, ChangeSource.Cli);
+        if (r is TrueColor.Result.Ok or TrueColor.Result.AlreadySet)
+            return "0|true color: " + TrueColor.Name(id) + (r == TrueColor.Result.AlreadySet ? " (already recorded)" : "");
+        return "1|" + Cli.TrueColorFailure(r, detail);
+    }
+
+    private static string TrueColorReason(TrueColor.Result r, string detail) => TrueColor.ReasonText(r, detail);
+
+    private static void TrueColorCard(string body)
+    {
+        var dlg = new GhostCardForm("//TRUECOLOR", Lang.T("tc_title"), body, Lang.T("gen_ok"), "", () => { });
+        dlg.Show();
+        dlg.Activate();
+    }
+
+    private void UpdateTrueColorMenu()
+    {
+        int? rec = TrueColor.Recorded();
+        foreach (var it in _tcItems)
+            if (!it.IsDisposed && it.Tag is int id) SetDot(it, rec == id);
     }
 
     // The ETW-based FPS monitor runs only while someone is looking: the overlay with an FPS metric
@@ -2147,6 +2258,7 @@ public sealed class TrayContext : ApplicationContext
         CrosshairOn = () => CrosshairVisible,
         SetCrosshair = on => SetCrosshair(on, osd: false),
         ApplyCrosshairSettings = ApplyCrosshairSettings,
+        SetTrueColor = id => ApplyTrueColor(id, ChangeSource.Panel, manual: true),
         SetFpsViewer = on => { _statusWantsFps = on; UpdateFpsActive(); },
         UpdateAvail = () => _updateAvail,
         OpenUpdates = tag => { OpenMain(MainTab.Updates); if (_main is { IsDisposed: false }) _main.ShowUpdates(tag); },

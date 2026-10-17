@@ -187,6 +187,13 @@ public sealed class AppSettings
     public string? CrosshairImageBase64 { get; set; }
     // Settings -> Gaming: 0 = the overlay, 1 = the crosshair (machine-local UI state, like SettingsSubTab)
     public int SettingsGamingSub { get; set; }
+
+    // ---- MSI True Color (roadmap #119, discussions #150 and #204) - experimental, opt-in ----
+    public bool TrueColorEnabled { get; set; }                          // the switch under Settings -> System
+    public bool TrueColorConfirmed { get; set; }                        // the one-time consent card was acknowledged (not asked again)
+    public string? TrueColorUserVerified { get; set; }                  // a True Color version the owner confirmed with the in-app test ON THIS MACHINE; not exported
+    public int? TrueColorLast { get; set; }                             // the profile GhostDeck last asked for: its own memory, shown as such, not True Color's state
+    public DateTime TrueColorLastUtc { get; set; } = DateTime.MinValue;
     public bool FpsMetricSeeded { get; set; }                          // one-time: dosianie metryki FPS istniejacym uzytkownikom (bitmaska sprzed v1.23)
 
     // ---- game-session report (Status -> Gaming + popup) ----
@@ -466,7 +473,9 @@ public sealed class AppSettings
             if (s.BrightnessPct is { } bp && bp is < 0 or > 100) s.BrightnessPct = null;
             if (s.Profile is { } p && !Enum.TryParse<ProfileId>(p, out _)) s.Profile = null;
             if (s.Crosshair is null or false) s.CrosshairPreset = null;   // a preset only goes with "on"
+            if (s.TrueColor is { } tc && !TrueColor.IsProfile(tc)) s.TrueColor = null;   // only the seven ids True Color records
         }
+        if (TrueColorLast is { } tcl && !TrueColor.IsProfile(tcl)) TrueColorLast = null;
         // Crosshair sanity: every value in range, presets named and unique, a scene's preset
         // that no longer exists falls back to "on with the current look".
         Crosshair ??= new CrosshairStyle();
@@ -554,6 +563,10 @@ public sealed class AppSettings
         ExperimentalWriteFw = new List<string>(src.ExperimentalWriteFw ?? new());
         ApexFw = new List<string>(src.ApexFw ?? new());
         ApexConfirmed = src.ApexConfirmed;
+        // True Color: the switch and the consent travel; the owner-verified version and the last
+        // profile are this machine's (another laptop has another True Color)
+        TrueColorEnabled = src.TrueColorEnabled;
+        TrueColorConfirmed = src.TrueColorConfirmed;
         UpdateCheckEnabled = src.UpdateCheckEnabled;
         DarkMode = src.DarkMode;
         TempAlertEnabled = src.TempAlertEnabled;
@@ -663,6 +676,8 @@ public sealed class AppSettings
             ExperimentalWriteFw = new List<string>(ExperimentalWriteFw),
             ApexFw = new List<string>(ApexFw),
             ApexConfirmed = ApexConfirmed,
+            TrueColorEnabled = TrueColorEnabled,
+            TrueColorConfirmed = TrueColorConfirmed,
             UpdateCheckEnabled = UpdateCheckEnabled,
             HotkeysEnabled = HotkeysEnabled,
             TrayShowStatus = TrayShowStatus, TrayShowFanCurve = TrayShowFanCurve, TrayShowModels = TrayShowModels,
@@ -743,6 +758,8 @@ public sealed class AppSettings
         foreach (var p in CrosshairPresets) c.CrosshairPresets.Add(p.Clone());
         c.CrosshairActivePreset = CrosshairActivePreset;
         c.SettingsGamingSub = SettingsGamingSub;
+        c.TrueColorEnabled = TrueColorEnabled; c.TrueColorConfirmed = TrueColorConfirmed;
+        c.TrueColorUserVerified = TrueColorUserVerified; c.TrueColorLast = TrueColorLast; c.TrueColorLastUtc = TrueColorLastUtc;
         return c;
     }
 }
