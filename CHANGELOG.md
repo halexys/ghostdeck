@@ -25,6 +25,13 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   the Thin 15 B12UCX / B12VE).
 
 ### Fixed
+- When Windows stops answering the hardware readings for more than 10 seconds (it can happen
+  after sleep or when a Windows service restarts), the tray temperatures, the overlay and the
+  Status rings show a dash instead of freezing on the last numbers, Status says why in one line,
+  and History gets one entry when the readings go and one when they come back.
+- The diagnostic scripts (`msi_ec_snapshot.ps1`, `msi_ec_fulldump.ps1`) say that MSI Center 2.0.49
+  and newer have no Silent tile and that their "ECO-Silent" tile is Super Battery, and the Silent
+  step can be skipped with `skip`, so a capture no longer records Super Battery twice by mistake.
 - `--help` and docs/CLI.md said `--scene`, `--overlay`, `--crosshair`, `--winlock` and the Fan Boost
   auto-off "need the app running"; since 1.38 these commands start the app themselves when it is not.
 - **MSI GF65 Thin 10UE (`16W2EMS1`) promoted to Tested** ([#230](../../issues/230), thanks

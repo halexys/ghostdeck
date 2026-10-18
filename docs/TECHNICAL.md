@@ -3749,3 +3749,31 @@ model at the previous visit. The list as it was when the app started is the refe
 the whole run, so a model added or promoted since then carries the badge (List, header line,
 "New" chip) until the next start. The very first run marks nothing.
 
+## 83. Hardware readings unavailable (2026-10)
+
+Every hardware sample goes through `Ec.TryReadHw`, which swallows a refused read (WMI or COM
+error) and returns false. A single refusal is normal (resume from sleep, the WMI provider host
+recycling) and the callers simply skip that tick. Before this change a long run of refusals
+left the numbers on screen frozen: the tray temperature icons and the overlay kept their last
+values, and Status showed temperature dashes but fan targets of 0.
+
+**The rule.** `Ec` remembers when the current run of refused reads began (`_failSince`, UTC
+ticks, 0 after any successful read). `Ec.ReadsLost` is true once that run is longer than
+`ReadsLostAfter` (10 s, a little over three ticks of the 3-second sampler). Only then:
+
+- **Tray** (`TrayContext.SampleHw`): the temperature icons are redrawn from a zero snapshot, so
+  they read "--" (the SSD icon keeps its own reading, it does not come from the EC). History
+  gets one `ChangeSource.Firmware` line (`log_hw_lost`) when the readings go and one
+  (`log_hw_back`) on the first successful read after that; `_readsLost` makes each line appear
+  once per outage.
+- **Overlay** (`BuildOverlaySample`): instead of `null` (= keep the previous sample) it sends a
+  zero snapshot with `OverlaySample.HwLost`, so temperatures and RPM show "--" and the fan
+  target shows "--" instead of "0/0%".
+- **Status**: the fan target rings show a dash instead of 0 (0 is a real curve target, so a lost
+  reading must not look like one), and an amber note (`hw_lost_note`) above the info card says
+  that Windows is not answering and that the values come back on their own.
+
+Nothing else changes: no write is retried or blocked by this, and profile switching keeps its
+own error handling. Machines without the EC interface (telemetry-only, #48) never reach
+`TryReadHw` for their temperatures and are unaffected. The render harness draws the Status
+state with `HWLOST=1`.
