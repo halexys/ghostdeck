@@ -1072,64 +1072,50 @@ public sealed partial class SettingsPage : ThemedPage
         upd.AddRow(Lang.T("set_check_updates"), Toggle(D.Settings.UpdateCheckEnabled, v => { D.Settings.UpdateCheckEnabled = v; D.SaveSettings(); }));
         // Signed model database (ModelDb): which data is in effect, plus a manual fetch. The
         // check runs on its own cadence (every start, on the Models tab, and this button), so
-        // the row also reports the result of the last press.
-        var dbLabel = new Label { AutoSize = true, Font = new Font("Segoe UI", 10.5f, FontStyle.Bold) };
-        // The status of the last press goes on its OWN full-width note row. Appending it to the
-        // value label grew the right-aligned row control until it ran off the card.
-        // Idle it collapses to zero height, so the card shows no empty gap. AutoSize is what
-        // gives it a height, hence the toggle (Visible is useless here: a child of a form that is
-        // not shown yet reports false, which would break the layout during construction).
-        var dbNote = new Label { AutoSize = false, Size = new Size(1, 0), Font = new Font("Segoe UI", 9f), Tag = "muted" };
+        // the button itself reports the result of the last press: "Checking…", then the result for
+        // a few seconds, then "Check now" again. (A note row under it changed the card's height
+        // and ran into the card below.)
+        ModelDbBlock? dbBlock = null;
         void DbVersionText()
         {
-            dbLabel.Text = Devices.EffectiveDataVersion
-                         + (Devices.UsingOverride ? "  ·  " + Lang.T("modeldb_downloaded") : "");
+            // the same counts as the Models tab header (ModelsStats: every entry, Tier.Tested)
+            var all = Devices.All;
+            string sub = string.Format(Lang.T("set_modeldb_sub"), Devices.EffectiveDataVersion,
+                                       all.Count, all.Count(x => x.Tier == Tier.Tested))
+                       + (Devices.UsingOverride ? "  ·  " + Lang.T("modeldb_downloaded") : "");
             if (ModelDb.PendingVersion() is { } pend)
-                dbLabel.Text += "  ·  " + string.Format(Lang.T("modeldb_pending"), pend);
+                sub += "  ·  " + string.Format(Lang.T("modeldb_pending"), pend);
+            dbBlock?.SetText(Lang.T("set_modeldb"), sub);
         }
         _syncDbVersion = () => { DbVersionText(); Layout2(); };   // a newer database went live (OnDeviceDbChanged)
-        void SyncDbLabel(string? note = null)
-        {
-            DbVersionText();
-            dbNote.Text = note ?? "";
-            if (note == null) { dbNote.AutoSize = false; dbNote.Size = new Size(1, 0); }
-            else dbNote.AutoSize = true;
-            Layout2();   // the note changes the card height; re-measure instead of overlapping
-        }
         var dbCheck = new Button { Text = Lang.T("modeldb_check"), AutoSize = true, Padding = new Padding(10, 4, 10, 4) };
         Ui.StyleGhost(dbCheck);
         dbCheck.Click += (_, _) =>
         {
-            dbCheck.Enabled = false;
-            SyncDbLabel(Lang.T("modeldb_checking"));
+            if (dbBlock == null || dbBlock.Busy) return;   // one check at a time
+            dbBlock.ShowBusy(Lang.T("modeldb_checking"));
             D.CheckModelDbNow(code =>
             {
-                if (IsDisposed || dbLabel.IsDisposed) return;
+                if (IsDisposed || dbBlock == null || dbBlock.IsDisposed) return;
                 void Show()
                 {
-                    dbCheck.Enabled = true;
-                    SyncDbLabel(code switch
-                    {
-                        > 0  => string.Format(Lang.T("modeldb_applied"), code),
-                        -1   => Lang.T("modeldb_failed"),
-                        -2   => Lang.T("modeldb_deferred"),
-                        _    => Lang.T("modeldb_current"),
-                    });
+                    DbVersionText();
+                    // short words on the button; the longer explanation, where there is one, as its tooltip
+                    if (code == -2) dbBlock.ShowResult(Lang.T("modeldb_got"), Lang.T("modeldb_deferred"));
+                    else if (code == -1) dbBlock.ShowResult(Lang.T("modeldb_failed_short"), Lang.T("modeldb_failed"));
+                    else if (code > 0) dbBlock.ShowResult(Lang.T("modeldb_updated_short"), string.Format(Lang.T("modeldb_applied"), code));
+                    else dbBlock.ShowResult(Lang.T("modeldb_current"));
                 }
                 if (InvokeRequired) BeginInvoke(Show); else Show();
             });
         };
-        var dbRow = new FlowLayoutPanel
+        dbBlock = new ModelDbBlock(dbCheck, Lang.T("modeldb_check"), new[]
         {
-            AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink,
-            FlowDirection = FlowDirection.LeftToRight, WrapContents = false, Margin = Padding.Empty,
-        };
-        dbLabel.Margin = new Padding(0, 8, 14, 0);
-        dbRow.Controls.Add(dbLabel);
-        dbRow.Controls.Add(dbCheck);
-        upd.AddRow(Lang.T("set_modeldb"), dbRow);
-        upd.AddRow(null, dbNote);
-        SyncDbLabel();
+            Lang.T("modeldb_checking"), Lang.T("modeldb_current"), Lang.T("modeldb_failed_short"), Lang.T("modeldb_got"),
+            Lang.T("modeldb_updated_short"),
+        });
+        upd.AddRow(null, dbBlock);
+        DbVersionText();
         _gLeft[SubSystem].Add(upd);
 
         // Tray context-menu visibility toggles (discussion #9); all default on.
@@ -2025,6 +2011,108 @@ public sealed partial class SettingsPage : ThemedPage
         }
     }
 
+    /// <summary>
+    /// Settings → System → Updates: the model database as one block, the way the Models tab
+    /// header shows it - the name, and under it the version with the model counts (accent),
+    /// with the check button on the right, centred on both lines. A full-width card row
+    /// ("wp-wide"): the card sets the width, the block sets its own height from it.
+    /// The button shows the check's state and result itself and keeps one width for all of
+    /// them (the widest), so nothing around it moves.
+    /// </summary>
+    private sealed class ModelDbBlock : Panel
+    {
+        private readonly Button _btn;
+        private readonly Font _titleFont = new("Segoe UI", 10.5f);
+        private readonly Font _subFont = new("Segoe UI", 9.5f);
+        private const TextFormatFlags Flags = TextFormatFlags.WordBreak | TextFormatFlags.NoPrefix;
+        private string _title = "", _sub = "";
+        private Rectangle _titleR, _subR;
+        private readonly string _idle;
+        private readonly string[] _states;
+        private readonly System.Windows.Forms.Timer _back = new() { Interval = 4000 };
+        private readonly ToolTip _tip = new();
+        private int _widthDpi = -1;
+
+        public ModelDbBlock(Button btn, string idle, string[] states)
+        {
+            Name = "wp-wide";
+            DoubleBuffered = true;
+            _btn = btn;
+            _idle = idle;
+            _states = states;
+            Controls.Add(btn);
+            _back.Tick += (_, _) => { _back.Stop(); _btn.Text = _idle; _tip.SetToolTip(_btn, null); Fit(); };
+        }
+
+        /// <summary>A check is running. The button stays enabled - a disabled flat button greys its
+        /// text out to near-invisible on the dark card - and the click handler checks this instead.</summary>
+        public bool Busy { get; private set; }
+
+        public void ShowBusy(string text)
+        {
+            _back.Stop();
+            Busy = true;
+            _btn.Text = text;
+            _tip.SetToolTip(_btn, null);
+            Fit();
+        }
+
+        /// <summary>The result on the button for a few seconds; <paramref name="tip"/> = the longer explanation.</summary>
+        public void ShowResult(string text, string? tip = null)
+        {
+            _btn.Text = text;
+            Busy = false;
+            _tip.SetToolTip(_btn, tip);
+            Fit();
+            _back.Stop(); _back.Start();
+        }
+
+        public void SetText(string title, string sub) { _title = title; _sub = sub; Fit(); Invalidate(); }
+
+        /// <summary>A theme switch: the button's colours (the block paints the rest each time).</summary>
+        public void ApplyTheme() { Ui.StyleGhost(_btn); Invalidate(); }
+
+        private int S(int v) => (int)Math.Ceiling(v * DeviceDpi / 96f);
+
+        protected override void OnSizeChanged(EventArgs e) { base.OnSizeChanged(e); Fit(); }
+
+        private void Fit()
+        {
+            // one width for every state: the widest text plus the button's own padding and frame,
+            // measured once per DPI (a resize of the window must not re-measure six strings)
+            if (_widthDpi != DeviceDpi)
+            {
+                _widthDpi = DeviceDpi;
+                int widest = _states.Append(_idle).Max(t => TextRenderer.MeasureText(t, _btn.Font).Width);
+                _btn.MinimumSize = new Size(widest + _btn.Padding.Horizontal + S(12), 0);
+            }
+            if (Width <= 0) return;
+            int textW = Math.Max(S(60), Width - _btn.Width - S(16));
+            int th = TextRenderer.MeasureText(_title, _titleFont, new Size(textW, int.MaxValue), Flags).Height;
+            int sh = TextRenderer.MeasureText(_sub, _subFont, new Size(textW, int.MaxValue), Flags).Height;
+            int textH = th + S(2) + sh;
+            int h = Math.Max(textH, _btn.Height);
+            int top = (h - textH) / 2;
+            _titleR = new Rectangle(0, top, textW, th);
+            _subR = new Rectangle(0, top + th + S(2), textW, sh);
+            _btn.Location = new Point(Width - _btn.Width, (h - _btn.Height) / 2);
+            if (Height != h) Height = h;
+        }
+
+        protected override void OnPaint(PaintEventArgs e)
+        {
+            e.Graphics.Clear(Theme.Card);
+            TextRenderer.DrawText(e.Graphics, _title, _titleFont, _titleR, Theme.Text, Flags);
+            TextRenderer.DrawText(e.Graphics, _sub, _subFont, _subR, Theme.Accent, Flags);
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing) { _titleFont.Dispose(); _subFont.Dispose(); _back.Dispose(); _tip.Dispose(); }
+            base.Dispose(disposing);
+        }
+    }
+
     // ---------------- card ----------------
     private sealed class CardSection : Panel
     {
@@ -2159,6 +2247,7 @@ public sealed partial class SettingsPage : ThemedPage
                 if (ctl is Label vl) { vl.ForeColor = vl.Tag as string == "muted" ? Theme.Muted : vl.Tag as string == "warn" ? Theme.Amber : Theme.Text; vl.BackColor = Theme.Card; }
                 if (ctl is HotkeyBox hb) { hb.BackColor = Theme.Surface; hb.ForeColor = Theme.Text; }
                 if (ctl is ThemedComboBox cb) cb.Invalidate();   // reads the theme when it paints
+                if (ctl is ModelDbBlock mdb) mdb.ApplyTheme();
                 // Composite hotkey row (Panel holding a ToggleSwitch + HotkeyBox): theme the nested box too.
                 if (ctl is Panel p && ctl is not FlowLayoutPanel)
                 {
