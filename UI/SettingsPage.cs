@@ -2031,6 +2031,7 @@ public sealed partial class SettingsPage : ThemedPage
         private readonly string[] _states;
         private readonly System.Windows.Forms.Timer _back = new() { Interval = 4000 };
         private readonly ToolTip _tip = new();
+        private int _widthDpi = -1;
 
         public ModelDbBlock(Button btn, string idle, string[] states)
         {
@@ -2077,10 +2078,14 @@ public sealed partial class SettingsPage : ThemedPage
 
         private void Fit()
         {
-            // one width for every state: the widest text plus the button's own padding and frame
-            int widest = _states.Append(_idle).Max(t => TextRenderer.MeasureText(t, _btn.Font).Width);
-            int bw = widest + _btn.Padding.Horizontal + S(12);
-            if (_btn.MinimumSize.Width != bw) _btn.MinimumSize = new Size(bw, 0);
+            // one width for every state: the widest text plus the button's own padding and frame,
+            // measured once per DPI (a resize of the window must not re-measure six strings)
+            if (_widthDpi != DeviceDpi)
+            {
+                _widthDpi = DeviceDpi;
+                int widest = _states.Append(_idle).Max(t => TextRenderer.MeasureText(t, _btn.Font).Width);
+                _btn.MinimumSize = new Size(widest + _btn.Padding.Horizontal + S(12), 0);
+            }
             if (Width <= 0) return;
             int textW = Math.Max(S(60), Width - _btn.Width - S(16));
             int th = TextRenderer.MeasureText(_title, _titleFont, new Size(textW, int.MaxValue), Flags).Height;
