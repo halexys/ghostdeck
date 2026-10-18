@@ -327,13 +327,21 @@ public sealed class ModelsPage : ThemedPage
     /// <summary>Size the visible view to its content (the host scrolls it).</summary>
     internal void LayoutContent()
     {
+        // The view's width is decided BEFORE the vertical scrollbar shows up: measure at the full
+        // width, and when the content is taller than the host, lay out again at the width that is
+        // left next to the bar. Sizing the child after the bar appeared left the panel with a
+        // horizontal bar it never recomputed (same trap as ThemedPage.LayoutAndSyncScroll).
         var v = _views[_tab];
-        int w = _scrollHost.ClientSize.Width;
-        v.Width = w;
-        v.Height = Math.Max(v.ContentHeight(w), _scrollHost.ClientSize.Height);
-        // the scrollbar may have appeared or gone with the new height: measure once more
-        int w2 = _scrollHost.ClientSize.Width;
-        if (w2 != w) { v.Width = w2; v.Height = Math.Max(v.ContentHeight(w2), _scrollHost.ClientSize.Height); }
+        int full = _scrollHost.Width, hostH = _scrollHost.Height;
+        int h = v.ContentHeight(full);
+        int w = full;
+        if (h > hostH)
+        {
+            w = full - SystemInformation.VerticalScrollBarWidth;
+            h = v.ContentHeight(w);
+        }
+        v.SetBounds(v.Left, v.Top, w, Math.Max(h, hostH));
+        _scrollHost.PerformLayout();   // the panel recomputes its bars for the new child size
     }
 
     private void PaintFooter(object? sender, PaintEventArgs e)
@@ -394,6 +402,7 @@ public sealed class ModelsPage : ThemedPage
     {
         public readonly TextBox Box = new() { BorderStyle = BorderStyle.None, Font = new Font("Segoe UI", 10.5f) };
         private static readonly Font Glyph = new("Segoe MDL2 Assets", 10.5f);
+        private static readonly Font ClearGlyph = new("Segoe MDL2 Assets", 8.5f);
 
         public SearchBox()
         {
@@ -403,6 +412,7 @@ public sealed class ModelsPage : ThemedPage
             Controls.Add(Box);
             Box.GotFocus += (_, _) => Invalidate();
             Box.LostFocus += (_, _) => Invalidate();
+            Box.TextChanged += (_, _) => { PerformLayout(); Invalidate(); };   // the X comes and goes
             ApplyTheme();
         }
 
@@ -411,12 +421,30 @@ public sealed class ModelsPage : ThemedPage
 
         public void ApplyTheme() { Box.BackColor = Theme.Card; Box.ForeColor = Theme.Text; BackColor = Theme.Surface; Invalidate(); }
 
-        protected override void OnClick(EventArgs e) { base.OnClick(e); Box.Focus(); }
+        private bool HasText => Box.TextLength > 0;
+        private Rectangle ClearRect => new(Width - S(30), (Height - S(22)) / 2, S(22), S(22));
+        private bool _overClear;
+
+        protected override void OnMouseMove(MouseEventArgs e)
+        {
+            base.OnMouseMove(e);
+            bool over = HasText && ClearRect.Contains(e.Location);
+            Cursor = over ? Cursors.Hand : Cursors.IBeam;
+            if (over != _overClear) { _overClear = over; Invalidate(); }
+        }
+        protected override void OnMouseLeave(EventArgs e) { base.OnMouseLeave(e); if (_overClear) { _overClear = false; Invalidate(); } }
+
+        protected override void OnMouseClick(MouseEventArgs e)
+        {
+            base.OnMouseClick(e);
+            if (HasText && ClearRect.Contains(e.Location)) Box.Clear();   // TextChanged re-filters
+            Box.Focus();
+        }
 
         protected override void OnLayout(LayoutEventArgs levent)
         {
             base.OnLayout(levent);
-            int left = S(34), right = S(12);
+            int left = S(34), right = HasText ? S(36) : S(12);
             Box.SetBounds(left, (Height - Box.Height) / 2, Math.Max(10, Width - left - right), Box.Height);
         }
 
@@ -432,6 +460,16 @@ public sealed class ModelsPage : ThemedPage
                 using var pen = new Pen(focus ? Theme.Accent : Theme.Border, focus ? 1.5f : 1f); g.DrawPath(pen, path);
             }
             Ui.CenterGlyph(g, "\uE721", Glyph, focus ? Theme.Accent : Theme.Muted, new RectangleF(S(8), 0, S(20), Height));
+            if (HasText)
+            {
+                var cr = ClearRect;
+                if (_overClear)
+                {
+                    using var b = new SolidBrush(Color.FromArgb(Theme.Dark ? 30 : 20, Theme.Text));
+                    g.FillEllipse(b, cr);
+                }
+                Ui.CenterGlyph(g, "\uE711", ClearGlyph, _overClear ? Theme.Text : Theme.Muted, cr);
+            }
         }
     }
 }

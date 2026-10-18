@@ -10,7 +10,7 @@ namespace GhostDeck;
 /// change.
 /// </summary>
 /// <summary>How a click zone shows that it is under the mouse.</summary>
-internal enum HoverKind { None, Card, Row, Chip, Button, Link }
+internal enum HoverKind { None, Card, Row, Chip, ChipPink, Button, Link }
 
 internal abstract class ModelsView : Control
 {
@@ -83,10 +83,12 @@ internal abstract class ModelsView : Control
                 using (var bar = new SolidBrush(Theme.Accent)) g.FillRectangle(bar, r.X, r.Y, S(3), r.Height);
                 break;
             case HoverKind.Chip:
+            case HoverKind.ChipPink:
+                var hc = k == HoverKind.ChipPink ? Theme.Red : Theme.Accent;
                 using (var path = Theme.RoundRect(new RectangleF(r.X + 0.5f, r.Y + 0.5f, r.Width - 1, r.Height - 1), r.Height / 2f - 1))
                 {
-                    using var b = new SolidBrush(Color.FromArgb(40, Theme.Accent)); g.FillPath(b, path);
-                    using var pen = new Pen(Theme.Accent); g.DrawPath(pen, path);
+                    using var b = new SolidBrush(Color.FromArgb(40, hc)); g.FillPath(b, path);
+                    using var pen = new Pen(hc); g.DrawPath(pen, path);
                 }
                 break;
             case HoverKind.Button:
@@ -137,23 +139,23 @@ internal abstract class ModelsView : Control
             string label = "@" + login;
             int cw = ModelsText.NaturalW(label, ModelsPage.FSmall) + S(16);
             var nums = d.CreditIssues.TryGetValue(login, out var n) ? n : Array.Empty<int>();
-            int numsW = nums.Sum(k => ModelsText.NaturalW("#" + k, ModelsPage.FSmall) + S(6));
+            int numsW = nums.Sum(k => ModelsText.NaturalW("#" + k, ModelsPage.FSmall) + S(16) + S(4));
             if (cx + cw + numsW > x + w && cx > x) { cx = x; cy += ch + S(6); }
             Chip(g, cx, cy, label, Theme.Accent, true);
             string who = login;
             Zone(g, new Rectangle(cx, cy, cw, ch), () => ModelsPage.OpenUrl("https://github.com/" + Uri.EscapeDataString(who)),
                  "github.com/" + who, HoverKind.Chip);
             cx += cw + S(6);
+            // each report: a chip like the login's, in the brand pink (the Extreme colour)
             foreach (var num in nums)
             {
                 string t = "#" + num;
-                int tw = ModelsText.NaturalW(t, ModelsPage.FSmall);
+                int tw = ModelsText.NaturalW(t, ModelsPage.FSmall) + S(16);
                 if (cx + tw > x + w && cx > x) { cx = x; cy += ch + S(6); }
-                var r = new Rectangle(cx, cy + (ch - ModelsPage.FSmall.Height) / 2, tw, ModelsPage.FSmall.Height);
-                T(g, t, ModelsPage.FSmall, r, Theme.Accent, TextFormatFlags.Left | TextFormatFlags.NoPrefix | TextFormatFlags.SingleLine | TextFormatFlags.NoPadding);
+                Chip(g, cx, cy, t, Theme.Red, true);
                 string url = "https://github.com/wygodad/ghostdeck/issues/" + num;
-                Zone(g, r, () => ModelsPage.OpenUrl(url), url, HoverKind.Link);
-                cx += tw + S(6);
+                Zone(g, new Rectangle(cx, cy, tw, ch), () => ModelsPage.OpenUrl(url), url, HoverKind.ChipPink);
+                cx += tw + S(4);
             }
             cx += S(8);
         }
@@ -292,7 +294,9 @@ internal abstract class ModelsView : Control
         int h = Para(g, text, ModelsPage.FCell, tx, y, tw, Theme.Text);
         if (ev.Tested && ev.Credit.Length > 0)
             h += Para(g, "@" + string.Join(", @", ModelsStats.Logins(ev.Credit)), ModelsPage.FSmall, tx, y + h, tw, Theme.Accent);
-        if (ev.Model != null) Zone(g, new Rectangle(x, y, w, h), () => P.ShowListFor(ev.Model.FirmwarePrefixes[0], ev.Model));
+        // the hover tint and its accent bar sit in a margin left of the date, never on it
+        if (ev.Model != null)
+            Zone(g, new Rectangle(x - S(12), y - S(3), w + S(12), h + S(6)), () => P.ShowListFor(ev.Model.FirmwarePrefixes[0], ev.Model));
         return h;
     }
 }
