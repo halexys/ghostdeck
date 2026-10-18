@@ -65,10 +65,19 @@ Write-Host $fw -ForegroundColor Green
 $fw | Out-File $outFile -Append -Encoding utf8
 Write-Host ""
 Write-Host "  READ-ONLY. Switch the MSI Center scenario, then press Enter." -ForegroundColor Green
+Write-Host "  MSI Center 2.0.49 and newer have NO Silent tile. Their 'ECO-Silent' tile is Super Battery," -ForegroundColor Yellow
+Write-Host "  not Silent. Without a Silent tile: type  skip  at the SILENT step, and use ECO-Silent at" -ForegroundColor Yellow
+Write-Host "  the SUPER BATTERY step." -ForegroundColor Yellow
 Write-Host ""
 
 foreach ($s in 'SILENT', 'BALANCED', 'EXTREME PERFORMANCE', 'SUPER BATTERY') {
-    [void](Read-Host ">> In MSI Center set scenario: $s   -- then press Enter")
+    $hint = if ($s -eq 'SUPER BATTERY') { ' (ECO-Silent in MSI Center 2.0.49+)' } elseif ($s -eq 'SILENT') { ' (no Silent tile? type skip)' } else { '' }
+    $answer = Read-Host ">> In MSI Center set scenario: $s$hint   -- then press Enter"
+    if ($s -eq 'SILENT' -and $answer -match '^\s*skip\s*$') {
+        "[$s] skipped - this MSI Center has no Silent tile" | Out-File $outFile -Append -Encoding utf8
+        Write-Host "  $s - skipped" -ForegroundColor DarkYellow
+        continue
+    }
     Snapshot $s
 }
 

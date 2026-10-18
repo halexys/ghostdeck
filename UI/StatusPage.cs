@@ -403,8 +403,10 @@ public sealed class StatusPage : ThemedPage
         // The fan rings show the curve target (0x71 / 0x89), not the fan speed, on MSI's own
         // 0-150 scale; 0 is a real target (the first curve point), so it reads "0", not a dash.
         // TECHNICAL §76.
-        DrawRing(g, X(2), top, ring, temps ? hw.CpuFan : 0, 150, "%", Lang.T("st_cpu_fan"), Theme.Accent, temps, allowZero: true);
-        DrawRing(g, X(3), top, ring, temps ? hw.GpuFan : 0, 150, "%", Lang.T("st_gpu_fan"), Theme.Violet, temps, allowZero: true);
+        // While hardware readings are lost (Ec.ReadsLost) the zero fan targets are not real: dash them.
+        bool fans = temps && !(info.Known && Ec.ReadsLost);
+        DrawRing(g, X(2), top, ring, fans ? hw.CpuFan : 0, 150, "%", Lang.T("st_cpu_fan"), Theme.Accent, fans, allowZero: true);
+        DrawRing(g, X(3), top, ring, fans ? hw.GpuFan : 0, 150, "%", Lang.T("st_gpu_fan"), Theme.Violet, fans, allowZero: true);
         _fanHelpBtns[0] = new RectangleF(X(2) + ring - 22, top, 22, 22);
         _fanHelpBtns[1] = new RectangleF(X(3) + ring - 22, top, 22, 22);
         HelpDot.Render(g, _fanHelpBtns[0]);
@@ -564,6 +566,15 @@ public sealed class StatusPage : ThemedPage
 
         int rightH = gt.Ok ? subH * 2 + 14 : subH;
         int cardTop = subY3 + Math.Max(storageH, rightH) + 40;
+        // hardware readings unavailable for a while (Ec.ReadsLost): the rings show "--"; say why
+        if (info.Known && Ec.ReadsLost)
+        {
+            using var noteFont = new Font("Segoe UI", 9.5f, FontStyle.Bold);
+            string note = Lang.T("hw_lost_note");
+            int noteH = TextRenderer.MeasureText(g, note, noteFont, new Size(avail, int.MaxValue), TextFormatFlags.WordBreak).Height;
+            TextRenderer.DrawText(g, note, noteFont, new Rectangle(Pad, cardTop, avail, noteH), Theme.Amber, TextFormatFlags.WordBreak);
+            cardTop += noteH + 10;
+        }
         // (#48) telemetry-only machines: say plainly why the fan rings and controls are dead
         if (info.Telemetry)
         {

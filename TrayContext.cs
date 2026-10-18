@@ -2190,7 +2190,17 @@ public sealed class TrayContext : ApplicationContext
     private OverlaySample? BuildOverlaySample()
     {
         HwSnapshot hw;
-        if (Known) { if (!Ec.TryReadHw(_device!, out hw)) return null; }
+        bool lost = false;
+        if (Known)
+        {
+            if (!Ec.TryReadHw(_device!, out hw))
+            {
+                // a refused read keeps the previous sample; a long run of them shows "--" instead
+                if (!Ec.ReadsLost) return null;
+                hw = new HwSnapshot(0, 0, 0, 0, 0, _firmware);
+                lost = true;
+            }
+        }
         else hw = ReadHwOrTelemetry();
         int load = SysInfo.CpuUsage();
         var (ramPct, _, ramUsed) = SysInfo.Ram();
@@ -2207,7 +2217,7 @@ public sealed class TrayContext : ApplicationContext
             Perf.GpuUsage(), Perf.VramUsedMb(), Perf.CpuClockMhz(),
             FpsMonitor.Current?.Fps ?? -1, FpsMonitor.Current?.FrameTimeMs ?? -1,
             Perf.DiskTemps2().First, Perf.BatteryMinutesLeft(), Perf.DiskTemps2().Second,
-            Perf.IgpuUsage(), SysInfo.CpuShortName());
+            Perf.IgpuUsage(), SysInfo.CpuShortName(), lost);
     }
 
     private void ShowOsd(ProfileId id)
@@ -2767,7 +2777,18 @@ public sealed class TrayContext : ApplicationContext
         {
             try
             {
-                if (!Ec.TryReadHw(dev, out var hw)) return;   // refused read = no history sample this tick
+                if (!Ec.TryReadHw(dev, out var hw))
+                {
+                    // refused read = no history sample this tick. A long run of them would leave
+                    // the tray temperatures frozen at their last values: blank them instead.
+                    if (Ec.ReadsLost)
+                    {
+                        int ssdNow = _settings.TempTraySsd ? Perf.Disks().Select(d => d.TempC).DefaultIfEmpty(-1).Max() : -1;
+                        ui?.Post(_ => OnReadsLost(ssdNow), null);
+                    }
+                    return;
+                }
+                if (_readsLost) ui?.Post(_ => OnReadsBack(), null);
                 int load = SysInfo.CpuUsage();
                 HwHistory.Add(new HwSample(DateTime.Now, (short)hw.CpuTemp, (short)hw.GpuTemp,
                     (short)hw.CpuFan, (short)hw.GpuFan, hw.CpuRpm, hw.GpuRpm, (short)load, _current,
@@ -2786,6 +2807,26 @@ public sealed class TrayContext : ApplicationContext
             catch { }
             finally { Interlocked.Exchange(ref _thermalBusy, 0); }
         });
+    }
+
+    // Hardware readings unavailable (Ec.ReadsLost): one History line when they go and one when
+    // they come back, and the tray temperatures show "--" meanwhile (the SSD keeps its own reading).
+    private volatile bool _readsLost;
+    private void OnReadsLost(int ssdTemp)
+    {
+        if (!_readsLost)
+        {
+            _readsLost = true;
+            ChangeLog.Add(ChangeSource.Firmware, Lang.T("log_hw_lost"));
+        }
+        if (_settings.TempTrayCpu || _settings.TempTrayGpu || _settings.TempTraySsd)
+            UpdateTempTrays(new HwSnapshot(0, 0, 0, 0, 0, _firmware), ssdTemp);
+    }
+    private void OnReadsBack()
+    {
+        if (!_readsLost) return;
+        _readsLost = false;
+        ChangeLog.Add(ChangeSource.Firmware, Lang.T("log_hw_back"));
     }
 
     /// <summary>
