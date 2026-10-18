@@ -351,7 +351,7 @@ public static class Ec
 
     public static byte ReadByte(byte addr) => ReadRaw(addr);
 
-    // ---------------- GPU switch arming (TECHNICAL.md §79) ----------------
+    // ---------------- GPU switch arming (TECHNICAL.md §82) ----------------
     // MSI Center's "GraphicsSwithc" command (API_NB_Base Module, as reverse-engineered by
     // tim-rue/MsiGT): read Get_AP(0), set the low two bits of its byte 1 to 01 and write the
     // result to EC 0xD1. Without it the firmware ignores the mode stored in MsiDCVarData. The

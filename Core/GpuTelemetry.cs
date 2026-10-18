@@ -14,7 +14,7 @@ namespace GhostDeck;
 ///
 /// Deliberately absent here: watts. The power field Windows exposes is a share of the adapter's own
 /// limit rather than a wattage, and on the driver this was measured against it reads zero. Watts
-/// come from NVIDIA's own library instead, on NVIDIA cards only (NvPower, TECHNICAL §80). Adapter fan RPM
+/// come from NVIDIA's own library instead, on NVIDIA cards only (NvPower, TECHNICAL §83). Adapter fan RPM
 /// is in the same position, and that we already read from the laptop's own controller.
 /// </summary>
 internal static class GpuTelemetry

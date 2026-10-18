@@ -104,7 +104,7 @@ version 0.5.0 it states that device support depends on the msi-ec kernel driver.
 
 ### What was used
 
-The graphics-mode switch (TECHNICAL.md §79) follows MsiGT's documented reverse engineering of
+The graphics-mode switch (TECHNICAL.md §82) follows MsiGT's documented reverse engineering of
 MSI Center: the layout of byte 5 of the `MsiDCVarData` UEFI variable, the `GPUswitchCH`
 registry request with its direct-write fallback, and the EC `0xD1` arming step acknowledged
 through `Get_AP(0)`. GhostDeck's implementation (`Core/GpuSwitch.cs`, `Ec.ArmGpuSwitch`) was

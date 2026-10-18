@@ -19,7 +19,7 @@ public sealed class ScenariosPage : ThemedPage
     private readonly SegControl? _refreshSeg;      // panel refresh rate (SegControl when few modes...)
     private readonly ThemedComboBox? _refreshCombo; // ...combo when the panel reports many
     private readonly List<int> _rates;
-    private readonly SegControl? _gpuSeg;           // graphics mode (TECHNICAL §79): Hybrid | Integrated only
+    private readonly SegControl? _gpuSeg;           // graphics mode (TECHNICAL §82): Hybrid | Integrated only
     private readonly Button? _gpuRestart;           // shown while a switch waits for the restart
     private readonly Control? _gpuHost;
     private readonly (string key, FeatureBrick b)[] _bricks;   // key -> Settings visibility (ScenHidden)
@@ -231,7 +231,7 @@ public sealed class ScenariosPage : ThemedPage
         Resize += (_, _) => Relayout();
     }
 
-    // ---------------- graphics mode (TECHNICAL §79) ----------------
+    // ---------------- graphics mode (TECHNICAL §82) ----------------
     private string GpuSubtitle()
     {
         if (D.GpuState() is not { } g) return "";

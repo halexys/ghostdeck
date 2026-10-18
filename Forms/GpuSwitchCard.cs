@@ -1,7 +1,7 @@
 namespace GhostDeck;
 
 /// <summary>
-/// Confirms a graphics-mode change (TECHNICAL.md §79): Restart now (accent) / Cancel, and
+/// Confirms a graphics-mode change (TECHNICAL.md §82): Restart now (accent) / Cancel, and
 /// "On next restart" on the left. When a display hangs off the discrete card and the target is
 /// Integrated, an amber block names it - that display goes dark after the switch.
 /// <see cref="Choice"/> tells the caller what was picked (null = cancelled).
