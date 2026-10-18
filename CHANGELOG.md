@@ -25,6 +25,11 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   the Thin 15 B12UCX / B12VE).
 
 ### Fixed
+- **MSI GF65 Thin 10UE (`16W2EMS1`) promoted to Tested** ([#230](../../issues/230), thanks
+  @scorvus99) - the first laptop of the Dragon Center generation to get there, through the backup
+  WMI path: two path-test runs with every profile read back as written and Super Battery at 52 %
+  and 34 % of Extreme's work, the fan curve verified, and the owner's confirmation that Silent is
+  audibly quieter than Balanced and switching stays stable over days.
 - Models tab: long model names and thank-you lists wrap onto extra lines instead of ending in
   "...", "&" in a credit is shown instead of underlining the next letter, rows alternate in
   colour, and the Family, SB and Status columns are as wide as their headers need in every language.

@@ -26,7 +26,7 @@ GhostDeck checks the interface once at start. When it is refused, one of three t
 
 ### 2a. Your model is on record: the backup path
 
-Today that is the **GF65 Thin 10UE** and the **Delta 15 A5EFK**. Status names your model, shows the firmware as the EC line and the BIOS version it was read from (for example `16W2EMS1 (BIOS E16W2IMS.105)`), and carries a note that the laptop works over the backup path.
+Today that is the **GF65 Thin 10UE** (a tested model since 18 October 2026, the first of this generation) and the **Delta 15 A5EFK**. Status names your model, shows the firmware as the EC line and the BIOS version it was read from (for example `16W2EMS1 (BIOS E16W2IMS.105)`), and carries a note that the laptop works over the backup path.
 
 ![Status on the backup path](images/backup_path_status.png)
 
@@ -146,7 +146,7 @@ The optional fan-curve check raises every speed slot of the CPU fan's table to t
 
 | Machine | Firmware | Result |
 |---|---|---|
-| GF65 Thin 10UE (owner, #230) | `16W2EMS1`, BIOS `E16W2IMS.105` | two runs on 8 October 2026, with and without Windows turbo boost: **passed** (Super Battery at 52 % and 34 % of Extreme), restore confirmed, the fan followed the raised table in both phases. Curve editor enabled for the model. |
+| GF65 Thin 10UE (owner, #230) | `16W2EMS1`, BIOS `E16W2IMS.105` | two runs on 8 October 2026, with and without Windows turbo boost: **passed** (Super Battery at 52 % and 34 % of Extreme), restore confirmed, the fan followed the raised table in both phases. Curve editor enabled for the model. On 18 October the owner confirmed that Silent is audibly quieter than Balanced and that switching stayed stable over days, and the entry was promoted to **tested**. |
 | Delta 15 A5EFK (#48, discussion #241) | `15CKEMS1` | layout on record from the diagnostic package; no run on hardware yet. The owner's own measurement says the firmware follows the curve table only outside the two power-saving shift modes. |
 | GS75 Stealth 8SE | board `17G1` | blocks served in the same layout, firmware without `MSI_ACPI`; stays in monitoring only until the EC line can be told apart. |
 

@@ -159,7 +159,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20261023;
+    public const int DataVersion = 20261024;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -699,9 +699,13 @@ public static class Devices
         //   PROVENANCE caveat: the reporter's own machine REFUSES the MSI_ACPI method
         //   interface (0x8004100c - the #117 story), so his capture and hardware checks
         //   came from his own build using the WMI data-block path (write-up archived
-        //   privately; research tracked separately). The tier therefore STAYS Experimental:
-        //   the stock app's own path has not been verified on this board by anyone yet.
-        new() { Name = "MSI GF65 Thin 10UE", FirmwarePrefixes = new[] { "16W2EMS1" }, Tier = Tier.Experimental,
+        //   privately; research tracked separately). TESTED since 18 Oct 2026 through the
+        //   backup WMI path (TECHNICAL §81): two path-test runs on 8 Oct 2026 (every profile read
+        //   back as written, Super Battery at 52 % and 34 % of Extreme's work, restore confirmed),
+        //   the fan curve verified, and the owner's confirmation on 18 Oct that Silent is audibly
+        //   quieter than Balanced under light load and switching stayed stable over days. The
+        //   method interface stays refused on this board; the entry is tested on the backup path.
+        new() { Name = "MSI GF65 Thin 10UE", FirmwarePrefixes = new[] { "16W2EMS1" }, Tier = Tier.Tested,
                 ShiftMode = 0xF2, FanMode = 0xF4, ChargeCtrl = 0xEF, Recipes = StdRecipes(0xF2, 0xF4, null),
                 BlockPath = DragonEraBlocks,   // block dump in the diagnostic package of issue #117
                 // Fan curve VERIFIED by the owner's path test (issue #230, 8 Oct 2026): with every
