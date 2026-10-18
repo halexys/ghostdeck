@@ -3,6 +3,10 @@
 All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [Unreleased]
+### Changed
+- Model database 20261022: Vector 16 HX AI / Raider 16 HX AI (`15M3EMS1`) - seventh owner credit after a clean power test on 1.40.0 ([#254](../../issues/254), thanks @onrchnn).
+
 ## [1.40.0] - 2026-10-18
 ### Added
 - **Backup WMI path for laptops whose firmware refuses MSI's EC control interface**

@@ -148,7 +148,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20261021;
+    public const int DataVersion = 20261022;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -800,10 +800,14 @@ public static class Devices
         //   behaviour again. C5 accepted and cleanly reverted once more (97%, still level
         //   with the turbo value) - the Extreme recipe stays on C4. His snapshot and curve
         //   capture re-confirm the recipes and both tables 1:1 on .113.
+        //   Seventh owner (issue #254, app 1.40.0, zero drift, clean read-backs x4): Silent 90%
+        //   of Balanced's work at 70 vs 88 C on 3365/3559 vs 4677/4902 rpm; Extreme 95% and
+        //   C5 99% under the combined CPU+GPU load - the same picture as #213. C5 accepted and
+        //   cleanly reverted again; 0xD6 self-set 03 under Extreme as before. No recipe change.
         new() { Name = "MSI Vector 16 HX AI / Raider 16 HX AI A2XWHG / A2XWIG", FirmwarePrefixes = new[] { "15M3EMS1" }, Tier = Tier.Tested,
                 CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
                 FourthMode = new FourthModeSpec("MSI Center Extreme", 0xC5),
-                Credit = "xulu19861102-hub, mithril01, H0tSTUff, girfli, STRIEH", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/74" },
+                Credit = "xulu19861102-hub, mithril01, H0tSTUff, girfli, STRIEH, onrchnn", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/74" },
         // Raider GE78 HX 14VHG (17S1IMS2) - owner-verified (issues #102/#103, MSI Center 2.0.48,
         // the last lineup with the real Silent scenario). The per-scenario capture matches
         // StdRecipes 1:1 in all four scenarios; 0x34 sat at 01 in every column of his capture,
