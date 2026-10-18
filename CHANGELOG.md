@@ -25,6 +25,8 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   the Thin 15 B12UCX / B12VE).
 
 ### Fixed
+- `--help` and docs/CLI.md said `--scene`, `--overlay`, `--crosshair`, `--winlock` and the Fan Boost
+  auto-off "need the app running"; since 1.38 these commands start the app themselves when it is not.
 - **MSI GF65 Thin 10UE (`16W2EMS1`) promoted to Tested** ([#230](../../issues/230), thanks
   @scorvus99) - the first laptop of the Dragon Center generation to get there, through the backup
   WMI path: two path-test runs with every profile read back as written and Super Battery at 52 %

@@ -42,10 +42,10 @@ directory and it works even when the app can't start.
 |---|---|---|
 | `--profile <Silent\|Balanced\|Extreme\|SuperBattery>` | Apply the profile recipe (+ the assigned fan-curve preset, if any) | `profile set: Silent` |
 | `--cycle` | Switch to the next profile, in the order set under *Profile order* (Standard unless changed) | `profile set: <name>` |
-| `--fanboost on\|off [seconds]` | Full fan speed on/off; `off` re-asserts the active profile's fan mode. The optional seconds (10-7200) arm a one-off auto-off timer for this activation (**timer requires the app running**) | `fan boost: on (auto-off in 120 s)` |
+| `--fanboost on\|off [seconds]` | Full fan speed on/off; `off` re-asserts the active profile's fan mode. The optional seconds (10-7200) arm a one-off auto-off timer for this activation (the timer runs in the app; starts the app when it is not running) | `fan boost: on (auto-off in 120 s)` |
 | `--curve "<preset>"` | Apply a saved fan-curve preset by name (case-insensitive). In Silent this switches to Balanced first (the Silent cap shares the fan byte) | `fan curve applied: <name>` |
 | `--curve auto` | Back to stock fan behaviour for the active profile | `fan curve: stock` |
-| `--scene "<name>"` | Apply a saved scene by name, case-insensitive (**requires the app running**) | `scene applied: <name>` |
+| `--scene "<name>"` | Apply a saved scene by name, case-insensitive (runs in the app; starts the app when it is not running) | `scene applied: <name>` |
 | `--refresh <hz\|max>` | Panel refresh rate; `max` picks the highest mode the panel reports. Windows display API - works on any laptop | `refresh rate: 240 Hz` |
 | `--charge <20-100\|off>` | Battery charge limit - any threshold from 20 to 100 % (60, 80 and 100 are the vendor-verified ones); `off` = stop managing (the EC keeps its current threshold, the app just stops re-asserting it) | `charge limit: 80 %` |
 | `--travel <days\|off>` | Charge to 100 % for a trip; the previous limit returns automatically after 1-90 full days. `off` = end now and restore the previous limit. Any manual charge-limit change cancels the pending revert. The revert is applied by the running app (poll or next start); with no app running, the next one-shot CLI call catches it up | `travel mode: 100 % until 2026-08-19` |
@@ -59,9 +59,9 @@ directory and it works even when the app can't start.
 | `--kbd <off\|low\|mid\|high\|0-3>` | Keyboard-backlight level (models with the EC brightness register) | `keyboard backlight: high` |
 | `--webcam on\|off` | EC-level webcam switch - same switch as the Fn camera key. Refused while the hard camera block (Settings → System → Privacy) is active | `webcam: off` |
 | `--fnswap <left\|right>` | Which side the Fn key is on - the EC-persisted Fn/Windows swap (boards in msi-ec's `fn_win_swap` map) | `fn key: left` |
-| `--winlock on\|off` | Block both Windows keys - software hook, any laptop (**requires the app running**) | `win key lock: on` |
-| `--overlay on\|off` | Show/hide the gaming overlay (**requires the app running**) | `overlay: on` |
-| `--crosshair on\|off` | Show/hide the crosshair (**requires the app running**; starts the app when it is not) | `crosshair: on` |
+| `--winlock on\|off` | Block both Windows keys - software hook, any laptop (runs in the app; starts the app when it is not running) | `win key lock: on` |
+| `--overlay on\|off` | Show/hide the gaming overlay (runs in the app; starts the app when it is not running) | `overlay: on` |
+| `--crosshair on\|off` | Show/hide the crosshair (runs in the app; starts the app when it is not running) | `crosshair: on` |
 | `--crosshair preset "<name>"` | Load a saved crosshair preset into the live look and show the crosshair | `crosshair: on (preset Dot)` |
 | `--crosshair code <GDX1.…>` | Apply a shared crosshair code (Settings → Gaming → Crosshair → *Copy code*) and show the crosshair. Exit 1 with `not a GhostDeck crosshair code` when the text is not one | `crosshair: on (code applied)` |
 | `--panic` | Safe state: Fan Boost off, Balanced profile, fans on the automatic curve; also lifts the camera block, re-enables the webcam and releases the Windows-key lock | `panic reset done` |
