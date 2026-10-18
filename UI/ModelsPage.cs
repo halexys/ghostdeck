@@ -23,7 +23,7 @@ public sealed class ModelsPage : ThemedPage
     private DeviceProfile? _detected;
     private List<DeviceProfile> _all;
     private List<DeviceProfile> _rows;
-    private ModelsStats _stats;
+    private ModelsStats? _stats;   // computed on first use (the page is built in the background, see ctor)
     private HashSet<DeviceProfile> _new = new();
     private static HashSet<string>? _seenAtStart;   // the "seen" list as it was when this app run started
 
@@ -31,7 +31,8 @@ public sealed class ModelsPage : ThemedPage
     private readonly Panel _scrollHost = new() { AutoScroll = true };
     private readonly ModelsView[] _views;
     private int _tab = TabStart;
-    private readonly TextBox _search = new();
+    private readonly SearchBox _searchBox = new();
+    private readonly TextBox _search;
     private readonly Button _verify = new();
     private readonly Button _dbCheck = new();
     private readonly Panel _footer = new();
@@ -46,10 +47,13 @@ public sealed class ModelsPage : ThemedPage
         _detected = Devices.Detect(d.Firmware());
         _all = BuildCatalogue();
         _rows = _all;
-        _stats = ModelsStats.Build(_all);
         UpdateNew();
+        // The statistics are the expensive part of building this page (first call includes .NET
+        // warm-up): MainForm pre-builds the page in the background, so they follow in a message of
+        // their own once the window exists, and no single step blocks the UI thread for long.
+        HandleCreated += (_, _) => BeginInvoke(() => { _ = Stats; });
 
-        _subTabs = new SubTabs(TabLabels(), new[] { "", "", "", "", "" });
+        _subTabs = new SubTabs(TabLabels(), new[] { "\uE80F", "\uE8FD", "\uE8A9", "\uE81E", "\uE716" });
         _subTabs.Changed += i => ShowTab(i);
         Controls.Add(_subTabs);
 
@@ -62,9 +66,8 @@ public sealed class ModelsPage : ThemedPage
         _views[_tab].Visible = true;
         Controls.Add(_scrollHost);
 
-        _search.BorderStyle = BorderStyle.FixedSingle;
-        _search.Font = new Font("Segoe UI", 10.5f);
-        _search.Width = 300;
+        _search = _searchBox.Box;
+        _searchBox.Width = 320;
         _search.PlaceholderText = Lang.T("mdl_search");
         _search.TextChanged += (_, _) =>
         {
@@ -72,8 +75,8 @@ public sealed class ModelsPage : ThemedPage
             if (_search.Text.Length > 0 && _tab != TabList && _tab != TabFeatures) ShowTab(TabList);
             ApplyFilter();
         };
-        Controls.Add(_search);
-        _search.BringToFront();
+        Controls.Add(_searchBox);
+        _searchBox.BringToFront();
 
         // Bottom footer: legend of the current sub-tab on the left, the two actions on the right.
         _footer.Paint += PaintFooter;
@@ -127,7 +130,7 @@ public sealed class ModelsPage : ThemedPage
     internal DeviceProfile? Detected => _detected;
     internal IReadOnlyList<DeviceProfile> All => _all;
     internal IReadOnlyList<DeviceProfile> Rows => _rows;
-    internal ModelsStats Stats => _stats;
+    internal ModelsStats Stats => _stats ??= ModelsStats.Build(_all);
     internal bool IsNew(DeviceProfile d) => _new.Contains(d);
     internal int NewCount => _new.Count;
     internal string Firmware => D.Firmware();
@@ -171,6 +174,7 @@ public sealed class ModelsPage : ThemedPage
     {
         D.PollModelDb();               // debounced; the tab is where people look for this
         StyleSearch(); LayoutBits(); Invalidate(); _views[_tab].Invalidate();
+        if (_tab == TabStart) (_views[TabStart] as ModelsStartView)?.Animate();
     }
 
     public override void OnReenter() => ShowTab(TabStart);
@@ -180,7 +184,7 @@ public sealed class ModelsPage : ThemedPage
     {
         _detected = Devices.Detect(D.Firmware());
         _all = BuildCatalogue();
-        _stats = ModelsStats.Build(_all);
+        _stats = null;                 // rebuilt on the next paint
         UpdateNew();
         if (Expanded != null) Expanded = _all.FirstOrDefault(m => m.FirmwarePrefixes[0] == Expanded.FirmwarePrefixes[0]);
         ApplyFilter();                 // keeps whatever is typed in the search box
@@ -190,7 +194,7 @@ public sealed class ModelsPage : ThemedPage
     public override void OnLanguageChanged()
     {
         _subTabs.SetLabels(TabLabels());
-        _stats = ModelsStats.Build(_all);   // candidate reasons are text
+        _stats = null;                 // candidate reasons are text: rebuilt on the next paint
         _search.PlaceholderText = Lang.T("mdl_search");
         _verify.Text = Lang.T("models_verify_btn");
         _dbCheck.Text = Lang.T("modeldb_check");
@@ -208,7 +212,7 @@ public sealed class ModelsPage : ThemedPage
         Invalidate(); _views[_tab].Invalidate(); _footer.Invalidate(); _subTabs.Invalidate();
     }
 
-    private void StyleSearch() { _search.BackColor = Theme.Card; _search.ForeColor = Theme.Text; }
+    private void StyleSearch() => _searchBox.ApplyTheme();
 
     // ---- navigation ----
     internal int Tab => _tab;
@@ -227,6 +231,7 @@ public sealed class ModelsPage : ThemedPage
         LayoutContent();
         _scrollHost.ResumeLayout(true);
         _footer.Invalidate();
+        if (tab == TabStart) (_views[TabStart] as ModelsStartView)?.Animate();
     }
 
     /// <summary>Open the List with the search box set (series cards, candidates, tiles).</summary>
@@ -302,7 +307,8 @@ public sealed class ModelsPage : ThemedPage
 
     private void LayoutBits()
     {
-        _search.Location = new Point(Math.Max(Pad, ClientSize.Width - Pad - _search.Width), 26);
+        _searchBox.Height = _searchBox.PreferredHeight;
+        _searchBox.Location = new Point(Math.Max(Pad, ClientSize.Width - Pad - _searchBox.Width), 22);
         _subTabs.SetBounds(Pad, SubTop(), _subTabs.FitTo(ClientSize.Width - Pad * 2), _subTabs.Height);
 
         int footerH = Math.Max(66, FLegend.Height * 3 + 26);
@@ -359,7 +365,7 @@ public sealed class ModelsPage : ThemedPage
         TextRenderer.DrawText(g, Lang.T("tab_models"), FTitle, new Point(Pad, 24), Theme.Text);
 
         int y = 24 + FTitle.Height + 12;
-        int lineW = avail - _search.Width - 20;
+        int lineW = avail - _searchBox.Width - 20;
         if (_detected is { } det)
         {
             string sub = Lang.T("mdl_you") + ":  " + det.Name + "   ·   " + D.Firmware();
@@ -372,10 +378,60 @@ public sealed class ModelsPage : ThemedPage
         }
         y += FSub.Height + 6;
         // database line: version and what changed since the last visit
-        string db = string.Format(Lang.T("mdl_db_line"), Devices.EffectiveDataVersion, _stats.Total, _stats.Tested);
+        string db = string.Format(Lang.T("mdl_db_line"), Devices.EffectiveDataVersion, Stats.Total, Stats.Tested);
         if (_new.Count > 0) db += "   ·   " + string.Format(Lang.T("mdl_new_since"), _new.Count);
         TextRenderer.DrawText(g, db, FIntro, new Rectangle(Pad, y, avail, FIntro.Height), _new.Count > 0 ? Theme.Accent : Theme.Muted, One);
     }
 
     protected override void Dispose(bool disposing) { if (disposing) _tip.Dispose(); base.Dispose(disposing); }
+
+    /// <summary>
+    /// The search field: a borderless TextBox inside a drawn frame (app card colour, rounded,
+    /// accent border while focused) with a magnifier and inner padding - the plain FixedSingle
+    /// box put the text right against its border.
+    /// </summary>
+    private sealed class SearchBox : Control
+    {
+        public readonly TextBox Box = new() { BorderStyle = BorderStyle.None, Font = new Font("Segoe UI", 10.5f) };
+        private static readonly Font Glyph = new("Segoe MDL2 Assets", 10.5f);
+
+        public SearchBox()
+        {
+            DoubleBuffered = true;
+            ResizeRedraw = true;
+            Cursor = Cursors.IBeam;
+            Controls.Add(Box);
+            Box.GotFocus += (_, _) => Invalidate();
+            Box.LostFocus += (_, _) => Invalidate();
+            ApplyTheme();
+        }
+
+        private int S(int v) => (int)Math.Ceiling(v * DeviceDpi / 96f);
+        public int PreferredHeight => Box.PreferredHeight + S(16);
+
+        public void ApplyTheme() { Box.BackColor = Theme.Card; Box.ForeColor = Theme.Text; BackColor = Theme.Surface; Invalidate(); }
+
+        protected override void OnClick(EventArgs e) { base.OnClick(e); Box.Focus(); }
+
+        protected override void OnLayout(LayoutEventArgs levent)
+        {
+            base.OnLayout(levent);
+            int left = S(34), right = S(12);
+            Box.SetBounds(left, (Height - Box.Height) / 2, Math.Max(10, Width - left - right), Box.Height);
+        }
+
+        protected override void OnPaint(PaintEventArgs e)
+        {
+            var g = e.Graphics;
+            g.SmoothingMode = SmoothingMode.AntiAlias;
+            g.Clear(Theme.Surface);
+            bool focus = Box.Focused;
+            using (var path = Theme.RoundRect(new RectangleF(0.5f, 0.5f, Width - 1, Height - 1), 7))
+            {
+                using var b = new SolidBrush(Theme.Card); g.FillPath(b, path);
+                using var pen = new Pen(focus ? Theme.Accent : Theme.Border, focus ? 1.5f : 1f); g.DrawPath(pen, path);
+            }
+            Ui.CenterGlyph(g, "\uE721", Glyph, focus ? Theme.Accent : Theme.Muted, new RectangleF(S(8), 0, S(20), Height));
+        }
+    }
 }

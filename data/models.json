@@ -23,6 +23,15 @@
       },
       "credit": "wygodad, megadude9704",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/1",
+      "creditIssues": {
+        "wygodad": [
+          1,
+          72
+        ],
+        "megadude9704": [
+          115
+        ]
+      },
       "added": "2026-06-26",
       "tested": "2026-06-26",
       "recipes": {
@@ -72,6 +81,16 @@
       },
       "credit": "cesarcamps",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/5",
+      "creditIssues": {
+        "cesarcamps": [
+          3,
+          4,
+          5,
+          11,
+          99,
+          100
+        ]
+      },
       "added": "2026-06-28",
       "tested": "2026-07-04",
       "recipes": {
@@ -113,6 +132,14 @@
       },
       "credit": "skandy121",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/6",
+      "creditIssues": {
+        "skandy121": [
+          6,
+          8,
+          92,
+          93
+        ]
+      },
       "added": "2026-06-29",
       "tested": "2026-07-05",
       "recipes": {
@@ -158,6 +185,17 @@
       },
       "credit": "alibi90, Hobby-Schrauber-88",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/14",
+      "creditIssues": {
+        "alibi90": [
+          13,
+          14,
+          16
+        ],
+        "Hobby-Schrauber-88": [
+          163,
+          164
+        ]
+      },
       "added": "2026-06-29",
       "tested": "2026-07-12",
       "recipes": {
@@ -203,6 +241,12 @@
       },
       "credit": "moragab1993",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/47",
+      "creditIssues": {
+        "moragab1993": [
+          45,
+          47
+        ]
+      },
       "added": "2026-06-29",
       "tested": "2026-07-29",
       "recipes": {
@@ -248,6 +292,23 @@
       },
       "credit": "hengeleng10-tech, M-Essa11, qq588849, DeimosCreator",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/19",
+      "creditIssues": {
+        "hengeleng10-tech": [
+          19,
+          29
+        ],
+        "M-Essa11": [
+          57
+        ],
+        "qq588849": [
+          220,
+          222,
+          223
+        ],
+        "DeimosCreator": [
+          224
+        ]
+      },
       "added": "2026-06-29",
       "tested": "2026-07-15",
       "recipes": {
@@ -293,6 +354,12 @@
       },
       "credit": "fwbvng",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/21",
+      "creditIssues": {
+        "fwbvng": [
+          21,
+          22
+        ]
+      },
       "added": "2026-06-29",
       "tested": "2026-07-26",
       "recipes": {
@@ -338,6 +405,12 @@
       },
       "credit": "Mung-Bean-Monkey",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/23",
+      "creditIssues": {
+        "Mung-Bean-Monkey": [
+          23,
+          24
+        ]
+      },
       "added": "2026-06-29",
       "tested": "2026-07-26",
       "recipes": {
@@ -381,6 +454,11 @@
       },
       "credit": "AnyTw",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/25",
+      "creditIssues": {
+        "AnyTw": [
+          25
+        ]
+      },
       "added": "2026-06-29",
       "tested": "2026-07-26",
       "recipes": {
@@ -421,6 +499,14 @@
       },
       "credit": "Qaron-makaron, SrBeans",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/30",
+      "creditIssues": {
+        "Qaron-makaron": [
+          30
+        ],
+        "SrBeans": [
+          118
+        ]
+      },
       "added": "2026-06-29",
       "tested": "2026-07-26",
       "recipes": {
@@ -466,6 +552,15 @@
       },
       "credit": "mewmrow, vlf1e",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/34",
+      "creditIssues": {
+        "mewmrow": [
+          34
+        ],
+        "vlf1e": [
+          121,
+          122
+        ]
+      },
       "added": "2026-06-29",
       "tested": "2026-07-26",
       "recipes": {
@@ -509,6 +604,12 @@
       },
       "credit": "inokra",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/40",
+      "creditIssues": {
+        "inokra": [
+          40,
+          41
+        ]
+      },
       "added": "2026-06-29",
       "tested": "2026-07-26",
       "recipes": {
@@ -550,6 +651,13 @@
       },
       "credit": "eaglent1",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/38",
+      "creditIssues": {
+        "eaglent1": [
+          38,
+          39,
+          76
+        ]
+      },
       "added": "2026-06-29",
       "tested": "2026-07-26",
       "recipes": {
@@ -591,8 +699,15 @@
         "verified": true,
         "singleFan": false
       },
-      "credit": "Harsh3456D",
+      "credit": "itsHarshDabas",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/44",
+      "creditIssues": {
+        "itsHarshDabas": [
+          42,
+          43,
+          44
+        ]
+      },
       "added": "2026-06-29",
       "tested": "2026-07-28",
       "recipes": {
@@ -637,6 +752,12 @@
       },
       "credit": "ping-myildirim",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/61",
+      "creditIssues": {
+        "ping-myildirim": [
+          60,
+          61
+        ]
+      },
       "added": "2026-06-29",
       "tested": "2026-08-04",
       "recipes": {
@@ -682,6 +803,13 @@
       },
       "credit": "migecko",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/68",
+      "creditIssues": {
+        "migecko": [
+          68,
+          84,
+          85
+        ]
+      },
       "added": "2026-06-29",
       "tested": "2026-08-12",
       "recipes": {
@@ -727,6 +855,23 @@
       },
       "credit": "Punssama \u0026 Gangan-Lin, GabrielGby, houstonmcknight790-byte, sefouhi3400-hash",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/90",
+      "creditIssues": {
+        "Punssama": [
+          89
+        ],
+        "Gangan-Lin": [
+          90
+        ],
+        "GabrielGby": [
+          190
+        ],
+        "houstonmcknight790-byte": [
+          227
+        ],
+        "sefouhi3400-hash": [
+          235
+        ]
+      },
       "added": "2026-06-29",
       "tested": "2026-08-14",
       "recipes": {
@@ -921,6 +1066,12 @@
       },
       "credit": "krystian-pytlik",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/52",
+      "creditIssues": {
+        "krystian-pytlik": [
+          52,
+          53
+        ]
+      },
       "added": "2026-06-26",
       "tested": "2026-08-10",
       "recipes": {
@@ -1022,6 +1173,12 @@
       },
       "credit": "scorvus99",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/230",
+      "creditIssues": {
+        "scorvus99": [
+          117,
+          230
+        ]
+      },
       "added": "2026-06-26",
       "recipes": {
         "Silent": [
@@ -1062,6 +1219,11 @@
       },
       "credit": "Fanilo-Nantenaina",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/131",
+      "creditIssues": {
+        "Fanilo-Nantenaina": [
+          131
+        ]
+      },
       "added": "2026-06-29",
       "recipes": {
         "Silent": [
@@ -1106,6 +1268,14 @@
       },
       "credit": "Matt99-sys",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/130",
+      "creditIssues": {
+        "Matt99-sys": [
+          130,
+          133,
+          134,
+          135
+        ]
+      },
       "added": "2026-08-23",
       "tested": "2026-08-24",
       "recipes": {
@@ -1148,6 +1318,17 @@
       },
       "credit": "dodi6161, alinayzIr",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/104",
+      "creditIssues": {
+        "dodi6161": [
+          104,
+          105,
+          138
+        ],
+        "alinayzIr": [
+          234,
+          236
+        ]
+      },
       "added": "2026-06-29",
       "tested": "2026-08-23",
       "recipes": {
@@ -1189,6 +1370,12 @@
       },
       "credit": "Ghli",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/245",
+      "creditIssues": {
+        "Ghli": [
+          244,
+          245
+        ]
+      },
       "added": "2026-06-29",
       "tested": "2026-10-17",
       "recipes": {
@@ -1238,6 +1425,36 @@
       },
       "credit": "xulu19861102-hub, mithril01, H0tSTUff, girfli, STRIEH, onrchnn",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/74",
+      "creditIssues": {
+        "xulu19861102-hub": [
+          65,
+          70,
+          71,
+          74,
+          75,
+          78
+        ],
+        "mithril01": [
+          113,
+          114
+        ],
+        "H0tSTUff": [
+          136,
+          137,
+          144
+        ],
+        "girfli": [
+          207
+        ],
+        "STRIEH": [
+          213,
+          214,
+          215
+        ],
+        "onrchnn": [
+          254
+        ]
+      },
       "added": "2026-06-29",
       "tested": "2026-08-10",
       "recipes": {
@@ -1283,6 +1500,12 @@
       },
       "credit": "OrbNRG",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/102",
+      "creditIssues": {
+        "OrbNRG": [
+          102,
+          103
+        ]
+      },
       "added": "2026-06-29",
       "tested": "2026-08-23",
       "recipes": {
@@ -1366,6 +1589,11 @@
       },
       "credit": "A7GoD",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/171",
+      "creditIssues": {
+        "A7GoD": [
+          171
+        ]
+      },
       "added": "2026-06-29",
       "tested": "2026-09-14",
       "recipes": {
@@ -1731,6 +1959,12 @@
       },
       "credit": "Acoustichayes",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/160",
+      "creditIssues": {
+        "Acoustichayes": [
+          160,
+          212
+        ]
+      },
       "added": "2026-06-29",
       "tested": "2026-09-14",
       "recipes": {
@@ -1776,6 +2010,13 @@
       },
       "credit": "kltk",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/109",
+      "creditIssues": {
+        "kltk": [
+          107,
+          108,
+          109
+        ]
+      },
       "added": "2026-06-29",
       "tested": "2026-08-23",
       "recipes": {
@@ -1941,6 +2182,13 @@
       },
       "credit": "gkyrios",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/156",
+      "creditIssues": {
+        "gkyrios": [
+          156,
+          157,
+          158
+        ]
+      },
       "added": "2026-06-29",
       "tested": "2026-09-02",
       "recipes": {
@@ -2025,6 +2273,11 @@
       },
       "credit": "otherpartsoftheworld-spec",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/91",
+      "creditIssues": {
+        "otherpartsoftheworld-spec": [
+          91
+        ]
+      },
       "added": "2026-08-16",
       "tested": "2026-08-23",
       "recipes": {
@@ -2190,6 +2443,13 @@
       },
       "credit": "TheOriginalBabu",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/250",
+      "creditIssues": {
+        "TheOriginalBabu": [
+          249,
+          250,
+          252
+        ]
+      },
       "added": "2026-06-29",
       "recipes": {
         "Silent": [
@@ -2434,6 +2694,15 @@
       },
       "credit": "VamiCLAY, SvinoSuper",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/142",
+      "creditIssues": {
+        "VamiCLAY": [
+          142,
+          143
+        ],
+        "SvinoSuper": [
+          154
+        ]
+      },
       "added": "2026-06-29",
       "tested": "2026-08-27",
       "recipes": {
@@ -2479,6 +2748,15 @@
       },
       "credit": "messer2212, Error29112002",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/116",
+      "creditIssues": {
+        "messer2212": [
+          116
+        ],
+        "Error29112002": [
+          119,
+          120
+        ]
+      },
       "added": "2026-06-29",
       "tested": "2026-08-23",
       "recipes": {
@@ -2606,6 +2884,23 @@
       },
       "credit": "zajebistylukasz-beep, DRLOGIC01, Osanosa, sensini82",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/63",
+      "creditIssues": {
+        "zajebistylukasz-beep": [
+          63,
+          64
+        ],
+        "DRLOGIC01": [
+          176,
+          177
+        ],
+        "Osanosa": [
+          191
+        ],
+        "sensini82": [
+          192,
+          193
+        ]
+      },
       "added": "2026-06-29",
       "tested": "2026-08-06",
       "recipes": {
@@ -2651,6 +2946,17 @@
       },
       "credit": "dmas-dll, Lofre",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/27",
+      "creditIssues": {
+        "dmas-dll": [
+          26,
+          27
+        ],
+        "Lofre": [
+          80,
+          81,
+          87
+        ]
+      },
       "added": "2026-06-29",
       "recipes": {
         "Silent": [
@@ -2771,6 +3077,13 @@
       },
       "credit": "Flo827",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/127",
+      "creditIssues": {
+        "Flo827": [
+          127,
+          128,
+          129
+        ]
+      },
       "added": "2026-06-29",
       "tested": "2026-08-23",
       "recipes": {
@@ -2936,6 +3249,11 @@
       },
       "credit": "halexys",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/237",
+      "creditIssues": {
+        "halexys": [
+          237
+        ]
+      },
       "added": "2026-10-18",
       "tested": "2026-10-18",
       "recipes": {
@@ -3059,6 +3377,11 @@
       },
       "credit": "sevi-05",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/206",
+      "creditIssues": {
+        "sevi-05": [
+          206
+        ]
+      },
       "added": "2026-06-29",
       "tested": "2026-09-27",
       "recipes": {
@@ -3262,6 +3585,11 @@
       },
       "credit": "Sagajaz",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/199",
+      "creditIssues": {
+        "Sagajaz": [
+          199
+        ]
+      },
       "added": "2026-06-29",
       "tested": "2026-09-18",
       "recipes": {
@@ -3582,6 +3910,16 @@
       },
       "credit": "parkisutama, tenduo",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/97",
+      "creditIssues": {
+        "parkisutama": [
+          97
+        ],
+        "tenduo": [
+          140,
+          145,
+          146
+        ]
+      },
       "added": "2026-08-04",
       "tested": "2026-08-27",
       "recipes": {
@@ -3665,6 +4003,11 @@
       },
       "credit": "ondrapa150",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/198",
+      "creditIssues": {
+        "ondrapa150": [
+          198
+        ]
+      },
       "added": "2026-09-16",
       "tested": "2026-09-17",
       "recipes": {
@@ -3751,6 +4094,12 @@
       },
       "credit": "Xakson",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/228",
+      "creditIssues": {
+        "Xakson": [
+          228,
+          229
+        ]
+      },
       "added": "2026-10-01",
       "tested": "2026-10-02",
       "recipes": {
@@ -3858,8 +4207,19 @@
         "verified": true,
         "singleFan": true
       },
-      "credit": "arcfybrr, pushtamper-nice",
+      "credit": "arcfybr, pushtamper-nice",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/111",
+      "creditIssues": {
+        "arcfybr": [
+          110,
+          111,
+          112,
+          159
+        ],
+        "pushtamper-nice": [
+          162
+        ]
+      },
       "added": "2026-06-29",
       "tested": "2026-09-01",
       "recipes": {
@@ -4143,6 +4503,13 @@
       },
       "credit": "Themazin",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/208",
+      "creditIssues": {
+        "Themazin": [
+          208,
+          209,
+          210
+        ]
+      },
       "added": "2026-06-29",
       "recipes": {
         "Silent": [
@@ -4256,6 +4623,12 @@
       },
       "credit": "ezn24",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/200",
+      "creditIssues": {
+        "ezn24": [
+          200,
+          219
+        ]
+      },
       "added": "2026-06-29",
       "tested": "2026-09-20",
       "recipes": {
@@ -4341,6 +4714,14 @@
       },
       "credit": "Liuwins",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/152",
+      "creditIssues": {
+        "Liuwins": [
+          151,
+          152,
+          153,
+          161
+        ]
+      },
       "added": "2026-06-29",
       "tested": "2026-09-01",
       "recipes": {
@@ -4501,6 +4882,13 @@
       },
       "credit": "Dkrimz",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/125",
+      "creditIssues": {
+        "Dkrimz": [
+          124,
+          125,
+          126
+        ]
+      },
       "added": "2026-06-29",
       "recipes": {
         "Silent": [
@@ -4663,6 +5051,11 @@
       },
       "credit": "oscarschulzbongert-oss",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/77",
+      "creditIssues": {
+        "oscarschulzbongert-oss": [
+          77
+        ]
+      },
       "added": "2026-06-29",
       "recipes": {
         "Silent": [
@@ -4865,6 +5258,11 @@
       },
       "credit": "GalacticPasha",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/139",
+      "creditIssues": {
+        "GalacticPasha": [
+          139
+        ]
+      },
       "added": "2026-06-29",
       "tested": "2026-08-27",
       "recipes": {
@@ -4910,6 +5308,13 @@
       },
       "credit": "SorgZZ",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/195",
+      "creditIssues": {
+        "SorgZZ": [
+          182,
+          195,
+          196
+        ]
+      },
       "added": "2026-09-14",
       "tested": "2026-09-15",
       "recipes": {
@@ -4955,6 +5360,11 @@
       },
       "credit": "SpeedPlayzz",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/148",
+      "creditIssues": {
+        "SpeedPlayzz": [
+          148
+        ]
+      },
       "added": "2026-08-28",
       "tested": "2026-08-28",
       "recipes": {
@@ -5000,6 +5410,11 @@
       },
       "credit": "se-240717038",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/239",
+      "creditIssues": {
+        "se-240717038": [
+          239
+        ]
+      },
       "added": "2026-06-29",
       "tested": "2026-10-17",
       "recipes": {
@@ -5045,6 +5460,12 @@
       },
       "credit": "afk789",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/50",
+      "creditIssues": {
+        "afk789": [
+          50,
+          55
+        ]
+      },
       "added": "2026-06-29",
       "tested": "2026-07-29",
       "recipes": {
@@ -5086,6 +5507,19 @@
       },
       "credit": "Skullkidsrevenge, bnjhdaskghsnlh, UzaydaGezen",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/54",
+      "creditIssues": {
+        "Skullkidsrevenge": [
+          54
+        ],
+        "bnjhdaskghsnlh": [
+          166,
+          167,
+          168
+        ],
+        "UzaydaGezen": [
+          172
+        ]
+      },
       "added": "2026-06-29",
       "tested": "2026-08-01",
       "recipes": {
@@ -5127,6 +5561,16 @@
       },
       "credit": "funcompsition-hash, SorgZZ",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/180",
+      "creditIssues": {
+        "funcompsition-hash": [
+          179,
+          180
+        ],
+        "SorgZZ": [
+          201,
+          202
+        ]
+      },
       "added": "2026-09-14",
       "tested": "2026-09-18",
       "recipes": {
@@ -5172,6 +5616,12 @@
       },
       "credit": "sw1n3flu80085",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/197",
+      "creditIssues": {
+        "sw1n3flu80085": [
+          183,
+          197
+        ]
+      },
       "added": "2026-09-14",
       "tested": "2026-09-16",
       "recipes": {
@@ -5217,6 +5667,21 @@
       },
       "credit": "SteppinStone, AiM-lab-owl",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/66",
+      "creditIssues": {
+        "SteppinStone": [
+          66,
+          67,
+          73
+        ],
+        "AiM-lab-owl": [
+          185,
+          186,
+          187,
+          188,
+          189,
+          205
+        ]
+      },
       "added": "2026-08-07",
       "tested": "2026-09-14",
       "recipes": {
@@ -5266,6 +5731,13 @@
       },
       "credit": "Giperzvuk",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/221",
+      "creditIssues": {
+        "Giperzvuk": [
+          221,
+          225,
+          226
+        ]
+      },
       "added": "2026-09-28",
       "tested": "2026-10-01",
       "recipes": {

@@ -123,6 +123,16 @@ def main():
                     missing.append(f"{p}: no added date")
             if tested and not any("tested" in hist.get(p, {}) for p in prefixes):
                 missing.append(f"{prefixes[0]}: Tested without a tested date")
+        # every thanked login needs its reports (Models tab lists them per person)
+        with open(DEVICES, encoding="utf-8") as f:
+            src = strip_comments(f.read())
+        for cm in re.finditer(r'Credit = "([^"]*)"[^\n]*\n?\s*(?:CreditIssues = Issues\("([^"]*)"\))?', src):
+            logins = [x.strip() for x in re.split(r"[,&]", cm.group(1)) if x.strip()]
+            spec = cm.group(2) or ""
+            have = {p.split(":")[0].strip().lower() for p in spec.split(";") if ":" in p}
+            for lg in logins:
+                if lg.lower() not in have:
+                    missing.append(f"{lg}: thanked but no report numbers in CreditIssues")
         if missing:
             print("model-history.json is behind Devices.cs - run: python tools/model-history.py")
             for m in missing:

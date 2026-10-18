@@ -201,8 +201,12 @@ External monitors and HDR were not tested (the message carries no monitor parame
 | **Settings → Power** - Windows power (turbo boost and power mode), charge limit with travel mode, battery-level rules, battery health, Fan Boost auto-off timer, refresh rate and HDR | **Settings → System** - tray-icon mouse actions, tray temperature icons, camera privacy block, Windows-key lock, touchpad, Fn/Win keyboard layout, diagnostics, backup |
 | ![Settings Hotkeys](docs/images/settings_hotkeys.png) | ![Updates](docs/images/updates.png) |
 | **Settings → Hotkeys** - every action rebindable, including one shortcut per scene | **Updates** - one-click install, 20 releases with download counts and inline notes |
-| ![Report my model](docs/images/report_my_model.png) | ![Models](docs/images/models.png) |
-| **Report my model** - guided in-app EC capture → pre-filled GitHub issue | **Models** - every recognized firmware with its support tier |
+| ![Report my model](docs/images/report_my_model.png) | ![Models - Start](docs/images/models_start.png) |
+| **Report my model** - guided in-app EC capture → pre-filled GitHub issue | **Models - Start** - your laptop and what works on it, the database in numbers, a growth chart you can point at, the models closest to tested, recent changes |
+| ![Models - List](docs/images/models_list.png) | ![Models - Features](docs/images/models_features.png) |
+| **Models - List** - filter chips, a NEW badge, nothing cut off; a row opens every prefix, the dates, and each person thanked with every one of their reports | **Models - Features** - how many models have each feature, and a dot per model |
+| ![Models - Series](docs/images/models_series.png) | ![Models - Community](docs/images/models_community.png) |
+| **Models - Series** - how much of each series owners have tested; a click opens the list | **Models - Community** - everyone who helped, and the timeline of new models and promotions |
 | ![Report start screen](docs/images/report_start.png) | ![GPU clock on Status](docs/images/status_gpu_clock.png) |
 | **Report start screen** - three tiles say what each test answers, what it needs and what it writes | **GPU clock on Status** - core clock against its ceiling, no vendor software; the ? bubble explains the figure |
 | ![Fan curve](docs/images/fan_curve.png) | ![Fan curve in action](docs/images/fan_curve_in_action.png) |

@@ -154,7 +154,7 @@ internal sealed class ModelsListView : ModelsView
             bool on = P.Filters.Contains(key);
             Chip(g, cx, cy, label, Theme.Accent, false, filled: on);
             string k = key;
-            Zone(g, new Rectangle(cx, cy, cw, ChipH()), () => P.ToggleFilter(k));
+            Zone(g, new Rectangle(cx, cy, cw, ChipH()), () => P.ToggleFilter(k), null, HoverKind.Chip);
             cx += cw + S(6);
         }
         T(g, count, ModelsPage.FSmall, new Rectangle(right - countW, y, countW, ChipH()), Theme.Faint,
@@ -176,7 +176,7 @@ internal sealed class ModelsListView : ModelsView
             (Lang.T("mdl_f_apex"), m.FourthMode != null ? Lang.T("mdl_d_known") + " (" + m.FourthMode.Name + ")" : Lang.T("mdl_d_none")),
             (Lang.T("mdl_f_backup"), Devices.BlockPathOf(m) != null ? Lang.T("mdl_d_backup_yes") : Lang.T("mdl_d_none")),
         };
-        int labelW = lines.Max(l => ModelsText.NaturalW(l.Label, ModelsPage.FSmall)) + S(16);
+        int labelW = lines.Select(l => l.Label).Append(Lang.T("mdl_d_people")).Max(l => ModelsText.NaturalW(l, ModelsPage.FSmall)) + S(16);
         int vx = x + labelW, vw = w - labelW;
         int cy = y;
         foreach (var (label, value) in lines)
@@ -185,53 +185,46 @@ internal sealed class ModelsListView : ModelsView
               TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPrefix | TextFormatFlags.SingleLine);
             cy += Para(g, value, f, vx, cy, vw, Theme.Text) + S(4);
         }
-        // the report link
-        T(g, Lang.T("mdl_d_issue"), ModelsPage.FSmall, new Rectangle(x, cy + 1, labelW, ModelsText.LineH(f)), Theme.Faint,
+        // every thanked person with every one of their reports (each a link)
+        T(g, Lang.T("mdl_d_people"), ModelsPage.FSmall, new Rectangle(x, cy + 1, labelW, ChipH()), Theme.Faint,
           TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPrefix | TextFormatFlags.SingleLine);
-        string no = IssueNo(m.CreditUrl);
-        if (no.Length > 0)
-        {
-            string link = string.Format(Lang.T("mdl_issue"), no);
-            int lw = ModelsText.NaturalW(link, f);
-            T(g, link, f, new Rectangle(vx, cy, lw + 4, ModelsText.LineH(f)), Theme.Accent, ModelsText.Line);
-            Zone(g, new Rectangle(vx, cy, lw, ModelsText.LineH(f)), () => ModelsPage.OpenUrl(m.CreditUrl), m.CreditUrl);
-            cy += ModelsText.LineH(f) + S(4);
-        }
-        else cy += Para(g, Lang.T("mdl_d_noissue"), f, vx, cy, vw, Theme.Muted) + S(4);
-        // every thanked login as its own link
-        T(g, Lang.T("mdl_c_thanks"), ModelsPage.FSmall, new Rectangle(x, cy + 1, labelW, ChipH()), Theme.Faint,
-          TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPrefix | TextFormatFlags.SingleLine);
-        var logins = ModelsStats.Logins(m.Credit);
-        if (logins.Count == 0) { cy += Para(g, Dash, f, vx, cy, vw, Theme.Muted) + S(6); }
-        else
-        {
-            int cx = vx;
-            foreach (var login in logins)
-            {
-                string label = "@" + login;
-                int cw = ModelsText.NaturalW(label, ModelsPage.FSmall) + S(16);
-                if (cx + cw > vx + vw && cx > vx) { cx = vx; cy += ChipH() + S(6); }
-                Chip(g, cx, cy, label, Theme.Accent, true);
-                string who = login;
-                Zone(g, new Rectangle(cx, cy, cw, ChipH()), () => ModelsPage.OpenUrl("https://github.com/" + Uri.EscapeDataString(who)), "github.com/" + who);
-                cx += cw + S(6);
-            }
-            cy += ChipH() + S(8);
-        }
-        // copy row
-        string copyLabel = Lang.T("mdl_d_copy");
-        Button(g, vx, cy, copyLabel, false, () =>
+        int ph = People(g, m, vx, cy, vw);
+        if (ph == 0) ph = Para(g, Lang.T("mdl_d_noissue"), f, vx, cy, vw, Theme.Muted);
+        cy += ph + S(10);
+        // copy row, with the result on the button for two seconds
+        bool justCopied = ReferenceEquals(_copied, m);
+        string copyLabel = !justCopied ? Lang.T("mdl_d_copy") : _copyOk ? "✓ " + Lang.T("mdl_d_copied") : Lang.T("mdl_d_copy_failed");
+        Button(g, vx, cy, copyLabel, justCopied && _copyOk, () =>
         {
             var t = Texts(m);
-            string text = $"{m.Name} | {t.Fw} | {t.Status} | {t.Curve} | SB {(t.Sb ? "yes" : "no")} | RPM {t.Rpm} | {Devices.EffectiveDataVersion}";
-            Ui.CopyText(text);
+            string people = string.Join("; ", ModelsStats.Logins(m.Credit).Select(l =>
+                "@" + l + (m.CreditIssues.TryGetValue(l, out var n) && n.Length > 0 ? " " + string.Join(" ", n.Select(k => "#" + k)) : "")));
+            string text = $"{m.Name} | {t.Fw} | {t.Status} | {t.Curve} | SB {(t.Sb ? "yes" : "no")} | RPM {t.Rpm}"
+                        + (people.Length > 0 ? " | " + people : "") + $" | db {Devices.EffectiveDataVersion}";
+            _copyOk = Ui.CopyText(text);
+            _copied = m;
+            Invalidate();
+            _copyTimer ??= new System.Windows.Forms.Timer { Interval = 2000 };
+            _copyTimer.Tick -= CopyDone; _copyTimer.Tick += CopyDone;
+            _copyTimer.Stop(); _copyTimer.Start();
         });
         cy += ButtonH() + S(6);
         return cy - y;
     }
 
-    private int DetailH(DeviceProfile m, int width) =>
-        S(12) + Details(null, m, Pad + S(46), 0, width - Pad * 2 - S(46) - S(24)) + S(10);
+    private DeviceProfile? _copied;
+    private bool _copyOk;
+    private System.Windows.Forms.Timer? _copyTimer;
+    private void CopyDone(object? sender, EventArgs e) { _copyTimer?.Stop(); _copied = null; Invalidate(); }
+    protected override void Dispose(bool disposing) { if (disposing) _copyTimer?.Dispose(); base.Dispose(disposing); }
+
+    private int DetailH(DeviceProfile m, int width)
+    {
+        bool col = Collecting;
+        Collecting = false;                       // measuring pass: no zones
+        try { return S(12) + Details(null, m, Pad + S(46), 0, width - Pad * 2 - S(46) - S(24)) + S(10); }
+        finally { Collecting = col; }
+    }
 
     protected override int Render(Graphics? g, int width, Rectangle clip)
     {
@@ -248,7 +241,7 @@ internal sealed class ModelsListView : ModelsView
         int tableTop = y;
         int tableH = headH + (rows.Count == 0 ? BaseRowH : rowH.Sum()) + detH + 10;
         var headers = Headers();
-        if (g != null)
+        if (Draw(g, new Rectangle(Pad, tableTop, avail, tableH)))
         {
             Ui.FillCard(g, new RectangleF(Pad, tableTop, avail, tableH));
             for (int c = 0; c < headers.Length; c++)
@@ -266,7 +259,7 @@ internal sealed class ModelsListView : ModelsView
             if (g != null) HelpDot.Render(g, new RectangleF(cx[col] + tw + S(6), dotY, dot, dot));
             var hr = new Rectangle(cx[col], tableTop, tw + S(30), headH);
             string k = key;
-            Zone(g, hr, () => HelpPopup.Toggle(this, hr, Lang.T(k), this));
+            Zone(g, hr, () => HelpPopup.Toggle(this, hr, Lang.T(k), this), null, HoverKind.None);
         }
 
         int ry = tableTop + headH;
@@ -316,7 +309,10 @@ internal sealed class ModelsListView : ModelsView
 
         // "not on the list?" box under the table
         int by = tableTop + tableH + S(14);
+        bool collect = Collecting;
+        Collecting = false;                       // measuring pass: no zones
         int bh = MissingBox(null, by, width);
+        Collecting = collect;
         if (g != null) MissingBox(g, by, width);
         return by + bh + S(14);
     }
@@ -329,7 +325,7 @@ internal sealed class ModelsListView : ModelsView
         int tw = w - S(36) - bw - S(16);
         var (t, th) = ModelsText.Fit(Lang.T("mdl_missing"), FCell, tw);
         int h = Math.Max(th, ButtonH()) + S(24);
-        if (g != null)
+        if (Draw(g, new Rectangle(x, y, w, h)))
         {
             using var path = Theme.RoundRect(new RectangleF(x + 0.5f, y + 0.5f, w - 1, h - 1), 8);
             using var pen = new Pen(Theme.BorderStrong) { DashStyle = DashStyle.Dash };

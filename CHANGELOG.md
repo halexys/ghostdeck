@@ -13,9 +13,16 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   backup path, the report link, every thanked person as a link, *Copy row*), **Features** (coverage
   and a dot matrix), **Series** (how much of each series owners have tested) and **Community**
   (everyone thanked and the full timeline). Everything is computed from the model database, so it
-  follows every database update without a release.
+  follows every database update without a release. Every person thanked for a model is listed
+  with **every one of their reports** (each number opens it), the growth chart shows the date and
+  both counts under the mouse, every clickable tile, card, chip and link lights up under the
+  mouse, the chart draws in and the numbers count up the first time Start opens (only when
+  Windows animations are on), and the search box has a magnifier and room around the text.
 - Model database 20261023: every model carries the day it was added and the day it became Tested,
-  rebuilt from the project history (optional `added` / `tested` keys; older versions ignore them).
+  rebuilt from the project history, and every thanked person's report numbers (optional `added`,
+  `tested` and `creditIssues` keys; older versions ignore them). Two thanked logins that pointed to
+  no GitHub account are corrected (@itsHarshDabas for the Crosshair 16 HX AI D2XW, @arcfybr for
+  the Thin 15 B12UCX / B12VE).
 
 ### Fixed
 - Models tab: long model names and thank-you lists wrap onto extra lines instead of ending in

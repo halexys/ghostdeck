@@ -3719,6 +3719,31 @@ model without a date. The dates travel in the signed database as optional `added
 and a downloaded database without them gets the compiled dates by prefix
 (`ModelHistory.Apply(onlyMissing: true)` in `Devices.ApplyOverride`).
 
+**Reports per person.** `DeviceProfile.CreditIssues` (`Issues("login:42,43; other:7")` in
+`Devices.cs`, `creditIssues` in the database) lists every report of every thanked login, in the
+order of `Credit`; the details of a List row and the Start card show each login (profile link)
+followed by its report numbers (each a link). `tools/model-history.py --check` also fails when a
+login in `Credit` has no entry here, so a new credit cannot go out without its reports. The
+first fill (2026-10-18) came from the GitHub API: the author and commenters of each model's main
+report, plus every report a person opened that names one of the model's prefixes; it also found
+two credited logins that do not exist on GitHub, now corrected.
+
+**Hover, chart cursor, entry animation.** Every click zone carries a hover kind (card, row,
+chip, button, link) and the view draws the highlight over the zone under the mouse; moving
+between zones invalidates only the two rectangles. A paint pass skips everything outside its
+clip (text, cards, chips) but still collects the click zones of the whole view, so a hover
+repaint costs ~0.2-20 ms instead of a full repaint (~50-250 ms per view, measured at 140 % in
+the render harness, `RESIZEBENCH=1`). The growth chart follows the mouse like Status > History:
+a dashed line at the last change before the cursor, a dot on each series and a card with the
+date and both counts. The first time Start shows in a run, the chart draws in from the left and
+the tiles count up over 450 ms (repainting only those two areas), skipped when Windows UI
+effects are off. The page computes its statistics in a message of their own after the window
+handle exists, so the background pre-build never blocks the UI thread for long.
+
+Screenshots: `docs/images/models_start.png`, `models_list.png`, `models_features.png`,
+`models_series.png`, `models_community.png`, `models_start_light.png` (render harness,
+`MODELSTAB`, `MODELSOPEN`, `MODELSEARCH`, `MODELSMOUSE`).
+
 **NEW badge.** `AppSettings.ModelsSeen` keeps first prefix + tier (`17S1IMS1|T`) of every
 model at the previous visit. The list as it was when the app started is the reference for
 the whole run, so a model added or promoted since then carries the badge (List, header line,
