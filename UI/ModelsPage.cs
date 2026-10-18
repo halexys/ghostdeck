@@ -160,7 +160,9 @@ public sealed class ModelsPage : ThemedPage
     internal static readonly Font FIcon = new("Segoe UI Symbol", 10.5f, FontStyle.Bold);
 
     internal const int HeadH = 34, RowH = 32;
-    internal static readonly float[] Lefts = { 0f, .26f, .42f, .49f, .58f, .70f, .77f, .855f };
+    // Model and Thanks get the widest columns: both wrap onto extra lines instead of ending in "..."
+    internal static readonly float[] Lefts = { 0f, .25f, .35f, .43f, .53f, .67f, .72f, .83f };
+    internal const int MaxLines = 6;   // safety cap only: the longest name and the six-person credit fit in fewer
 
     private int HeaderBandH() => 24 + FTitle.Height + 14 + FSub.Height + 10 + FIntro.Height * 2 + 18;
 
@@ -203,7 +205,7 @@ public sealed class ModelsPage : ThemedPage
         {
             string sub = Lang.T("mdl_you") + ":  " + det.Name + "   ·   " + D.Firmware();
             TextRenderer.DrawText(g, sub, FSub, new Rectangle(Pad, y, avail - _search.Width - 20, FSub.Height), Theme.Text,
-                TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis);
+                TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPrefix);
         }
         else
         {
@@ -229,13 +231,242 @@ public sealed class ModelsPage : ThemedPage
         private Rectangle _familyHeaderRect;
         private readonly List<(Rectangle rect, string url)> _creditRects = new();
 
+        // Per-row heights for the width they were measured at: a row grows (up to MaxLines) when
+        // the name, the firmware list or the thank-you list needs more than one line.
+        private int[] _rowH = Array.Empty<int>();
+        private int _rowHWidth = -1;
+        private IReadOnlyList<DeviceProfile>? _rowHFor;
+        private string _rowHLang = "";
+
+        // Wrapping cells: word break, "&" printed as-is (a credit reads "A & B"), and an ellipsis
+        // only on the last allowed line when even MaxLines are not enough.
+        private const TextFormatFlags CellFlags = TextFormatFlags.Left | TextFormatFlags.Top | TextFormatFlags.WordBreak
+            | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPrefix;
+        private const TextFormatFlags MeasureFlags = TextFormatFlags.Left | TextFormatFlags.Top | TextFormatFlags.WordBreak
+            | TextFormatFlags.NoPrefix;
+
         public Table(ModelsPage p) { _p = p; DoubleBuffered = true; ResizeRedraw = true; BackColor = Theme.Surface; }
 
-        public int ContentHeight(int width)
+        private int S(int v) => (int)Math.Ceiling(v * DeviceDpi / 96f);
+        private int HeadHS => Math.Max(S(HeadH), FHead.Height + S(16));
+        // single-line row height and the top inset that centres one line of text in it
+        private int BaseRowH => Math.Max(S(RowH), FCell.Height + S(14));
+        private int TextTop => Math.Max(S(4), (BaseRowH - LineH(FCell)) / 2);
+
+        private static string[] Headers() => new[]
         {
-            int rows = _p.Rows.Count;
-            return HeadH + rows * RowH + 10 + 14;   // legend moved to the page footer
+            Lang.T("st_model"), Lang.T("st_firmware"), Lang.T("mdl_c_family"),
+            Lang.T("mdl_c_status"), Lang.T("mdl_c_curve"), Lang.T("mdl_c_sb"), Lang.T("mdl_c_rpm"),
+            Lang.T("mdl_c_thanks"),
+        };
+
+        // Family and SB hold two letters or a tick, so their width comes from the header plus its
+        // help dot (long in ru/de/fr). Status holds one of two words that must never break mid-word
+        // ("Eksperymentalny"), so it is as wide as the longer one. The remaining columns share what
+        // is left by their Lefts weight.
+        private static bool FixedCol(int i) => i == 2 || i == 3 || i == 5;
+        private int[] Columns(int width)
+        {
+            int avail = width - Pad * 2, inner = avail - 36;
+            int n = Lefts.Length;
+            var head = Headers();
+            var w = new float[n];
+            float fixedW = 0, weightSum = 0;
+            for (int i = 0; i < n; i++)
+            {
+                if (i == 2 || i == 5) w[i] = NaturalW(head[i], FHead) + S(30) + 10;
+                else if (i == 3)
+                    w[i] = Math.Max(NaturalW(head[i], FHead),
+                        Math.Max(NaturalW(Lang.T("tier_tested"), FCell), NaturalW(Lang.T("tier_experimental"), FCell))) + 10;
+                if (FixedCol(i)) fixedW += w[i];
+                else weightSum += (i + 1 < n ? Lefts[i + 1] : 1f) - Lefts[i];
+            }
+            float rest = Math.Max(0, inner - fixedW);
+            for (int i = 0; i < n; i++)
+                if (!FixedCol(i)) w[i] = rest * ((i + 1 < n ? Lefts[i + 1] : 1f) - Lefts[i]) / weightSum;
+            int[] cx = new int[n + 1];
+            float x = Pad + 18;
+            for (int i = 0; i < n; i++) { cx[i] = (int)x; x += w[i]; }
+            cx[n] = Pad + avail - 14;
+            return cx;
         }
+
+        // A single word wider than its column (a long GitHub login) is split onto the next line
+        // instead of ending in "...": word wrapping alone never breaks inside a word.
+        private static readonly Dictionary<(string, int), string> BrokenCache = new();
+        private static string BreakLongWords(string text, Font font, int w)
+        {
+            // most cells fit on one line: one unconstrained measure settles them
+            if (w <= 0 || NaturalW(text, font) <= w) return text;
+            // FCell and FMono never carry the same text, so text + width is a sufficient key
+            if (BrokenCache.TryGetValue((text, w), out var done)) return done;
+            return BrokenCache[(text, w)] = BreakLongWordsCore(text, font, w);
+        }
+        private static string BreakLongWordsCore(string text, Font font, int w)
+        {
+            var words = text.Split(' ');
+            for (int k = 0; k < words.Length; k++)
+            {
+                string word = words[k];
+                if (NaturalW(word, font) <= w) continue;
+                var sb = new System.Text.StringBuilder();
+                int start = 0;
+                while (start < word.Length)
+                {
+                    int len = 1;
+                    while (start + len < word.Length
+                           && TextRenderer.MeasureText(word.Substring(start, len + 1), font, Size.Empty, MeasureFlags).Width <= w) len++;
+                    // prefer to break right after a hyphen ("world-" / "spec"), never leave a lone
+                    // trailing comma for the next line
+                    if (start + len < word.Length)
+                    {
+                        int hy = word.LastIndexOf('-', start + len - 1, len - 1);
+                        if (hy > start) len = hy - start + 1;
+                        else if (start + len == word.Length - 1 && word[^1] == ',' && len > 1) len--;
+                    }
+                    if (sb.Length > 0) sb.Append('\n');
+                    sb.Append(word, start, len);
+                    start += len;
+                }
+                words[k] = sb.ToString();
+            }
+            return string.Join(" ", words);
+        }
+        private static int ColW(int[] cx, int c) => cx[c + 1] - cx[c] - 10;
+
+        private sealed record RowText(string Name, string Fw, string Family, string Status, Color StatusCol,
+            string Curve, Color CurveCol, bool Sb, string Rpm, bool HasRpm, string Credit);
+
+        private static RowText Texts(DeviceProfile m)
+        {
+            bool tested = m.Tier == Tier.Tested;
+            string curve; Color curveCol;
+            if (m.FanCurve is { } fc)
+            {
+                // Same distinction as docs/SUPPORTED_MODELS.md: a verified curve on a model
+                // still awaiting its profile checks is editable only after the opt-in.
+                if (fc.Verified) { curve = "✓ " + Lang.T(tested ? "mdl_curve_edit" : "mdl_curve_vopt"); curveCol = Theme.Green; }
+                else { curve = "◉ " + Lang.T("mdl_curve_prev"); curveCol = Theme.Accent; }
+            }
+            else { curve = "—"; curveCol = Theme.Muted; }
+
+            bool sb = m.Recipes.TryGetValue(ProfileId.SuperBattery, out var sr) && sr.Any(x => x.val == 0x0F);
+            // spaces around "/" let a two-fan pair wrap instead of being cut
+            string rpm = m.CpuRpmAddr16 != 0
+                ? (m.GpuRpmAddr16 == 0 ? $"✓ 0x{m.CpuRpmAddr16:X2}:{m.CpuRpmAddr16 + 1:X2}"   // wide (16-bit) pairs
+                                       : $"✓ 0x{m.CpuRpmAddr16:X2}:{m.CpuRpmAddr16 + 1:X2} / {m.GpuRpmAddr16:X2}:{m.GpuRpmAddr16 + 1:X2}")
+                : m.CpuRpmAddr == 0 ? "—"
+                : m.GpuRpmAddr == 0 ? $"✓ 0x{m.CpuRpmAddr:X2}"   // single-tach boards (iGPU)
+                : $"✓ 0x{m.CpuRpmAddr:X2} / 0x{m.GpuRpmAddr:X2}";
+            bool hasRpm = m.CpuRpmAddr != 0 || m.CpuRpmAddr16 != 0;
+            return new RowText(m.Name, string.Join(", ", m.FirmwarePrefixes), m.ShiftMode == 0xF2 ? "G1" : "G2",
+                Lang.T(tested ? "tier_tested" : "tier_experimental"), tested ? Theme.Green : Theme.Amber,
+                curve, curveCol, sb, rpm, hasRpm, m.Credit.Length > 0 ? "@" + m.Credit : "—");
+        }
+
+        // One line as TextRenderer lays it out (taller than Font.Height), the unit for the line cap.
+        // One-line width of a text does not depend on the column width, so it is measured once per
+        // text and font; a resize then only measures the cells that really wrap.
+        // Keyed by font REFERENCE: Font.GetHashCode/Equals read the family name through GDI+ on
+        // every call, which cost more than the measure being cached (the fonts here are static).
+        private static readonly Dictionary<Font, Dictionary<string, int>> NaturalWCache = new(ReferenceEqualityComparer.Instance);
+        private static readonly Dictionary<Font, Dictionary<string, int>> WordWCache = new(ReferenceEqualityComparer.Instance);
+        private static int CachedW(Dictionary<Font, Dictionary<string, int>> cache, string text, Font font, TextFormatFlags flags)
+        {
+            if (!cache.TryGetValue(font, out var d)) cache[font] = d = new();
+            if (!d.TryGetValue(text, out int w)) d[text] = w = TextRenderer.MeasureText(text, font, Size.Empty, flags).Width;
+            return w;
+        }
+        // SingleLine, not MeasureFlags: with WordBreak and no width, MeasureText wraps at every
+        // space and returns the widest WORD instead of the whole line
+        private static int NaturalW(string text, Font font) =>
+            CachedW(NaturalWCache, text, font, TextFormatFlags.NoPrefix | TextFormatFlags.SingleLine);
+
+        private static readonly Dictionary<Font, int> LineHCache = new(ReferenceEqualityComparer.Instance);
+        private static int LineH(Font font)
+        {
+            if (!LineHCache.TryGetValue(font, out int h))
+                LineHCache[font] = h = TextRenderer.MeasureText("Ag", font, Size.Empty, MeasureFlags).Height;
+            return h;
+        }
+
+        // Height of an already broken text wrapped into a column, capped at MaxLines lines of that font.
+        private static int TextH(string text, Font font, int w)
+        {
+            // one line needs no wrapped measure (the common case for every column)
+            if (text.IndexOf('\n') < 0 && NaturalW(text, font) <= w) return LineH(font);
+            return Math.Min(Lines(text, font, w), MaxLines) * LineH(font);
+        }
+
+        // Line count of a word-wrapped text, from cached word widths instead of a GDI measure per
+        // cell and width: a window resize re-wraps ~160 rows, and a wrapped MeasureText each time
+        // made every resize step several times slower. Greedy like DrawText's word break, against
+        // a width 3 px narrower than the cell so the count never comes out below what is drawn.
+        private static int Lines(string text, Font font, int w)
+        {
+            int space = SpaceW(font), avail = w - PadW(font) - 3, lines = 0;
+            foreach (var seg in text.Split('\n'))
+            {
+                int cur = -1;
+                foreach (var word in seg.Split(' '))
+                {
+                    if (word.Length == 0) continue;
+                    int ww = WordW(word, font);
+                    if (cur < 0) { cur = ww; lines++; }
+                    else if (cur + space + ww <= avail) cur += space + ww;
+                    else { cur = ww; lines++; }
+                }
+                if (cur < 0) lines++;   // empty segment still takes a line
+            }
+            return Math.Max(1, lines);
+        }
+
+        private const TextFormatFlags TightFlags = TextFormatFlags.NoPrefix | TextFormatFlags.NoPadding | TextFormatFlags.SingleLine;
+        private static int WordW(string word, Font font) => CachedW(WordWCache, word, font, TightFlags);
+        private static int SpaceW(Font font) => WordW("a a", font) - WordW("aa", font);
+        // the left+right padding DrawText keeps inside the cell (MeasureFlags has no NoPadding)
+        private static int PadW(Font font) => NaturalW("a", font) - WordW("a", font);
+
+        // The wrapping cells of each row with long words already broken for the current widths:
+        // Name, Firmware, Status, Curve, RPM, Thanks. Colours are not cached (they follow the theme).
+        private string[][] _cells = Array.Empty<string[]>();
+        private int[] _creditW = Array.Empty<int>();   // width of the wrapped thank-you text = its click area
+        private static readonly int[] WrapCols = { 0, 1, 3, 4, 6, 7 };
+        private static Font CellFont(int k, RowText t) => k == 1 || (k == 4 && t.HasRpm) ? FMono : FCell;
+
+        private int[] RowHeights(int width)
+        {
+            var rows = _p.Rows;
+            if (width == _rowHWidth && ReferenceEquals(rows, _rowHFor) && _rowH.Length == rows.Count
+                && _rowHLang == Lang.CurrentCode) return _rowH;
+            int[] cx = Columns(width);
+            int baseH = BaseRowH, top = TextTop;
+            var hs = new int[rows.Count];
+            var cells = new string[rows.Count][];
+            var credW = new int[rows.Count];
+            for (int i = 0; i < rows.Count; i++)
+            {
+                var t = Texts(rows[i]);
+                string[] raw = { t.Name, t.Fw, t.Status, t.Curve, t.Rpm, t.Credit };
+                var row = cells[i] = new string[raw.Length];
+                int need = 0;
+                for (int k = 0; k < raw.Length; k++)
+                {
+                    var font = CellFont(k, t);
+                    int w = ColW(cx, WrapCols[k]);
+                    row[k] = BreakLongWords(raw[k], font, w);
+                    need = Math.Max(need, TextH(row[k], font, w));
+                }
+                hs[i] = Math.Max(baseH, need + top * 2);
+                int cw = ColW(cx, 7);
+                // a wrapped list fills the column, so the whole column is its click area
+                credW[i] = row[5].IndexOf('\n') < 0 && NaturalW(row[5], FCell) <= cw ? NaturalW(row[5], FCell) : cw;
+            }
+            _rowH = hs; _cells = cells; _creditW = credW; _rowHWidth = width; _rowHFor = rows; _rowHLang = Lang.CurrentCode;
+            return hs;
+        }
+
+        public int ContentHeight(int width) => HeadHS + RowHeights(width).Sum() + 10 + 14;   // legend moved to the page footer
 
         protected override void OnMouseMove(MouseEventArgs e)
         {
@@ -274,113 +505,91 @@ public sealed class ModelsPage : ThemedPage
             g.Clear(Theme.Surface);
             int width = Width;
             int avail = width - Pad * 2;
-
-            int n = Lefts.Length;
-            int[] cx = new int[n + 1];
-            for (int i = 0; i < n; i++) cx[i] = Pad + 18 + (int)(Lefts[i] * (avail - 36));
-            cx[n] = Pad + avail - 14;
-            int ColW(int c) => cx[c + 1] - cx[c] - 10;
+            int[] cx = Columns(width);
+            int[] rowH = RowHeights(width);
+            int headH = HeadHS, top = TextTop;
 
             int rows = _p.Rows.Count;
-            int tableH = HeadH + rows * RowH + 10;
+            int tableH = headH + (rows == 0 ? BaseRowH : rowH.Sum()) + 10;
             Ui.FillCard(g, new RectangleF(Pad, 0, avail, tableH));
 
-            var headers = new[]
-            {
-                Lang.T("st_model"), Lang.T("st_firmware"), Lang.T("mdl_c_family"),
-                Lang.T("mdl_c_status"), Lang.T("mdl_c_curve"), Lang.T("mdl_c_sb"), Lang.T("mdl_c_rpm"),
-                Lang.T("mdl_c_thanks"),
-            };
+            var headers = Headers();
             _creditRects.Clear();
             for (int c = 0; c < headers.Length; c++)
-                TextRenderer.DrawText(g, headers[c], FHead, new Rectangle(cx[c], 8, ColW(c), HeadH - 8), Theme.Muted,
-                    TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis);
+                TextRenderer.DrawText(g, headers[c], FHead, new Rectangle(cx[c], S(8), ColW(cx, c), headH - S(8)), Theme.Muted,
+                    TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPrefix);
 
             // Two columns need a sentence of explanation, so they get the app's standard help dot:
             // click to open the bubble, click again (or anywhere) to dismiss. Family is in there
             // because G1 / G2 is msi-ec's grouping, not an MSI designation - worth saying out loud
             // next to a column that otherwise reads like something the vendor prints on the box.
+            int dot = S(18), dotY = S(8) + (headH - S(8) - dot) / 2;
             int famTextW = TextRenderer.MeasureText(headers[2], FHead).Width;
-            HelpDot.Render(g, new RectangleF(cx[2] + famTextW + 6, 8 + (HeadH - 8 - 18) / 2f, 18, 18));
-            _familyHeaderRect = new Rectangle(cx[2], 0, famTextW + 30, HeadH);
+            HelpDot.Render(g, new RectangleF(cx[2] + famTextW + S(6), dotY, dot, dot));
+            _familyHeaderRect = new Rectangle(cx[2], 0, famTextW + S(30), headH);
 
             int sbTextW = TextRenderer.MeasureText(headers[5], FHead).Width;
-            HelpDot.Render(g, new RectangleF(cx[5] + sbTextW + 6, 8 + (HeadH - 8 - 18) / 2f, 18, 18));
-            _sbHeaderRect = new Rectangle(cx[5], 0, sbTextW + 30, HeadH);
+            HelpDot.Render(g, new RectangleF(cx[5] + sbTextW + S(6), dotY, dot, dot));
+            _sbHeaderRect = new Rectangle(cx[5], 0, sbTextW + S(30), headH);
 
-            int ry = HeadH;
-            foreach (var m in _p.Rows)
+            using (var pen = new Pen(Theme.Border)) g.DrawLine(pen, cx[0], headH, Pad + avail - 14, headH);
+
+            int ry = headH;
+            for (int i = 0; i < rows; i++)
             {
-                bool active = ReferenceEquals(m, _p.Detected);
-                if (active)
+                var m = _p.Rows[i];
+                int h = rowH[i];
+                // zebra striping so the eye keeps its row across eight columns; the detected
+                // model keeps its accent wash and bar on top of that
+                if (ReferenceEquals(m, _p.Detected))
                 {
                     using var b = new SolidBrush(Theme.AccentSoft);
-                    g.FillRectangle(b, Pad + 8, ry, avail - 16, RowH);
+                    g.FillRectangle(b, Pad + 8, ry, avail - 16, h);
                     using var bar = new SolidBrush(Theme.Accent);
-                    g.FillRectangle(bar, Pad + 8, ry, 4, RowH);
+                    g.FillRectangle(bar, Pad + 8, ry, S(4), h);
                 }
-                else
+                else if (i % 2 == 1)
                 {
-                    using var pen = new Pen(Theme.Border);
-                    g.DrawLine(pen, cx[0], ry, Pad + avail - 14, ry);
+                    using var b = new SolidBrush(Theme.RowAlt);
+                    g.FillRectangle(b, Pad + 8, ry, avail - 16, h);
                 }
 
-                bool tested = m.Tier == Tier.Tested;
-                string family = m.ShiftMode == 0xF2 ? "G1" : "G2";
-                string status = Lang.T(tested ? "tier_tested" : "tier_experimental");
-                var statusCol = tested ? Theme.Green : Theme.Amber;
+                // Thank-you column: the reporter's GitHub login(s), clickable -> their issue. The
+                // click area is kept for every row, also those outside this paint's clip.
+                if (m.Credit.Length > 0 && m.CreditUrl.Length > 0)
+                    _creditRects.Add((new Rectangle(cx[7], ry, _creditW[i], h), m.CreditUrl));
 
-                string curve; Color curveCol;
-                if (m.FanCurve is { } fc)
+                // only rows inside the area being repainted are drawn (157 rows, a screenful visible)
+                if (ry < e.ClipRectangle.Bottom && ry + h > e.ClipRectangle.Top)
                 {
-                    // Same distinction as docs/SUPPORTED_MODELS.md: a verified curve on a model
-                    // still awaiting its profile checks is editable only after the opt-in.
-                    if (fc.Verified) { curve = "✓ " + Lang.T(tested ? "mdl_curve_edit" : "mdl_curve_vopt"); curveCol = Theme.Green; }
-                    else { curve = "◉ " + Lang.T("mdl_curve_prev"); curveCol = Theme.Accent; }
+                    var t = Texts(m);
+                    var c = _cells[i];
+                    Cell(g, cx, 0, ry, top, h, c[0], FCell, Theme.Text);
+                    Cell(g, cx, 1, ry, top, h, c[1], FMono, Theme.Text);
+                    Cell(g, cx, 2, ry, top, h, t.Family, FCell, Theme.Muted);
+                    Cell(g, cx, 3, ry, top, h, c[2], FCell, t.StatusCol);
+                    Cell(g, cx, 4, ry, top, h, c[3], FCell, t.CurveCol);
+                    Cell(g, cx, 5, ry, top, h, t.Sb ? "✓" : "—", FCell, t.Sb ? Theme.Text : Theme.Muted);
+                    Cell(g, cx, 6, ry, top, h, c[4], t.HasRpm ? FMono : FCell, t.HasRpm ? Theme.Text : Theme.Muted);
+                    Cell(g, cx, 7, ry, top, h, c[5], FCell, m.Credit.Length > 0 ? Theme.Accent : Theme.Muted);
                 }
-                else { curve = "—"; curveCol = Theme.Muted; }
 
-                bool sb = m.Recipes.TryGetValue(ProfileId.SuperBattery, out var sr) && sr.Any(x => x.val == 0x0F);
-                string sbStr = sb ? "✓" : "—";
-
-                string rpm = m.CpuRpmAddr16 != 0
-                    ? (m.GpuRpmAddr16 == 0 ? $"✓ 0x{m.CpuRpmAddr16:X2}:{m.CpuRpmAddr16 + 1:X2}"   // wide (16-bit) pairs
-                                           : $"✓ 0x{m.CpuRpmAddr16:X2}:{m.CpuRpmAddr16 + 1:X2}/{m.GpuRpmAddr16:X2}:{m.GpuRpmAddr16 + 1:X2}")
-                    : m.CpuRpmAddr == 0 ? "—"
-                    : m.GpuRpmAddr == 0 ? $"✓ 0x{m.CpuRpmAddr:X2}"   // single-tach boards (iGPU)
-                    : $"✓ 0x{m.CpuRpmAddr:X2}/0x{m.GpuRpmAddr:X2}";
-                string fw = string.Join(", ", m.FirmwarePrefixes);
-
-                Cell(g, cx, 0, ry, ColW(0), m.Name, FCell, Theme.Text);
-                Cell(g, cx, 1, ry, ColW(1), fw, FMono, Theme.Text);
-                Cell(g, cx, 2, ry, ColW(2), family, FCell, Theme.Muted);
-                Cell(g, cx, 3, ry, ColW(3), status, FCell, statusCol);
-                Cell(g, cx, 4, ry, ColW(4), curve, FCell, curveCol);
-                Cell(g, cx, 5, ry, ColW(5), sbStr, FCell, sb ? Theme.Text : Theme.Muted);
-                bool hasRpm = m.CpuRpmAddr != 0 || m.CpuRpmAddr16 != 0;
-                Cell(g, cx, 6, ry, ColW(6), rpm, hasRpm ? FMono : FCell, hasRpm ? Theme.Text : Theme.Muted);
-
-                // Thank-you column: the reporter's GitHub login, clickable -> their issue.
-                if (m.Credit.Length > 0)
-                {
-                    string nick = "@" + m.Credit;
-                    Cell(g, cx, 7, ry, ColW(7), nick, FCell, Theme.Accent);
-                    int nw = Math.Min(ColW(7), TextRenderer.MeasureText(nick, FCell).Width);
-                    if (m.CreditUrl.Length > 0)
-                        _creditRects.Add((new Rectangle(cx[7], ry, nw, RowH), m.CreditUrl));
-                }
-                else Cell(g, cx, 7, ry, ColW(7), "—", FCell, Theme.Muted);
-
-                ry += RowH;
+                ry += h;
             }
 
             if (rows == 0)
-                TextRenderer.DrawText(g, "—", FCell, new Rectangle(cx[0], HeadH, avail, RowH), Theme.Muted,
+                TextRenderer.DrawText(g, "—", FCell, new Rectangle(cx[0], headH, avail, BaseRowH), Theme.Muted,
                     TextFormatFlags.Left | TextFormatFlags.VerticalCenter);
         }
 
-        private static void Cell(Graphics g, int[] cx, int c, int ry, int w, string text, Font font, Color color) =>
-            TextRenderer.DrawText(g, text, font, new Rectangle(cx[c], ry, w, RowH), color,
-                TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis);
+        private static void Cell(Graphics g, int[] cx, int c, int ry, int top, int h, string text, Font font, Color color)
+        {
+            int w = ColW(cx, c);
+            // cap the box at MaxLines lines so the ellipsis lands on the last allowed line; a
+            // shorter font (the monospaced firmware and RPM cells) is centred on the first line
+            int lh = LineH(font), dy = Math.Max(0, (LineH(FCell) - lh) / 2);
+            int boxH = Math.Min(h - top - dy, lh * MaxLines);
+            TextRenderer.DrawText(g, text, font, new Rectangle(cx[c], ry + top + dy, w, boxH), color, CellFlags);
+        }
     }
 }
