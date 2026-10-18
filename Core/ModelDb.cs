@@ -155,6 +155,32 @@ public static class ModelDb
             w.WriteString("shiftValue", Hex(fm.ShiftValue));
             w.WriteEndObject();
         }
+        // Optional, same two-way degradation as fourthMode. Slots are written as "Class[index]".
+        if (d.BlockPath is { } bp)
+        {
+            w.WriteStartObject("blockPath");
+            w.WriteString("shiftMode", bp.ShiftMode.ToString());
+            w.WriteString("fanMode", bp.FanMode.ToString());
+            w.WriteString("cpuTemp", bp.CpuTemp.ToString());
+            if (bp.GpuTemp != null) w.WriteString("gpuTemp", bp.GpuTemp.ToString());
+            if (bp.CpuDuty != null) w.WriteString("cpuDuty", bp.CpuDuty.ToString());
+            if (bp.GpuDuty != null) w.WriteString("gpuDuty", bp.GpuDuty.ToString());
+            if (bp.CpuRpm != null) w.WriteString("cpuRpm", bp.CpuRpm.ToString());
+            if (bp.GpuRpm != null) w.WriteString("gpuRpm", bp.GpuRpm.ToString());
+            void Curve(string name, BlockCurveSpec? c)
+            {
+                if (c == null) return;
+                w.WriteStartObject(name);
+                w.WriteString("class", c.Class);
+                w.WriteNumber("tempFirst", c.TempFirst);
+                w.WriteNumber("speedFirst", c.SpeedFirst);
+                w.WriteNumber("count", c.Count);
+                w.WriteEndObject();
+            }
+            Curve("cpuCurve", bp.CpuCurve);
+            Curve("gpuCurve", bp.GpuCurve);
+            w.WriteEndObject();
+        }
         if (d.Credit.Length > 0) w.WriteString("credit", d.Credit);
         if (d.CreditUrl.Length > 0) w.WriteString("creditUrl", d.CreditUrl);
         // recipes always explicit ("0xAA=0xVV" pairs) - the file is generated, never hand-edited
@@ -241,6 +267,21 @@ public static class ModelDb
             fourth = new FourthModeSpec(
                 fm.GetProperty("name").GetString() ?? "",
                 ParseByte(fm.GetProperty("shiftValue").GetString()));
+        BlockPathSpec? blocks = null;
+        if (m.TryGetProperty("blockPath", out var bp))
+        {
+            BlockRef? Slot(string name) => bp.TryGetProperty(name, out var v) ? ParseSlot(v.GetString()) : null;
+            BlockCurveSpec? Curve(string name) => bp.TryGetProperty(name, out var c)
+                ? new BlockCurveSpec(c.GetProperty("class").GetString() ?? "", c.GetProperty("tempFirst").GetInt32(),
+                                     c.GetProperty("speedFirst").GetInt32(), c.GetProperty("count").GetInt32())
+                : null;
+            blocks = new BlockPathSpec(
+                ParseSlot(bp.GetProperty("shiftMode").GetString()),
+                ParseSlot(bp.GetProperty("fanMode").GetString()),
+                ParseSlot(bp.GetProperty("cpuTemp").GetString()),
+                Slot("gpuTemp"), Slot("cpuDuty"), Slot("gpuDuty"), Slot("cpuRpm"), Slot("gpuRpm"),
+                Curve("cpuCurve"), Curve("gpuCurve"));
+        }
         return new DeviceProfile
         {
             Name = m.GetProperty("name").GetString() ?? "",
@@ -265,6 +306,7 @@ public static class ModelDb
             ShiftEcoValue = B("shiftEcoValue", Def.ShiftEcoValue),
             FanCurve = curve,
             FourthMode = fourth,
+            BlockPath = blocks,
             Credit = m.TryGetProperty("credit", out var cr) ? cr.GetString() ?? "" : "",
             CreditUrl = m.TryGetProperty("creditUrl", out var cu) ? cu.GetString() ?? "" : "",
             Recipes = recipes,
@@ -277,6 +319,19 @@ public static class ModelDb
         return s.StartsWith("0x", StringComparison.OrdinalIgnoreCase)
             ? Convert.ToByte(s[2..], 16)
             : byte.Parse(s);
+    }
+
+    // "MSI_System[7]" -> BlockRef. The class has to be one of the data blocks the app knows,
+    // so a database cannot point the backup path at an arbitrary WMI class.
+    private static BlockRef ParseSlot(string? s)
+    {
+        s = s?.Trim() ?? throw new FormatException("null block slot");
+        int open = s.IndexOf('['), close = s.IndexOf(']');
+        if (open <= 0 || close != s.Length - 1) throw new FormatException("bad block slot " + s);
+        string cls = s[..open];
+        int index = int.Parse(s[(open + 1)..close]);
+        if (!EcBlocks.IsKnownClass(cls) || index is < 0 or > 63) throw new FormatException("bad block slot " + s);
+        return new BlockRef(cls, index);
     }
 
     // Sanity: this data drives EC writes, so a structurally valid but nonsensical file is
@@ -296,6 +351,12 @@ public static class ModelDb
                 if (!d.Recipes.TryGetValue(id, out var r) || r.Length == 0) { error = d.Name + ": missing recipe " + id; return false; }
             if (d.FanCurve is { } fc && fc.Points is < 1 or > 16) { error = d.Name + ": bad curve points"; return false; }
             if (d.FanCurve is { } fc2 && fc2.MaxFanPct is < 100 or > 200) { error = d.Name + ": bad curve max %"; return false; }
+            // A curve table on the backup path: a known block, two runs of the same length that do
+            // not overlap, and a temperature run that starts above the critical-limit slot.
+            foreach (var c in new[] { d.BlockPath?.CpuCurve, d.BlockPath?.GpuCurve })
+                if (c != null && (!EcBlocks.IsKnownClass(c.Class) || c.Count is < 2 or > 8 || c.TempFirst < 4
+                                  || c.SpeedFirst < c.TempFirst + c.Count || c.SpeedFirst + c.Count > 64))
+                { error = d.Name + ": bad block curve layout"; return false; }
             if (d.FourthMode is { } fm)
             {
                 if (string.IsNullOrWhiteSpace(fm.Name)) { error = d.Name + ": fourth mode without a name"; return false; }

@@ -4,7 +4,7 @@ using System.Text.Json;
 
 namespace GhostDeck;
 
-public enum CliKind { Profile, Cycle, FanBoost, Overlay, Curve, Panic, Status, Help, Kbd, Webcam, Scene, FnSwap, Brightness, WinLock, Refresh, Charge, Travel, Diag, HdrSwitch, Touchpad, Mic, Turbo, Gpu, DumpModels, VerifyModels, DumpSupportedMd }
+public enum CliKind { Profile, Cycle, FanBoost, Overlay, Curve, Panic, Status, Help, Kbd, Webcam, Scene, FnSwap, Brightness, WinLock, Refresh, Charge, Travel, Diag, HdrSwitch, Touchpad, Mic, Turbo, Gpu, DumpModels, VerifyModels, DumpSupportedMd, Crosshair, TrueColor }
 
 public sealed record CliCommand(CliKind Kind, string Arg = "", string Arg2 = "");
 
@@ -29,6 +29,9 @@ public static class Cli
           GhostDeck.exe --cycle                 switch to the next profile
           GhostDeck.exe --fanboost <on|off> [seconds]   full fan speed; the optional auto-off (10-7200 s) needs the app running
           GhostDeck.exe --overlay <on|off>      gaming overlay (needs the app running)
+          GhostDeck.exe --crosshair <on|off>    the crosshair (needs the app running)
+          GhostDeck.exe --crosshair preset "<name>"   switch the crosshair on with a saved preset
+          GhostDeck.exe --crosshair code <GDX1....>     switch it on with a shared crosshair code
           GhostDeck.exe --curve <preset|auto>   apply a saved fan-curve preset (auto = stock fans)
           GhostDeck.exe --refresh <hz|max>      panel refresh rate (works on any machine)
           GhostDeck.exe --charge <60|80|100|off>   battery charge limit (off = stop managing)
@@ -42,6 +45,7 @@ public static class Cli
           GhostDeck.exe --mic <on|off>          unmute/mute the default Windows recording device (works on any machine)
           GhostDeck.exe --turbo <on|off|status>   CPU turbo boost via the Windows power plan (works on any machine)
           GhostDeck.exe --gpu <hybrid|integrated|status>   MSI graphics mode for the next restart (models with the MSI GPU switch)
+          GhostDeck.exe --truecolor <srgb|gamer|movie|antiblue|office|adobergb|displayp3|status>   MSI True Color profile (experimental; enable it under Settings -> System first; status works always)
           GhostDeck.exe --winlock <on|off>      block both Windows keys (needs the app running)
           GhostDeck.exe --scene "<name>"        apply a saved scene (needs the app running)
           GhostDeck.exe --panic                 safe state: Fan Boost off, Balanced, fans auto
@@ -107,6 +111,14 @@ public static class Cli
                 return new CliCommand(CliKind.DumpSupportedMd, Arg1());
             case "--overlay":
                 return Arg1().ToLowerInvariant() is "on" or "off" ? new CliCommand(CliKind.Overlay, Arg1().ToLowerInvariant()) : null;
+            case "--crosshair":
+            {
+                string xh = Arg1().ToLowerInvariant();
+                if (xh is "on" or "off") return new CliCommand(CliKind.Crosshair, xh);
+                // "preset <name>" / "code <GDX1....>": the second word is the value
+                if (xh is "preset" or "code" && a.Length > 2 && a[2].Trim().Length > 0) return new CliCommand(CliKind.Crosshair, xh, a[2].Trim());
+                return null;
+            }
             case "--curve":
                 return Arg1().Length > 0 ? new CliCommand(CliKind.Curve, Arg1()) : null;
             case "--kbd":
@@ -131,6 +143,12 @@ public static class Cli
                 return Arg1().ToLowerInvariant() is "hybrid" or "integrated" or "status" ? new CliCommand(CliKind.Gpu, Arg1().ToLowerInvariant()) : null;
             case "--scene":
                 return Arg1().Length > 0 ? new CliCommand(CliKind.Scene, Arg1()) : null;
+            case "--truecolor":
+            {
+                // a profile word or id (TrueColor.Parse), or "status"; the id travels as text
+                if (Arg1().Equals("status", StringComparison.OrdinalIgnoreCase)) return new CliCommand(CliKind.TrueColor, "status");
+                return TrueColor.Parse(Arg1()) is { } tcId ? new CliCommand(CliKind.TrueColor, tcId.ToString()) : null;
+            }
             case "--panic": return new CliCommand(CliKind.Panic);
             case "--status": return new CliCommand(CliKind.Status);
             case "--help" or "-h" or "/?": return new CliCommand(CliKind.Help);
@@ -193,8 +211,65 @@ public static class Cli
             if (resp.Length > 0) Console.WriteLine(resp);
             return code;
         }
+        // True Color is a window message to MSI's own application: no EC, no administrator, so the
+        // one-shot runs right here without the UAC round trip the EC commands need.
+        if (cmd.Kind == CliKind.TrueColor) return RunTrueColorOneShot(cmd);
         return Elevated(args) ?? RunOneShot(cmd, args);
     }
+
+    /// <summary>
+    /// --truecolor with no app running. The status is read-only and always answers; a profile
+    /// needs the switch under Settings -> System (read from the settings file) and goes through the
+    /// same TrueColor.Set as the app, the tray and the scenes.
+    /// </summary>
+    private static int RunTrueColorOneShot(CliCommand cmd)
+    {
+        var settings = AppSettings.Load();
+        if (cmd.Arg == "status") { Console.WriteLine(TrueColorStatusJson(settings)); return 0; }
+        if (!settings.TrueColorEnabled) { Console.WriteLine("True Color switching is off - enable it under Settings -> System first"); return 1; }
+        int id = int.Parse(cmd.Arg);
+        var r = TrueColor.Set(id, settings.TrueColorUserVerified, out string detail);
+        if (r is TrueColor.Result.Ok or TrueColor.Result.AlreadySet)
+        {
+            settings.TrueColorLast = id; settings.TrueColorLastUtc = DateTime.UtcNow; settings.Save();
+            ChangeLog.Load();
+            ChangeLog.Add(ChangeSource.Cli, "True Color: " + TrueColor.Name(id) + (r == TrueColor.Result.AlreadySet ? " (already recorded)" : ""));
+            Console.WriteLine("true color: " + TrueColor.Name(id) + (r == TrueColor.Result.AlreadySet ? " (already recorded)" : ""));
+            return 0;
+        }
+        Console.WriteLine(TrueColorFailure(r, detail));
+        return 1;
+    }
+
+    /// <summary>The JSON --truecolor status prints (one-shot and in-app alike).</summary>
+    public static string TrueColorStatusJson(AppSettings settings)
+    {
+        var info = TrueColor.Detect(settings.TrueColorUserVerified);
+        return JsonSerializer.Serialize(new
+        {
+            installed = info.Installed,
+            version = info.Installed ? info.Version : null,
+            running = info.Installed ? info.Running : (bool?)null,
+            confirmedVersion = info.Installed ? info.Confirmed : (bool?)null,
+            enabled = settings.TrueColorEnabled,
+            recorded = info.Recorded is { } rec ? TrueColor.Name(rec) : null,
+            lastSetByGhostDeck = settings.TrueColorLast is { } last ? TrueColor.Name(last) : null,
+            profiles = TrueColor.Profiles.Select(p => p.Cli).ToArray(),
+        });
+    }
+
+    /// <summary>English, machine-readable failure text for the console and the pipe.</summary>
+    public static string TrueColorFailure(TrueColor.Result r, string detail) => r switch
+    {
+        TrueColor.Result.NotInstalled => "MSI True Color is not installed",
+        TrueColor.Result.NotRunning => "MSI True Color is not running - start it from the Start menu",
+        TrueColor.Result.Unconfirmed => $"True Color {detail} is not a confirmed version - run the test under Settings -> System first",
+        TrueColor.Result.BadProfile => "not a True Color profile",
+        TrueColor.Result.Timeout => "True Color did not answer within " + TrueColor.SendTimeoutMs + " ms",
+        TrueColor.Result.NotConfirmed => "True Color took the request but did not record the profile (" + detail + ")",
+        TrueColor.Result.Busy => "another True Color request is still running",
+        _ => "True Color request failed (" + detail + ")",
+    };
 
     /// <summary>
     /// A one-shot talks to the EC, which needs administrator rights. From an unelevated launch
@@ -253,11 +328,16 @@ public static class Cli
     private static int RunOneShot(CliCommand cmd, string[] args)
     {
         var settings = AppSettings.Load();
-        string fw = Ec.ReadFirmware();
+        var probe = Ec.ProbeFirmware();
+        string fw = probe.Firmware;
+        // method interface refused: a model with a backup-path layout is read through its data blocks
+        if (probe.Status is FirmwareProbeStatus.NotSupported or FirmwareProbeStatus.ClassMissing or FirmwareProbeStatus.InstanceMissing
+            && Ec.TryBackupPath() is { Active: true } bp)
+            fw = bp.Firmware;
         var dev = Devices.Detect(fw);
         // Legacy ExperimentalEnabled is honoured read-only here: a one-shot CLI call must not
         // lose to a settings file the tray app has not migrated yet.
-        bool writable = dev != null && (dev.Tier == Tier.Tested
+        bool writable = dev != null && !Ec.OnBackupPath && (dev.Tier == Tier.Tested
             || settings.ExperimentalWriteAllowedFor(dev.MatchedPrefix(fw))
             || settings.ExperimentalEnabled);
 
@@ -291,7 +371,7 @@ public static class Cli
                         // (#48) monitoring-only boards: temperatures come from the vendor WMI blocks
                         telemetry = true;
                         var t = MsiTelemetry.Read();
-                        hw = new HwSnapshot(t.CpuTemp, t.GpuTemp, 0, 0, 0, fw);
+                        hw = new HwSnapshot(t.CpuTemp, t.GpuTemp, t.CpuFan, t.GpuFan, 0, fw, t.CpuRpm, t.GpuRpm);
                     }
                     int? kbd = null; bool? webcam = null; bool? fnLeft = null;
                     if (dev != null)
@@ -314,6 +394,7 @@ public static class Cli
                         tier = dev?.Tier.ToString() ?? "None",
                         writable,
                         telemetry,
+                        backupPath = Ec.OnBackupPath,
                         profile = cur?.ToString(),
                         cpuTemp = hw.CpuTemp, gpuTemp = hw.GpuTemp,
                         cpuFan = hw.CpuFan, gpuFan = hw.GpuFan,
@@ -328,6 +409,7 @@ public static class Cli
                         mic = Microphone.State() is >= 0 and var mcs ? mcs == 1 : (bool?)null,
                         gpuMode = gsw?.Current.ToString().ToLowerInvariant(),
                         gpuModeNext = gsw?.Requested.ToString().ToLowerInvariant(),
+                        trueColor = TrueColor.Recorded() is { } tcr ? TrueColor.Name(tcr) : null,
                         batteryPercent = noBatt || batt < 0 ? (int?)null : batt,
                         batteryCharging = noBatt ? (bool?)null : ps.PowerLineStatus == PowerLineStatus.Online,
                         batteryMinutesLeft = battMin > 0 ? battMin : (int?)null,
@@ -337,6 +419,7 @@ public static class Cli
                     return 0;
                 }
                 case CliKind.Overlay:
+                case CliKind.Crosshair:
                 case CliKind.Scene:
                 case CliKind.WinLock:
                     // these live inside the running process (the overlay window, the scene engine,
@@ -435,7 +518,12 @@ public static class Cli
             }
 
             if (dev == null) { Console.WriteLine($"unsupported hardware (firmware: {(fw.Length > 0 ? fw : "unknown")})"); return 1; }
-            if (!writable) { Console.WriteLine("model is experimental - enable Experimental writes in the app settings first"); return 1; }
+            if (!writable)
+            {
+                Console.WriteLine(Ec.OnBackupPath ? "backup WMI path - start the app; profile switching there needs the path test to pass first"
+                                                  : "model is experimental - enable Experimental writes in the app settings first");
+                return 1;
+            }
 
             ChangeLog.Load();   // CLI actions land in the same change history the app shows
             switch (cmd.Kind)
@@ -608,7 +696,7 @@ public static class Cli
         catch { }
     }
 
-    // ---------------- --gpu (TECHNICAL.md §79) ----------------
+    // ---------------- --gpu (TECHNICAL.md §82) ----------------
     /// <summary>Shared by the one-shot path and the running app. Never restarts: the mode applies at the next restart.</summary>
     internal static (int Code, string Msg) RunGpu(string arg, bool writable)
     {

@@ -20,7 +20,8 @@ public static class Protocol
     private static readonly HashSet<string> Allowed = new(StringComparer.OrdinalIgnoreCase)
     {
         "profile", "cycle", "fanboost", "overlay", "curve", "refresh", "charge", "travel", "kbd",
-        "webcam", "fnswap", "brightness", "hdr", "touchpad", "mic", "turbo", "winlock", "scene", "panic",
+        "webcam", "fnswap", "brightness", "hdr", "touchpad", "mic", "turbo", "winlock", "scene", "panic", "crosshair",
+        "truecolor",
     };
 
     public static bool IsLink(string arg) => arg.StartsWith(Scheme + ":", StringComparison.OrdinalIgnoreCase);

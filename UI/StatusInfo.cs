@@ -11,4 +11,10 @@ public sealed record StatusInfo(
     // Telemetry-only machines (issue #48): no EC interface in firmware, but the vendor WMI
     // data blocks report live CPU/GPU temperature. Temperatures are real, everything the EC
     // would provide (fans, RPM, profiles) is not.
-    bool Telemetry = false);
+    bool Telemetry = false,
+    // Backup WMI path (TECHNICAL §81): the firmware refuses the method interface and the app
+    // works with this model through its data blocks.
+    bool BackupPath = false,
+    // Monitoring-only because Windows has no definition of the interface at all (the probe
+    // ended ClassMissing / InstanceMissing), as opposed to the firmware refusing the call.
+    bool SchemaMissing = false);

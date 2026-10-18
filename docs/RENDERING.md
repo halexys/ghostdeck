@@ -97,6 +97,12 @@ driven by settings flags.
 
 Why it looks great: correct-DPI bitmap + GDI+ text + 1 : 1 layered blit + a drop-shadow.
 
+The **crosshair** ([`CrosshairForm.cs`](../Forms/CrosshairForm.cs), v1.39) is a second window of
+this kind, always click-through, drawn by [`CrosshairPainter`](../Core/Crosshair.cs): the shape
+as GDI+ paths into a premultiplied bitmap, a wider dark pass under the colour for the rim, a
+three-pass box blur for the softness, and the opacity as one multiply per channel. The same
+bitmap feeds the Settings preview, the shape tiles and the PNG export - see TECHNICAL.md §79.
+
 ---
 
 ## 4. Status tab — DPI-aware buffered canvas

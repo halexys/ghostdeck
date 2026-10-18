@@ -14,14 +14,25 @@ public sealed class ReportPage : ThemedPage
     private const int Pad = 28, Gutter = 44;
     private int _leftW = 430;
 
-    private static readonly (ProfileId id, string msiName)[] Steps =
+    // msiName is the tile as MSI Center 2.0.48 names it, the version the capture was designed
+    // around; altKey names the same tile in the other vendor apps (MSI Center Pro on the business
+    // line, MSI Center 2.0.49+ with its renamed bottom tile), because an owner reading "EXTREME
+    // PERFORMANCE" with a "High Performance" tile in front of him has no way to know they are the
+    // same thing (#170). Short alternatives go into the instruction line; the long one only
+    // into the row's second line and tooltip.
+    private static readonly (ProfileId id, string msiName, string? altKey, bool inline)[] Steps =
     {
-        (ProfileId.Silent, "SILENT"), (ProfileId.Balanced, "BALANCED"),
-        (ProfileId.Extreme, "EXTREME PERFORMANCE"), (ProfileId.SuperBattery, "SUPER BATTERY"),
+        (ProfileId.Silent, "SILENT", "rep_alt_silent", false), (ProfileId.Balanced, "BALANCED", null, false),
+        (ProfileId.Extreme, "EXTREME PERFORMANCE", "rep_alt_extreme", true), (ProfileId.SuperBattery, "SUPER BATTERY", "rep_alt_sb", true),
     };
+    private readonly ToolTip _tip = new() { AutoPopDelay = 12000 };
     private static readonly byte[] SnapshotAddrs = { 0x34, 0xD2, 0xD4, 0xEB, 0xF2, 0xF4, 0xD7, 0xEF };
 
     private readonly byte[]?[] _dumps = new byte[Steps.Length][];
+    // A machine with no EC image to capture (backup path, or monitoring-only with the blocks
+    // answering): the scenarios are captured slot by slot from the data blocks instead.
+    private readonly Dictionary<string, int>?[] _blockDumps = new Dictionary<string, int>?[Steps.Length];
+    private bool UseBlocks => Ec.OnBackupPath || (!D.Status().Known && MsiTelemetry.Available());
     private readonly StepRowT[] _rows;
     private readonly InfoCardT _card;
     private readonly Button _capture = new();
@@ -118,27 +129,18 @@ public sealed class ReportPage : ThemedPage
         _curveBtn.Click += OnCurveCapture;
         Controls.Add(_curveBtn);
 
-        _curveCard = new InfoCardT("", new (string, string?)[]
-        {
-            (Lang.T("rep_curve_warn"), null),
-            (Lang.T("rep_curve_why"), null),
-        }, _leftW);
+        _curveCard = new InfoCardT("", CurveCardItems(), _leftW);
         Controls.Add(_curveCard);
 
-        _card = new InfoCardT("", new (string, string?)[]
-        {
-            (Lang.T("rep_need_msi"), null),
-            (Lang.T("rep_msi_tip"), null),
-            (Lang.T("rep_msi_download"), null),
-            (Lang.T("rep_dl_version"), "https://msi-center.en.uptodown.com/windows/download/1045738268"),
-            (Lang.T("rep_dl_repo"), "https://msi-center.en.uptodown.com/windows/versions"),
-            (Lang.T("rep_msi_clean"), null),
-            (Lang.T("rep_uninstaller_link"), "https://download.msi.com/uti_exe/nb/CleanCenterMaster.zip"),
-        }, _leftW);
+        _card = new InfoCardT("", CardItems(), _leftW);
         Controls.Add(_card);
 
         _rows = Steps.Select((s, i) => new StepRowT(i + 1, s.msiName, Theme.Profile(D.ColorOf(s.id)))).ToArray();
-        foreach (var r in _rows) Controls.Add(r);
+        for (int i = 0; i < _rows.Length; i++)
+        {
+            if (Steps[i].altKey is { } ak) { _rows[i].Alt = Lang.T(ak); _tip.SetToolTip(_rows[i], Lang.T(ak)); }
+            Controls.Add(_rows[i]);
+        }
 
         Ui.StylePrimary(_capture);
         _capture.Click += OnCapture;
@@ -154,6 +156,7 @@ public sealed class ReportPage : ThemedPage
         {
             if (_capturing) return;
             Array.Clear(_dumps, 0, _dumps.Length);
+            Array.Clear(_blockDumps, 0, _blockDumps.Length);
             _step = 0; _savedPath = null; _barValue = 0; _lastPct = -1;
             RefreshSteps(); Invalidate();
         };
@@ -168,13 +171,7 @@ public sealed class ReportPage : ThemedPage
         Controls.Add(_curveRestart);
 
         // ---- power test ----
-        _ptCard = new InfoCardT("", new (string, string?)[]
-        {
-            (Lang.T("pt_warn_write"), null),
-            (Lang.T("pt_warn_fourth"), null),
-            (Lang.T("pt_warn_heat"), null),
-            (Lang.T("pt_warn_restore"), null),
-        }, _leftW);
+        _ptCard = new InfoCardT("", PtCardItems(), _leftW);
         Controls.Add(_ptCard);
 
         // Silent / Balanced / Extreme, then the board's fourth mode (hidden when it has none),
@@ -249,12 +246,46 @@ public sealed class ReportPage : ThemedPage
     // this can never land mid-test.
     public override void OnDeviceDbChanged() { RefreshPowerRows(); SyncSub(); Relayout(); Invalidate(); }
 
+    // The three info cards capture their texts when built, so a language change has to hand
+    // them the new ones; the lists live here so the constructor and OnLanguageChanged agree.
+    private static (string, string?)[] CardItems() => new (string, string?)[]
+    {
+        (Lang.T("rep_need_msi"), null),
+        (Lang.T("rep_msi_pro"), null),
+        (Lang.T("rep_msi_tip"), null),
+        (Lang.T("rep_msi_download"), null),
+        (Lang.T("rep_dl_version"), "https://msi-center.en.uptodown.com/windows/download/1045738268"),
+        (Lang.T("rep_dl_repo"), "https://msi-center.en.uptodown.com/windows/versions"),
+        (Lang.T("rep_msi_clean"), null),
+        (Lang.T("rep_uninstaller_link"), "https://download.msi.com/uti_exe/nb/CleanCenterMaster.zip"),
+    };
+    private static (string, string?)[] CurveCardItems() => new (string, string?)[]
+    {
+        (Lang.T("rep_curve_warn"), null),
+        (Lang.T("rep_curve_why"), null),
+    };
+    private static (string, string?)[] PtCardItems() => new (string, string?)[]
+    {
+        (Lang.T("pt_warn_write"), null),
+        (Lang.T("pt_warn_fourth"), null),
+        (Lang.T("pt_warn_heat"), null),
+        (Lang.T("pt_warn_restore"), null),
+    };
+
     public override void OnLanguageChanged()
     {
         _subTabs.SetLabels(new[]
         {
             Lang.T("subtab_start"), Lang.T("subtab_profiles"), Lang.T("subtab_curve"), Lang.T("subtab_power"),
         });
+        // Everything that captured a text at build time: the three cards, the "start over"
+        // captions, the consent line and the rows' second names (#170: switching the language
+        // left the cards and these captions in the old one).
+        _card.SetItems(CardItems()); _curveCard.SetItems(CurveCardItems()); _ptCard.SetItems(PtCardItems());
+        _restart.Text = _curveRestart.Text = Lang.T("rep_restart");
+        _ptConsent.Text = Lang.T("pt_consent");
+        for (int i = 0; i < _rows.Length; i++)
+            if (Steps[i].altKey is { } ak) { _rows[i].Alt = Lang.T(ak); _tip.SetToolTip(_rows[i], Lang.T(ak)); }
         // Button captions and checklist rows are re-derived by the same refreshes OnEnter uses.
         RefreshSteps(); RefreshCurve(); RefreshPowerRows(); SyncSub(); Relayout(); Invalidate();
     }
@@ -467,7 +498,8 @@ public sealed class ReportPage : ThemedPage
         _card.SetWidth(_leftW);
 
         int ry = _rowsTop;
-        foreach (var r in _rows) { r.SetBounds(_rightX + ox, ry + oy, rightW, 52); ry += 60; }
+        // Two lines of text per row since the rows name the tile in the other MSI apps as well.
+        foreach (var r in _rows) { r.SetBounds(_rightX + ox, ry + oy, rightW, 58); ry += 66; }
         _barY = ry + 26;
         _instrTop = _barY + 58;
         var instrFont = new Font("Segoe UI", 11.5f, FontStyle.Bold);
@@ -547,8 +579,10 @@ public sealed class ReportPage : ThemedPage
 
         // right: instruction
         bool done = _step >= Steps.Length;
+        var cur = done ? default : Steps[_step];
+        string tile = done ? "" : cur.inline && cur.altKey is { } ak ? $"{cur.msiName} ({Lang.T(ak)})" : cur.msiName;
         string instr = done ? "✓  " + Lang.T("rep_all_done")
-                            : string.Format(Lang.T("rep_step"), _step + 1, Steps.Length) + " — " + string.Format(Lang.T("rep_set_scenario"), Steps[_step].msiName);
+                            : string.Format(Lang.T("rep_step"), _step + 1, Steps.Length) + " - " + string.Format(Lang.T("rep_set_scenario"), tile);
         Ui.DrawText(g, instr, new Font("Segoe UI", 11.5f, FontStyle.Bold),
             new Rectangle(_rightX, _instrTop, rightW, _instrH + 6), done ? Theme.Green : Theme.Text, TextFormatFlags.WordBreak);
         if (done) PaintSaved(g, _rightX, _capY + 44 + 10, rightW, _savedPath, _copied);
@@ -784,7 +818,19 @@ public sealed class ReportPage : ThemedPage
         int idx = _step;
         Task.Run(() =>
         {
-            try { var dump = Ec.DumpAll(ReportProgress); BeginInvoke(() => CaptureDone(idx, dump, null)); }
+            try
+            {
+                if (UseBlocks)
+                {
+                    var snap = EcBlocks.Snapshot((done, total) => ReportProgress(done * 256 / total - 1));
+                    BeginInvoke(() => { _blockDumps[idx] = snap; CaptureDone(idx, Array.Empty<byte>(), null); });
+                }
+                else
+                {
+                    var dump = Ec.DumpAll(ReportProgress);
+                    BeginInvoke(() => CaptureDone(idx, dump, null));
+                }
+            }
             catch (Exception ex) { BeginInvoke(() => CaptureDone(idx, null, ex)); }
         });
     }
@@ -848,6 +894,7 @@ public sealed class ReportPage : ThemedPage
 
     private string BuildReport()
     {
+        if (_blockDumps.Any(d => d != null)) return BuildBlockReport();
         var sb = new StringBuilder();
         sb.AppendLine("=== GhostDeck — model support report ===");
         sb.AppendLine($"Generated: {DateTime.Now:yyyy-MM-dd HH:mm}  (READ-ONLY, no EC writes)");
@@ -858,7 +905,7 @@ public sealed class ReportPage : ThemedPage
         sb.AppendLine("--- Diff: addresses that change between scenarios ---");
         sb.AppendLine("(temps/fans naturally fluctuate — ignore sensor-looking single-value drift)");
         sb.Append("Addr   ");
-        foreach (var (_, name) in Steps) sb.Append(name.PadRight(20));
+        foreach (var st in Steps) sb.Append(st.msiName.PadRight(20));
         sb.AppendLine();
         for (int a = 0; a < 256; a++)
         {
@@ -896,11 +943,90 @@ public sealed class ReportPage : ThemedPage
         return true;
     }
 
-    private string BuildSnapshot()
+    // ---- the same report from the data blocks (backup path / monitoring-only machines) ----
+    private static readonly string[] BlockSnapshotSlots =
+        { "MSI_System[7]", "MSI_System[8]", "MSI_System[9]", "MSI_System[10]", "MSI_CPU[1]", "MSI_CPU[2]", "MSI_AP[2]", "MSI_AP[4]" };
+
+    private string BuildBlockReport()
     {
         var sb = new StringBuilder();
+        sb.AppendLine("=== GhostDeck - model support report (WMI data blocks) ===");
+        sb.AppendLine($"Generated: {DateTime.Now:yyyy-MM-dd HH:mm}  (READ-ONLY, nothing written)");
+        sb.AppendLine($"App version: {D.AppVersion()}");
+        sb.AppendLine($"Firmware: {(string.IsNullOrEmpty(D.Firmware()) ? "(unknown)" : D.Firmware())}   BIOS: {EcBlocks.BiosVersion()}");
+        sb.AppendLine($"Detected in app: {(string.IsNullOrEmpty(ModelName()) ? "(unsupported / unknown)" : ModelName())}");
+        sb.AppendLine("This machine's firmware does not answer on the MSI_ACPI methods; the values below are the device's WMI data blocks, slot by slot (class[index]).");
+        sb.AppendLine();
+        var keys = _blockDumps.Where(d => d != null).SelectMany(d => d!.Keys).Distinct().OrderBy(k => k, new SlotOrder()).ToList();
+        sb.AppendLine("--- Diff: slots that change between scenarios ---");
+        sb.AppendLine("(temperatures, fan duty and tachometers naturally fluctuate - ignore sensor-looking drift)");
+        sb.Append("Slot".PadRight(22));
+        foreach (var st in Steps) sb.Append(st.msiName.PadRight(20));
+        sb.AppendLine();
+        foreach (var k in keys)
+        {
+            if (AllEqualSlot(k)) continue;
+            sb.Append(k.PadRight(22));
+            foreach (var d in _blockDumps) sb.Append((d != null && d.TryGetValue(k, out int v) ? $"{v} (0x{v:X2})" : "--").PadRight(20));
+            sb.AppendLine();
+        }
+        sb.AppendLine();
+        sb.AppendLine("--- Full block snapshots ---");
+        for (int i = 0; i < Steps.Length; i++)
+        {
+            sb.AppendLine(); sb.AppendLine($"[{Steps[i].msiName}]");
+            var d = _blockDumps[i];
+            if (d == null) { sb.AppendLine("(not captured)"); continue; }
+            foreach (var k in keys) if (d.TryGetValue(k, out int v)) sb.AppendLine($"{k.PadRight(22)} {v,3}  (0x{v:X2})");
+        }
+        return sb.ToString();
+    }
+
+    private bool AllEqualSlot(string key)
+    {
+        int? first = null;
+        foreach (var d in _blockDumps)
+        {
+            if (d == null) continue;
+            int v = d.TryGetValue(key, out int x) ? x : -1;
+            if (first == null) first = v; else if (v != first) return false;
+        }
+        return true;
+    }
+
+    private string BuildBlockSnapshot()
+    {
+        var sb = new StringBuilder();
+        sb.Append("Slot".PadRight(16));
+        foreach (var st in Steps) sb.Append(st.msiName.PadRight(9));
+        sb.AppendLine();
+        foreach (var k in BlockSnapshotSlots)
+        {
+            sb.Append(k.PadRight(16));
+            foreach (var d in _blockDumps) sb.Append((d != null && d.TryGetValue(k, out int v) ? $"{v:X2}" : "--").PadRight(9));
+            sb.AppendLine();
+        }
+        return sb.ToString();
+    }
+
+    /// <summary>"MSI_CPU[2]" before "MSI_CPU[10]": class name first, then the numeric index.</summary>
+    private sealed class SlotOrder : IComparer<string>
+    {
+        public int Compare(string? a, string? b)
+        {
+            static (string Cls, int Idx) Split(string? s) { int o = s!.IndexOf('['); return (s[..o], int.Parse(s[(o + 1)..^1])); }
+            var (ca, ia) = Split(a); var (cb, ib) = Split(b);
+            int c = string.CompareOrdinal(ca, cb);
+            return c != 0 ? c : ia.CompareTo(ib);
+        }
+    }
+
+    private string BuildSnapshot()
+    {
+        if (_blockDumps.Any(d => d != null)) return BuildBlockSnapshot();
+        var sb = new StringBuilder();
         sb.Append("Addr ");
-        foreach (var (_, name) in Steps) sb.Append(name.PadRight(9));
+        foreach (var st in Steps) sb.Append(st.msiName.PadRight(9));
         sb.AppendLine();
         foreach (var a in SnapshotAddrs)
         {
@@ -1307,6 +1433,7 @@ public sealed class ReportPage : ThemedPage
         private const int StatusW = 150, Circle = 26, Cx = 28;
         private int _num;
         private string _name;
+        private string? _alt;
         public Color Tint;
         private bool _done, _current;
         private float _doneA, _glowA;
@@ -1316,6 +1443,9 @@ public sealed class ReportPage : ThemedPage
 
         /// <summary>The power test names its rows from the model database, which can change at runtime.</summary>
         public string Label { set { if (_name == value) return; _name = value; Invalidate(); } }
+
+        /// <summary>The same tile under another vendor app's name, drawn as a muted second line.</summary>
+        public string? Alt { set { if (_alt == value) return; _alt = value; Invalidate(); } }
 
         /// <summary>Numbering follows the rows actually shown, so a hidden row leaves no gap.</summary>
         public int Number { set { if (_num == value) return; _num = value; Invalidate(); } }
@@ -1366,9 +1496,24 @@ public sealed class ReportPage : ThemedPage
                     TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
             }
             int nx = Cx + Circle / 2 + 16;
-            Ui.DrawText(g, _name, new Font("Segoe UI", 11f, FontStyle.Bold),
-                new Rectangle(nx, 6, Width - nx - StatusW - 6, Height - 12), _done || _current ? Theme.Text : Theme.Muted,
-                TextFormatFlags.VerticalCenter | TextFormatFlags.Left | TextFormatFlags.EndEllipsis);
+            int textW = Width - nx - StatusW - 6;
+            var nameFont = new Font("Segoe UI", 11f, FontStyle.Bold);
+            var nameColor = _done || _current ? Theme.Text : Theme.Muted;
+            if (string.IsNullOrEmpty(_alt))
+                Ui.DrawText(g, _name, nameFont, new Rectangle(nx, 6, textW, Height - 12), nameColor,
+                    TextFormatFlags.VerticalCenter | TextFormatFlags.Left | TextFormatFlags.EndEllipsis);
+            else
+            {
+                // Two lines share the row: the tile name as the capture knows it, and the name the
+                // owner may be looking at in another vendor app. Heights come from the fonts, so
+                // the pair stays centred at any DPI.
+                var altFont = new Font("Segoe UI", 9.75f);
+                int h1 = nameFont.Height, h2 = altFont.Height, top = (Height - h1 - h2 + 2) / 2;
+                Ui.DrawText(g, _name, nameFont, new Rectangle(nx, top, textW, h1), nameColor,
+                    TextFormatFlags.Left | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPadding);
+                Ui.DrawText(g, _alt, altFont, new Rectangle(nx, top + h1 - 2, textW, h2), _current ? Theme.Text : Theme.Muted,
+                    TextFormatFlags.Left | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPadding);
+            }
             Ui.DrawText(g, Lang.T(_done ? "rep_captured" : "rep_pending"), new Font("Segoe UI", 9.5f, _done ? FontStyle.Bold : FontStyle.Regular),
                 new Rectangle(Width - StatusW, 6, StatusW - 10, Height - 12), _done ? Theme.Green : Theme.Muted,
                 TextFormatFlags.VerticalCenter | TextFormatFlags.Right);
@@ -1380,7 +1525,7 @@ public sealed class ReportPage : ThemedPage
         private const int LeftPad = 46, RightPad = 18, TopPad = 15;
         private static readonly Font IconFont = new("Segoe MDL2 Assets", 13f);
         private readonly string _icon;
-        private readonly (string text, string? url)[] _items;
+        private (string text, string? url)[] _items;
         private readonly List<(Rectangle rect, string text)> _paras = new();
         private readonly List<LinkLabel> _links = new();
         private readonly Font _font = new("Segoe UI", 10.5f);
@@ -1422,6 +1567,9 @@ public sealed class ReportPage : ThemedPage
         }
 
         public void SetWidth(int w) { if (Width == w) return; Width = w; Build(); }
+
+        /// <summary>The same card in another language: the texts are captured at build time.</summary>
+        public void SetItems((string text, string? url)[] items) { _items = items; Build(); }
 
         public void ApplyTheme()
         {

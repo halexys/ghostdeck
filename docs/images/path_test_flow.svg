@@ -1,0 +1,78 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 980 540" width="980" height="540" font-family="Segoe UI, Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#8d98ab"/>
+    </marker>
+  </defs>
+  <rect width="980" height="540" fill="#0e1420"/>
+  <text x="40" y="44" fill="#dbe4f0" font-size="22" font-weight="600">The path test, stage by stage</text>
+  <text x="40" y="68" fill="#8d98ab" font-size="14">Each stage must succeed before the next one writes. A failing stage ends the run and the restore still happens.</text>
+
+  <!-- restore file note -->
+  <rect x="40" y="90" width="900" height="40" rx="8" fill="#101827" stroke="#26314a"/>
+  <text x="60" y="115" fill="#dbe4f0" font-size="13">Before the first write the original values go to <tspan fill="#46c8ff" font-family="Consolas, monospace">backup-path-restore.json</tspan>; a run that never reaches the last stage is undone at the next start.</text>
+
+  <!-- stages -->
+  <g>
+    <rect x="40" y="152" width="164" height="150" rx="10" fill="#151d2c" stroke="#26314a"/>
+    <text x="52" y="178" fill="#46c8ff" font-size="12" font-weight="600" letter-spacing="1">1 · READ</text>
+    <text x="52" y="202" fill="#dbe4f0" font-size="13">Block survey, current</text>
+    <text x="52" y="220" fill="#dbe4f0" font-size="13">shift and fan mode,</text>
+    <text x="52" y="238" fill="#dbe4f0" font-size="13">layout check.</text>
+    <text x="52" y="266" fill="#8d98ab" font-size="12">Mismatch: run ends,</text>
+    <text x="52" y="282" fill="#8d98ab" font-size="12">nothing written.</text>
+    <line x1="204" y1="227" x2="222" y2="227" stroke="#8d98ab" stroke-width="1.5" marker-end="url(#a)"/>
+
+    <rect x="224" y="152" width="164" height="150" rx="10" fill="#151d2c" stroke="#26314a"/>
+    <text x="236" y="178" fill="#46c8ff" font-size="12" font-weight="600" letter-spacing="1">2 · ONE SETTING</text>
+    <text x="236" y="202" fill="#dbe4f0" font-size="13">Fan mode set to the</text>
+    <text x="236" y="220" fill="#dbe4f0" font-size="13">other stock value, read</text>
+    <text x="236" y="238" fill="#dbe4f0" font-size="13">back, put back.</text>
+    <text x="236" y="266" fill="#8d98ab" font-size="12">Value does not stick:</text>
+    <text x="236" y="282" fill="#8d98ab" font-size="12">run ends.</text>
+    <line x1="388" y1="227" x2="406" y2="227" stroke="#8d98ab" stroke-width="1.5" marker-end="url(#a)"/>
+
+    <rect x="408" y="152" width="164" height="150" rx="10" fill="#151d2c" stroke="#26314a"/>
+    <text x="420" y="178" fill="#46c8ff" font-size="12" font-weight="600" letter-spacing="1">3 · FOUR PROFILES</text>
+    <text x="420" y="202" fill="#dbe4f0" font-size="13">Silent, Balanced: read</text>
+    <text x="420" y="220" fill="#dbe4f0" font-size="13">back, held 6 s. Extreme,</text>
+    <text x="420" y="238" fill="#dbe4f0" font-size="13">Super Battery, Extreme:</text>
+    <text x="420" y="256" fill="#dbe4f0" font-size="13">20 s all-core load each.</text>
+    <text x="420" y="282" fill="#8d98ab" font-size="12">First 5 s not counted.</text>
+    <line x1="572" y1="227" x2="590" y2="227" stroke="#8d98ab" stroke-width="1.5" marker-end="url(#a)"/>
+
+    <rect x="592" y="152" width="164" height="150" rx="10" fill="#151d2c" stroke="#26314a" stroke-dasharray="5 4"/>
+    <text x="604" y="178" fill="#46c8ff" font-size="12" font-weight="600" letter-spacing="1">4 · FAN CURVE</text>
+    <text x="604" y="202" fill="#dbe4f0" font-size="13">Optional. CPU table</text>
+    <text x="604" y="220" fill="#dbe4f0" font-size="13">speeds raised to its own</text>
+    <text x="604" y="238" fill="#dbe4f0" font-size="13">maximum, fan mode</text>
+    <text x="604" y="256" fill="#dbe4f0" font-size="13">Advanced, 40 s + 40 s.</text>
+    <text x="604" y="282" fill="#8d98ab" font-size="12">Verdict: rise of 500 RPM.</text>
+    <line x1="756" y1="227" x2="774" y2="227" stroke="#8d98ab" stroke-width="1.5" marker-end="url(#a)"/>
+
+    <rect x="776" y="152" width="164" height="150" rx="10" fill="#151d2c" stroke="#26314a"/>
+    <text x="788" y="178" fill="#46c8ff" font-size="12" font-weight="600" letter-spacing="1">5 · RESTORE</text>
+    <text x="788" y="202" fill="#dbe4f0" font-size="13">The values from stage 1</text>
+    <text x="788" y="220" fill="#dbe4f0" font-size="13">written back and</text>
+    <text x="788" y="238" fill="#dbe4f0" font-size="13">confirmed by read-back.</text>
+    <text x="788" y="266" fill="#8d98ab" font-size="12">Report saved to the</text>
+    <text x="788" y="282" fill="#8d98ab" font-size="12">desktop.</text>
+  </g>
+
+  <!-- gate bar -->
+  <rect x="40" y="326" width="900" height="80" rx="10" fill="#16263f" stroke="#46c8ff"/>
+  <text x="60" y="352" fill="#dbe4f0" font-size="14" font-weight="600">The write gate</text>
+  <text x="60" y="374" fill="#8d98ab" font-size="13">Open only while the test runs and after a pass on this machine.</text>
+  <text x="60" y="392" fill="#8d98ab" font-size="13">Every write checks three things: the gate is open · the slot is on the allow-list · the value is on that slot's list.</text>
+
+  <!-- pass criterion -->
+  <rect x="40" y="426" width="440" height="88" rx="10" fill="#12351f" stroke="#3fb950"/>
+  <text x="60" y="452" fill="#3fb950" font-size="14" font-weight="600">Pass</text>
+  <text x="60" y="474" fill="#dbe4f0" font-size="13">Super Battery delivers at most 90 % of the work of the slower</text>
+  <text x="60" y="492" fill="#dbe4f0" font-size="13">of the two Extreme runs: the hardware reacted, not just the byte.</text>
+
+  <rect x="500" y="426" width="440" height="88" rx="10" fill="#3a2b10" stroke="#d9a13b"/>
+  <text x="520" y="452" fill="#d9a13b" font-size="14" font-weight="600">No reaction</text>
+  <text x="520" y="474" fill="#dbe4f0" font-size="13">The feature stays locked and the report carries the raw shares,</text>
+  <text x="520" y="492" fill="#dbe4f0" font-size="13">so the verdict can be judged by eye and the criterion adjusted.</text>
+</svg>

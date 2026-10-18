@@ -58,11 +58,14 @@ public sealed class TrayContext : ApplicationContext
     private DateTime _lastSsdSampleAt = DateTime.MinValue;   // gap detection: a pause restarts the dwell
     private int _ssdBusy;                      // 1 while a background disk-temperature read is in flight
     private ToolStripMenuItem? _coolerItem;
-    private GpuSwitchState? _gpu;              // MSI graphics-mode switch (TECHNICAL §79), null = none / no Integrated mode
+    private GpuSwitchState? _gpu;              // MSI graphics-mode switch (TECHNICAL §82), null = none / no Integrated mode
     private bool _gpuBusy;                     // a request is running on a worker thread
     private OverlayForm? _overlay;             // gaming status overlay (lazy)
     private ToolStripMenuItem? _overlayItem;
     private ToolStripMenuItem? _overlayLockItem;
+    private CrosshairForm? _crosshair;         // the crosshair window (roadmap #118; lazy)
+    private ToolStripMenuItem? _crosshairItem;
+    private readonly List<ToolStripMenuItem> _tcItems = new();   // True Color submenu entries (Tag = profile id)
     private bool _statusWantsFps;              // Status → Gaming sub-tab visible (keeps FpsMonitor running)
     private TrayWheel? _wheel;                 // (#23) wheel-over-tray hook, installed only while a wheel mode is set
     private int _wheelAccum;                   // raw wheel delta accumulator (one step per ±120)
@@ -83,7 +86,11 @@ public sealed class TrayContext : ApplicationContext
     private bool _battLowFired, _battHighFired;
 
     private bool Known => _device != null;
-    private bool Writable => Known && (_device!.Tier == Tier.Tested || _settings.ExperimentalWriteAllowedFor(_device!.MatchedPrefix(_firmware)));
+    // On the backup WMI path the tier and the experimental consent do not apply: writing there is
+    // unlocked by the path test passing on this very machine (Core/BackupPathTest.cs).
+    private bool Writable => Known && (Ec.OnBackupPath
+        ? _settings.BackupPathPassedFor(_firmware)
+        : _device!.Tier == Tier.Tested || _settings.ExperimentalWriteAllowedFor(_device!.MatchedPrefix(_firmware)));
     // Automatic (non user-initiated) writes are additionally blocked after a firmware change until acknowledged.
     private bool AutoWritable => Writable && !_firmwareChanged;
 
@@ -118,7 +125,20 @@ public sealed class TrayContext : ApplicationContext
         var probe = _simulate ? new FirmwareProbe(FirmwareProbeStatus.Success, forced!, null) : Ec.ProbeFirmware();
         _probeStatus = probe.Status;
         _firmware = probe.Firmware;
+        // The method interface refused the call: a model with a backup-path layout on record
+        // is read through its data blocks instead (identified by the BIOS version).
+        // "not supported" is the firmware refusing the call; "class missing" is Windows without a
+        // definition of the interface (an old Dragon Center schema) - the blocks may serve either.
+        if (!_simulate && probe.Status is FirmwareProbeStatus.NotSupported or FirmwareProbeStatus.ClassMissing or FirmwareProbeStatus.InstanceMissing
+            && Ec.TryBackupPath() is { Active: true } bp)
+            _firmware = bp.Firmware;
         _device = Devices.Detect(_firmware);
+        if (Ec.OnBackupPath)
+        {
+            // a path test that never reached its own restore is undone before anything else
+            if (BackupPathTest.RecoverPending(_firmware) is { } recovered) ChangeLog.Add(ChangeSource.Test, recovered);
+            Ec.OpenBackupWrites(Writable);
+        }
         if (_settings.MigrateExperimentalFlag(_device?.MatchedPrefix(_firmware), _device is { Tier: Tier.Experimental }))
             _settings.Save();
         // A hard startup failure finally lands in errors.log (#56 was undiagnosable from logs);
@@ -127,7 +147,7 @@ public sealed class TrayContext : ApplicationContext
         // ClassMissing/InstanceMissing are EXPECTED, fully classified states (fresh Windows,
         // non-MSI hardware) - the diag package's wmi-interface.txt names them; logging the raw
         // exception on every launch would only drip noise into errors.log.
-        if (probe.Status is FirmwareProbeStatus.NotSupported or FirmwareProbeStatus.AccessDenied
+        if (!Ec.OnBackupPath && probe.Status is FirmwareProbeStatus.NotSupported or FirmwareProbeStatus.AccessDenied
                           or FirmwareProbeStatus.Other)
             AppLifecycle.Report(probe.Error, "ec-startup:" + probe.Status);
         if (!_simulate && probe.Status is FirmwareProbeStatus.TransientFailure or FirmwareProbeStatus.EmptyPayload)
@@ -139,9 +159,7 @@ public sealed class TrayContext : ApplicationContext
                                     ? MsiTelemetry.Available()
                                     : !_simulate && MsiTelemetry.Available());
         _current = Known ? Ec.GetCurrent(_device!) : ProfileId.Balanced;
-        _kbdAddr = Known ? Devices.KbdBacklightFor(_firmware) : (byte)0;   // (#26)
-        _webcamSupported = Known && Devices.WebcamSupported(_firmware);    // (#27)
-        _fnSwap = Known ? Devices.FnWinSwapFor(_firmware) : null;
+        ResolveExtras();
         if (_webcamSupported && !_simulate) { try { _webcamOn = Ec.GetWebcam(); } catch { } }
 
         DetectFirmwareChange();
@@ -183,11 +201,18 @@ public sealed class TrayContext : ApplicationContext
 
         ShowState();
         if (_firmwareChanged) ShowFirmwareDialog();
+        else if (Ec.OnBackupPath && !Writable) PromptBackupTest();
+        else if (_telemetryOnly && !_simulate && EcBlocks.LayoutKnown()) PromptBlocksReport();
         if (travelEnded != null) ShowCard("//TRAVEL", Lang.T("set_travel"), travelEnded);
         if (_settings.OverlayEnabled) SetOverlay(true, osd: false);
 
         _ui = SynchronizationContext.Current;
         ApplyTrayWheel();   // (#23) needs _ui for cross-thread posting, so after it is captured
+        // MSI True Color (roadmap #119): a profile recorded by True Color itself (its window, Fn+A)
+        // refreshes the tray dots and the Settings card; the watcher only exists when it is installed
+        TrueColor.Changed += UpdateTrueColorMenu;
+        if (_ui != null && TrueColor.Detect(_settings.TrueColorUserVerified).Installed) TrueColor.StartWatch(_ui);
+        if (_settings.CrosshairEnabled) SetCrosshair(true, osd: false);   // its mouse hook posts to _ui too
         MaybeCheckForUpdates();
         MaybeCheckModelDb();     // own cadence: cheap static file, checked at every start
 
@@ -245,7 +270,14 @@ public sealed class TrayContext : ApplicationContext
                     // Set() later, which would throw on a disposed event inside a finally
                     var done = new ManualResetEventSlim();
                     var ui = _ui;
-                    if (ui == null) resp = ExecuteCli(line);
+                    if (Cli.Parse(line.Split('\t')) is { Kind: CliKind.TrueColor } tcCmd)
+                    {
+                        // A True Color request waits on MSI's application (up to 4.5 s): it runs on
+                        // this thread, never on the window thread; the bookkeeping is posted back.
+                        resp = ExecuteTrueColorCli(tcCmd);
+                        if (ui != null) { string r2 = resp; ui.Post(_ => LinkRefusalCard(line, r2), null); }
+                    }
+                    else if (ui == null) resp = ExecuteCli(line);
                     else
                     {
                         ui.Post(_ => { try { resp = ExecuteCli(line); } finally { done.Set(); } }, null);
@@ -265,15 +297,19 @@ public sealed class TrayContext : ApplicationContext
         // card (#212 style, not a Windows notification, which Focus Assist can swallow). The
         // card is a window, so only when this runs on the UI thread - which it does once the
         // message loop is up (_ui set); the few commands that arrive before it get no card.
-        if (!resp.StartsWith("0|") && Protocol.IsLink(raw.Split('\t')[0]) && _ui != null)
-        {
-            string text = resp.IndexOf('|') is var bar && bar >= 0 ? resp[(bar + 1)..] : resp;
-            var dlg = new GhostCardForm("//LINK", Lang.T("link_title"), raw.Split('\t')[0] + "\n\n" + text,
-                Lang.T("gen_ok"), "", () => { });
-            dlg.Show();
-            dlg.Activate();
-        }
+        if (_ui != null) LinkRefusalCard(raw, resp);
         return resp;
+    }
+
+    /// <summary>The card a refused ghostdeck:// link gets (nothing for a console command or a success). UI thread.</summary>
+    private static void LinkRefusalCard(string raw, string resp)
+    {
+        if (resp.StartsWith("0|") || !Protocol.IsLink(raw.Split('\t')[0])) return;
+        string text = resp.IndexOf('|') is var bar && bar >= 0 ? resp[(bar + 1)..] : resp;
+        var dlg = new GhostCardForm("//LINK", Lang.T("link_title"), raw.Split('\t')[0] + "\n\n" + text,
+            Lang.T("gen_ok"), "", () => { });
+        dlg.Show();
+        dlg.Activate();
     }
 
     private string ExecuteCliCore(string raw)
@@ -304,9 +340,11 @@ public sealed class TrayContext : ApplicationContext
                         tier = _device?.Tier.ToString() ?? "None",
                         writable = Writable,
                         telemetry = _telemetryOnly,
+                        backupPath = Ec.OnBackupPath,
                         profile = Known ? _current.ToString() : null,
                         fanBoost = _coolerBoost,
                         overlay = OverlayVisible,
+                        crosshair = CrosshairVisible,
                         winLock = _winLock.Enabled,
                         cpuTemp = hw.CpuTemp, gpuTemp = hw.GpuTemp,
                         cpuFan = hw.CpuFan, gpuFan = hw.GpuFan,
@@ -321,6 +359,7 @@ public sealed class TrayContext : ApplicationContext
                         mic = Microphone.State() is >= 0 and var mcs ? mcs == 1 : (bool?)null,
                         gpuMode = gsw?.Current.ToString().ToLowerInvariant(),
                         gpuModeNext = gsw?.Requested.ToString().ToLowerInvariant(),
+                        trueColor = TrueColor.Recorded() is { } tcr ? TrueColor.Name(tcr) : null,
                         batteryPercent = noBatt || batt < 0 ? (int?)null : batt,
                         batteryCharging = noBatt ? (bool?)null : ps.PowerLineStatus == PowerLineStatus.Online,
                         batteryMinutesLeft = battMin > 0 ? battMin : (int?)null,
@@ -334,6 +373,26 @@ public sealed class TrayContext : ApplicationContext
                 case CliKind.Overlay:
                     SetOverlay(cmd.Arg == "on", osd: false);
                     return "0|overlay: " + cmd.Arg;
+                case CliKind.Crosshair:
+                {
+                    // on / off, or on with a preset or a shared code (roadmap #118)
+                    if (cmd.Arg == "preset")
+                    {
+                        if (!LoadCrosshairPreset(cmd.Arg2)) return "1|crosshair preset not found: " + cmd.Arg2;
+                        SetCrosshair(true, osd: false);
+                        return "0|crosshair: on (preset " + cmd.Arg2 + ")";
+                    }
+                    if (cmd.Arg == "code")
+                    {
+                        if (!ApplyCrosshairCode(cmd.Arg2)) return "1|not a GhostDeck crosshair code";
+                        SetCrosshair(true, osd: false);
+                        return "0|crosshair: on (code applied)";
+                    }
+                    SetCrosshair(cmd.Arg == "on", osd: false);
+                    return "0|crosshair: " + cmd.Arg;
+                }
+                case CliKind.TrueColor:
+                    return ExecuteTrueColorCli(cmd);   // normally taken before the UI post (StartCliServer)
                 case CliKind.Brightness:
                 {
                     // Windows-level (WMI), independent of EC writability.
@@ -405,7 +464,8 @@ public sealed class TrayContext : ApplicationContext
                 }
             }
 
-            if (!Writable) return "1|" + (Known ? "model is experimental - enable Experimental writes in Settings" : "unsupported hardware");
+            if (!Writable) return "1|" + (Ec.OnBackupPath ? "backup WMI path - run the path test in the app first (tray menu)"
+                                        : Known ? "model is experimental - enable Experimental writes in Settings" : "unsupported hardware");
             switch (cmd.Kind)
             {
                 case CliKind.Profile:
@@ -534,7 +594,143 @@ public sealed class TrayContext : ApplicationContext
             ApplyForPower(SystemInformation.PowerStatus.PowerLineStatus, osd: false);
     }
 
+    /// <summary>
+    /// Per-firmware extras (keyboard backlight, webcam switch, Fn/Win swap). Their registers
+    /// have no slot on the backup WMI path, so there they are simply absent.
+    /// </summary>
+    private void ResolveExtras()
+    {
+        bool extras = Known && !Ec.OnBackupPath;
+        _kbdAddr = extras ? Devices.KbdBacklightFor(_firmware) : (byte)0;   // (#26)
+        _webcamSupported = extras && Devices.WebcamSupported(_firmware);    // (#27)
+        _fnSwap = extras ? Devices.FnWinSwapFor(_firmware) : null;
+    }
+
     private string DeviceName() => Known ? _device!.Name : Lang.T("unsupported_title");
+
+    // ---------------- backup path test ----------------
+    private Form? _bptCard;                         // the test's card on screen (intro, running or result)
+    private CancellationTokenSource? _bptCts;
+    private Task<BackupPathTest.Result>? _bptTask;  // kept so app exit can wait for the restore
+
+    // Offered once per start while the test has not passed here. Via a one-shot timer so the
+    // card opens once the message loop is running.
+    // A machine whose model is not in the database, but whose data blocks answer in the layout
+    // three boards have shown: the one thing that unlocks it is a report, so say so once per start.
+    private void PromptBlocksReport()
+    {
+        var t = new System.Windows.Forms.Timer { Interval = 1800 };
+        t.Tick += (_, _) =>
+        {
+            t.Stop(); t.Dispose();
+            if (_bptCard is { IsDisposed: false }) return;
+            var card = new GhostCardForm("//REPORT", Lang.T("blocks_hint_title"), Lang.T("blocks_report_hint"),
+                Lang.T("blocks_open_report"), Lang.T("fw_dlg_later"), () => OpenMain(MainTab.Report));
+            _bptCard = card;
+            card.Show();
+            card.Activate();
+        };
+        t.Start();
+    }
+
+    private void PromptBackupTest()
+    {
+        var t = new System.Windows.Forms.Timer { Interval = 1800 };
+        t.Tick += (_, _) => { t.Stop(); t.Dispose(); ShowBackupTest(); };
+        t.Start();
+    }
+
+    private void ShowBackupTest()
+    {
+        if (!Ec.OnBackupPath || !Known) return;
+        if (_bptCard is { IsDisposed: false }) { _bptCard.Activate(); return; }
+        if (_bptTask is { IsCompleted: false }) return;
+        GhostCardForm card = SystemInformation.PowerStatus.PowerLineStatus == PowerLineStatus.Online
+            ? new BackupTestIntroForm(RunBackupTest)
+            : new GhostCardForm("//PATH-TEST", Lang.T("bpt_title"), Lang.T("pt_block_battery"), Lang.T("set_close"), "", () => { });
+        _bptCard = card;
+        card.Show();
+        card.Activate();
+    }
+
+    private async void RunBackupTest(bool withCurve)
+    {
+        var dev = _device!;
+        _bptCts = new CancellationTokenSource();
+        var cts = _bptCts;
+        var run = new BackupTestRunForm(withCurve, () => { try { cts.Cancel(); } catch { } });
+        _bptCard = run;
+        run.Show();
+        run.Activate();
+
+        BackupPathTest.Result? result = null;
+        string error = "";
+        // The run owns the controller: the poll's profile re-detection and a model-database swap
+        // both wait until it is over.
+        using (EcBusy())
+        {
+            try
+            {
+                var sink = new Progress<BackupPathTest.Progress>(run.Advance);
+                _bptTask = BackupPathTest.RunAsync(dev, AppVersion(), _firmware, withCurve, sink, cts.Token);
+                result = await _bptTask;
+            }
+            catch (Exception ex) { error = ex.Message; }
+        }
+        run.Finish();
+        if (result == null)
+        {
+            ShowBackupTestResult(string.Format(Lang.T("bpt_res_error"), error), null);
+            return;
+        }
+
+        // A pass unlocks profile switching on this machine; a run that shows the path not
+        // working locks it again. A cancelled or refused run changes nothing.
+        bool had = _settings.BackupPathPassedFor(_firmware);
+        if (result.Passed && !had) _settings.BackupPathPassed.Add(_firmware);
+        else if (had && result.Verdict is BackupPathTest.Verdict.NoEffect or BackupPathTest.Verdict.WriteNotKept
+                                       or BackupPathTest.Verdict.RestoreUnconfirmed)
+            _settings.BackupPathPassed.RemoveAll(f => string.Equals(f, _firmware, StringComparison.OrdinalIgnoreCase));
+        _settings.Save();
+        Ec.OpenBackupWrites(Writable);
+
+        string? path = BackupPathTest.SaveReport(result);
+        ChangeLog.Add(ChangeSource.Test, Lang.T("bpt_title"), result.Verdict + (result.Detail.Length > 0 ? " - " + result.Detail : ""));
+        try { _current = Ec.GetCurrent(dev); } catch { }
+        BuildMenu();
+        UpdateUi(_current);
+
+        string text = result.Verdict switch
+        {
+            BackupPathTest.Verdict.Passed => Lang.T("bpt_res_pass"),
+            BackupPathTest.Verdict.NoEffect => Lang.T("bpt_res_noeffect"),
+            BackupPathTest.Verdict.WriteNotKept => Lang.T("bpt_res_nowrite"),
+            BackupPathTest.Verdict.RestoreUnconfirmed => Lang.T("bpt_res_restore"),
+            BackupPathTest.Verdict.Cancelled => Lang.T("bpt_res_cancel"),
+            _ => string.Format(Lang.T("bpt_res_error"), result.Detail),
+        };
+        string? curve = result.Curve.Verdict switch
+        {
+            BackupPathTest.CurveVerdict.EveryProfile => Lang.T("bpt_curve_all"),
+            BackupPathTest.CurveVerdict.ExtremeOnly => Lang.T("bpt_curve_extreme"),
+            BackupPathTest.CurveVerdict.NoReaction => Lang.T("bpt_curve_none"),
+            _ => null,
+        };
+        if (curve != null) text += Environment.NewLine + Environment.NewLine + curve;
+        ShowBackupTestResult(text, path);
+    }
+
+    private void ShowBackupTestResult(string text, string? reportPath)
+    {
+        if (reportPath != null) text += Environment.NewLine + Environment.NewLine + string.Format(Lang.T("bpt_saved"), reportPath);
+        var card = reportPath != null
+            ? new GhostCardForm("//PATH-TEST", Lang.T("bpt_title"), text, Lang.T("bpt_open"), Lang.T("set_close"),
+                () => { try { System.Diagnostics.Process.Start("explorer.exe", "/select,\"" + reportPath + "\""); } catch { } })
+            : new GhostCardForm("//PATH-TEST", Lang.T("bpt_title"), text, Lang.T("set_close"), "", () => { });
+        _bptCard = card;
+        card.Show();
+        card.Activate();
+    }
 
     private (string text, Color color) TierBadge()
     {
@@ -542,6 +738,7 @@ public sealed class TrayContext : ApplicationContext
         // limited = amber, unsupported = pink/red.
         if (!Known) return _telemetryOnly ? (Lang.T("tier_telemetry"), Theme.Amber)
                                           : (Lang.T("tier_unsupported"), Theme.Red);
+        if (Ec.OnBackupPath) return Writable ? (Lang.T("tier_backup"), Theme.Accent) : (Lang.T("tier_backup_pending"), Theme.Amber);
         return _device!.Tier == Tier.Tested
             ? (Lang.T("tier_tested"),       Theme.Accent)
             : (Lang.T("tier_experimental"), Theme.Amber);
@@ -551,15 +748,17 @@ public sealed class TrayContext : ApplicationContext
     {
         if (!Known) return (_telemetryOnly ? Lang.T("tier_telemetry") : Lang.T("unsupported_title"))
                          + (_simulate ? "  (test)" : "");
-        string tier = _device!.Tier == Tier.Tested ? Lang.T("tier_tested")
+        string tier = Ec.OnBackupPath ? Lang.T(Writable ? "tier_backup" : "tier_backup_pending")
+                    : _device!.Tier == Tier.Tested ? Lang.T("tier_tested")
                     : Writable ? Lang.T("tier_experimental")
                     : Lang.T("experimental_locked");
-        return _device.Name + "  ·  " + tier + (_simulate ? "  (test)" : "");
+        return _device!.Name + "  ·  " + tier + (_simulate ? "  (test)" : "");
     }
 
     private void ShowState()
     {
         if (Writable) ShowOsd(_current);
+        else if (Ec.OnBackupPath) _osd.ShowProfile(OsdPrefix + _device!.Name, Lang.T("backup_locked_sub"), Color.Gray);
         else if (Known) _osd.ShowProfile(OsdPrefix + _device!.Name, Lang.T("experimental_locked"), Color.Gray);
         else _osd.ShowProfile(OsdPrefix + Lang.T("unsupported_title"), ProbeSubtitle(), Color.Gray);
     }
@@ -595,6 +794,10 @@ public sealed class TrayContext : ApplicationContext
         {
             var probe = Ec.ProbeFirmware();
             _probeStatus = probe.Status;
+            // refused or unknown to Windows: the data blocks may still carry the model
+            if (probe.Status is FirmwareProbeStatus.NotSupported or FirmwareProbeStatus.ClassMissing or FirmwareProbeStatus.InstanceMissing
+                && Ec.TryBackupPath() is { Active: true } late)
+                probe = new FirmwareProbe(FirmwareProbeStatus.Success, late.Firmware, null);
             if (probe.Status == FirmwareProbeStatus.Success)
             {
                 DisarmProbeRetry();
@@ -630,9 +833,13 @@ public sealed class TrayContext : ApplicationContext
     private void RedetectFromFirmware()
     {
         _device = Devices.Detect(_firmware);
-        _kbdAddr = Known ? Devices.KbdBacklightFor(_firmware) : (byte)0;
-        _webcamSupported = Known && Devices.WebcamSupported(_firmware);
-        _fnSwap = Known ? Devices.FnWinSwapFor(_firmware) : null;
+        if (Ec.OnBackupPath)
+        {
+            if (BackupPathTest.RecoverPending(_firmware) is { } recovered) ChangeLog.Add(ChangeSource.Test, recovered);
+            Ec.OpenBackupWrites(Writable);
+            if (!Writable) PromptBackupTest();
+        }
+        ResolveExtras();
         _telemetryOnly = !Known && MsiTelemetry.Available();
         if (Known)
         {
@@ -731,12 +938,12 @@ public sealed class TrayContext : ApplicationContext
 
         menu.Items.Add(new ToolStripSeparator());
 
-        _coolerItem = new ToolStripMenuItem(Lang.T("cooler_boost")) { Enabled = Writable, CheckOnClick = false };
+        _coolerItem = new ToolStripMenuItem(Lang.T("cooler_boost")) { Enabled = Writable && !Ec.OnBackupPath, CheckOnClick = false };
         SetDot(_coolerItem, _coolerBoost);
         _coolerItem.Click += (_, _) => ToggleCoolerBoost();
         menu.Items.Add(_coolerItem);
 
-        if (_gpu is { } gpu)   // graphics mode (TECHNICAL §79): only where the firmware offers Integrated
+        if (_gpu is { } gpu)   // graphics mode (TECHNICAL §82): only where the firmware offers Integrated
         {
             var gm = new ToolStripMenuItem(string.Format(Lang.T("gpu_menu"), GpuModeLabel(gpu.Current))) { Enabled = GpuWritable };
             foreach (var mode in new[] { GpuMode.Hybrid, GpuMode.Integrated })
@@ -759,6 +966,13 @@ public sealed class TrayContext : ApplicationContext
             menu.Items.Add(gm);
         }
 
+        if (Ec.OnBackupPath)
+        {
+            var bpt = new ToolStripMenuItem(Lang.T("bpt_title") + "…");
+            bpt.Click += (_, _) => ShowBackupTest();
+            menu.Items.Add(bpt);
+        }
+
         _overlayItem = new ToolStripMenuItem(Lang.T("overlay_title")) { CheckOnClick = false };
         SetDot(_overlayItem, OverlayVisible);
         _overlayItem.Click += (_, _) => ToggleOverlay();
@@ -768,6 +982,29 @@ public sealed class TrayContext : ApplicationContext
         SetDot(_overlayLockItem, _settings.OverlayClickThrough);
         _overlayLockItem.Click += (_, _) => ToggleOverlayLock();
         menu.Items.Add(_overlayLockItem);
+
+        _crosshairItem = new ToolStripMenuItem(Lang.T("ch_title")) { CheckOnClick = false };
+        SetDot(_crosshairItem, CrosshairVisible);
+        _crosshairItem.Click += (_, _) => ToggleCrosshair();
+        menu.Items.Add(_crosshairItem);
+
+        // MSI True Color (roadmap #119): only with the experimental switch on and a confirmed
+        // version installed; the dot marks the profile True Color last recorded.
+        _tcItems.Clear();
+        if (_settings.TrueColorEnabled && TrueColor.Detect(_settings.TrueColorUserVerified) is { Installed: true, Confirmed: true } tcInfo)
+        {
+            var tcMenu = new ToolStripMenuItem(Lang.T("tc_title"));
+            foreach (var p in TrueColor.Profiles)
+            {
+                int tcId = p.Id;
+                var it = new ToolStripMenuItem(p.Name) { Tag = tcId, CheckOnClick = false };
+                SetDot(it, tcInfo.Recorded == tcId);
+                it.Click += (_, _) => ApplyTrueColor(tcId, ChangeSource.Tray, manual: true);
+                tcMenu.DropDownItems.Add(it);
+                _tcItems.Add(it);
+            }
+            menu.Items.Add(tcMenu);
+        }
 
         menu.Items.Add(new ToolStripSeparator());
 
@@ -920,6 +1157,9 @@ public sealed class TrayContext : ApplicationContext
             tasks.Add(new(Lang.T("jl_boost_off"), "--fanboost off", Taskbar.AppIconFile));
             tasks.Add(new(Lang.T("hk_panic"), "--panic", Taskbar.AppIconFile));
         }
+        // the crosshair is a screen-only feature: offered on every machine
+        tasks.Add(new(Lang.T("jl_ch_on"), "--crosshair on", Taskbar.AppIconFile));
+        tasks.Add(new(Lang.T("jl_ch_off"), "--crosshair off", Taskbar.AppIconFile));
         // the scene name travels quoted on the command line, so a quote inside it is dropped
         var scenes = _settings.Scenes
             .Where(s => !string.IsNullOrWhiteSpace(s.Name))
@@ -943,6 +1183,7 @@ public sealed class TrayContext : ApplicationContext
             case TrayAction.CycleProfile: if (Writable) Cycle(ChangeSource.Tray); else ShowState(); break;
             case TrayAction.FanBoost: ToggleCoolerBoost(); break;
             case TrayAction.Overlay: ToggleOverlay(); break;
+            case TrayAction.Crosshair: ToggleCrosshair(); break;
             case TrayAction.ShowState: ShowState(); break;
             case TrayAction.PanicReset: PanicReset(); break;
             case TrayAction.OpenScenarios: OpenMain(MainTab.Scenarios); break;
@@ -1441,6 +1682,16 @@ public sealed class TrayContext : ApplicationContext
                 if (Hdr.Set(hd)) ChangeLog.Add(source, "HDR: " + Lang.T(hd ? "st_on" : "st_off"));
             }
             if (s.Overlay is { } ov && ov != OverlayVisible) SetOverlay(ov, osd: false);
+            if (s.Crosshair is { } ch)
+            {
+                // a named preset is loaded first; a missing one leaves the current look
+                if (ch && s.CrosshairPreset is { Length: > 0 } chp) LoadCrosshairPreset(chp);
+                if (ch != CrosshairVisible) SetCrosshair(ch, osd: false);
+                else if (ch) ApplyCrosshairSettings();
+            }
+            // True Color runs on a worker and reports to the history on its own; an automatic
+            // scene never shows a card for it, and nothing below waits for it
+            if (s.TrueColor is { } tcp) ApplyTrueColor(tcp, source, manual: false);
             if (s.KbdLight is { } kl) SetKbdLight(kl, source, osd: false);
             if (s.Webcam is { } wc && _webcamSupported && wc != _webcamOn) SetWebcamState(wc, source, osd: false);
             if (s.Mic is { } mc && Microphone.State() is >= 0 and var mst && (mst == 1) != mc)
@@ -1530,7 +1781,7 @@ public sealed class TrayContext : ApplicationContext
         }
     }
 
-    // ---------------- graphics mode (TECHNICAL §79) ----------------
+    // ---------------- graphics mode (TECHNICAL §82) ----------------
     // Writes go through the same gate as every EC write (known model + experimental opt-in, not
     // simulating): arming the switch is an EC byte, and the request lives in a firmware variable.
     private bool GpuWritable => Writable && !_simulate && !_gpuBusy;
@@ -1625,6 +1876,12 @@ public sealed class TrayContext : ApplicationContext
     private void SetCoolerBoostState(bool next, bool auto = false, bool osd = true)
     {
         if (!Writable) { ShowState(); UpdateCoolerBoostMenu(); return; }
+        if (Ec.OnBackupPath)   // the Fan Boost register has no slot there
+        {
+            if (osd) _osd.ShowProfile(OsdPrefix + Lang.T("cooler_boost"), Lang.T("backup_na"), Color.Gray);
+            UpdateCoolerBoostMenu();
+            return;
+        }
         if (next == _coolerBoost) { UpdateCoolerBoostMenu(); return; }
         using var _ec = EcBusy();
         try
@@ -1705,6 +1962,137 @@ public sealed class TrayContext : ApplicationContext
 
     // Re-read overlay options after the user edits them in Settings.
     private void ApplyOverlaySettings() { _overlay?.ApplySettings(); UpdateOverlayMenu(); UpdateFpsActive(); }
+
+    // ---------------- crosshair (roadmap #118) ----------------
+    private bool CrosshairVisible => _crosshair is { IsDisposed: false, Visible: true };
+
+    private void ToggleCrosshair() => SetCrosshair(!CrosshairVisible, osd: true);
+
+    private void SetCrosshair(bool on, bool osd)
+    {
+        if (on)
+        {
+            if (_crosshair is not { IsDisposed: false })
+            {
+                _crosshair = new CrosshairForm(_settings, _ui ?? SynchronizationContext.Current ?? new WindowsFormsSynchronizationContext());
+                _crosshair.FormClosed += (_, _) => _crosshair = null;
+            }
+            if (!_crosshair.Visible) _crosshair.Show();   // Show runs ApplySettings through OnVisibleChanged
+            else _crosshair.ApplySettings();
+        }
+        else _crosshair?.Hide();
+
+        if (_settings.CrosshairEnabled != on) { _settings.CrosshairEnabled = on; _settings.Save(); }
+        UpdateCrosshairMenu();
+        if (_main is { IsDisposed: false }) _main.RefreshActive();
+        if (osd) _osd.ShowProfile(OsdPrefix + Lang.T("ch_title"),
+            Lang.T(on ? "st_on" : "st_off"), _settings.Crosshair.ColorValue);
+    }
+
+    // Re-read the crosshair style after an edit in Settings, a preset or a code.
+    private void ApplyCrosshairSettings() { _crosshair?.ApplySettings(); UpdateCrosshairMenu(); }
+
+    private void UpdateCrosshairMenu()
+    {
+        if (_crosshairItem is { } it && !it.IsDisposed) SetDot(it, CrosshairVisible);
+    }
+
+    /// <summary>Copies a saved preset into the live look. False = no preset of that name.</summary>
+    private bool LoadCrosshairPreset(string name)
+    {
+        if (_settings.FindCrosshairPreset(name) is not { } p) return false;
+        _settings.Crosshair.CopyFrom(p);
+        _settings.CrosshairActivePreset = p.Name;
+        _settings.Save();
+        ApplyCrosshairSettings();
+        return true;
+    }
+
+    /// <summary>Applies a shared crosshair code to the live look. False = not a valid code.</summary>
+    private bool ApplyCrosshairCode(string code)
+    {
+        if (CrosshairStyle.Decode(code) is not { } st) return false;
+        _settings.Crosshair.CopyFrom(st);
+        _settings.CrosshairActivePreset = null;
+        _settings.Save();
+        ApplyCrosshairSettings();
+        return true;
+    }
+
+    // ---------------- MSI True Color (roadmap #119, discussions #150 and #204) ----------------
+    // Every entry (Settings card, tray, scene, CLI, link) ends in TrueColor.Set on a worker; the
+    // bookkeeping (settings, history, menu dots, the Settings card) comes back to the UI thread.
+    // A manual request gets a card on failure; an automatic one (a scene) only a history line.
+
+    /// <summary>A profile request from the UI thread; returns at once.</summary>
+    private void ApplyTrueColor(int id, ChangeSource source, bool manual)
+    {
+        string name = TrueColor.Name(id) ?? id.ToString();
+        if (!_settings.TrueColorEnabled)
+        {
+            ChangeLog.Add(source, string.Format(Lang.T("tc_log_skipped"), name), Lang.T("tc_err_disabled"));
+            if (manual) TrueColorCard(Lang.T("tc_err_disabled"));
+            return;
+        }
+        Task.Run(() =>
+        {
+            var (r, detail) = TrueColorApplyCore(id, source);
+            if (manual && r is not (TrueColor.Result.Ok or TrueColor.Result.AlreadySet))
+                _ui?.Post(_ => TrueColorCard(TrueColorReason(r, detail)), null);
+        });
+    }
+
+    /// <summary>The blocking part, on whatever worker called it; the bookkeeping is posted to the UI thread.</summary>
+    private (TrueColor.Result r, string detail) TrueColorApplyCore(int id, ChangeSource source)
+    {
+        var r = TrueColor.Set(id, _settings.TrueColorUserVerified, out string detail);
+        void Done() => AfterTrueColor(id, source, r, detail);
+        if (_ui is { } ui) ui.Post(_ => Done(), null); else Done();
+        return (r, detail);
+    }
+
+    private void AfterTrueColor(int id, ChangeSource source, TrueColor.Result r, string detail)
+    {
+        string name = TrueColor.Name(id) ?? id.ToString();
+        if (r is TrueColor.Result.Ok or TrueColor.Result.AlreadySet)
+        {
+            _settings.TrueColorLast = id;
+            _settings.TrueColorLastUtc = DateTime.UtcNow;
+            _settings.Save();
+            ChangeLog.Add(source, string.Format(Lang.T(r == TrueColor.Result.Ok ? "tc_log_set" : "tc_log_already"), name), detail);
+        }
+        else ChangeLog.Add(source, string.Format(Lang.T("tc_log_failed"), name), TrueColorReason(r, detail));
+        UpdateTrueColorMenu();
+        TrueColor.RaiseChanged();
+    }
+
+    /// <summary>The in-app CLI / link path: runs on the pipe thread (StartCliServer), answers "<code>|<text>".</summary>
+    private string ExecuteTrueColorCli(CliCommand cmd)
+    {
+        if (cmd.Arg == "status") return "0|" + Cli.TrueColorStatusJson(_settings);
+        if (!_settings.TrueColorEnabled) return "1|True Color switching is off - enable it under Settings -> System first";
+        int id = int.Parse(cmd.Arg);
+        var (r, detail) = TrueColorApplyCore(id, ChangeSource.Cli);
+        if (r is TrueColor.Result.Ok or TrueColor.Result.AlreadySet)
+            return "0|true color: " + TrueColor.Name(id) + (r == TrueColor.Result.AlreadySet ? " (already recorded)" : "");
+        return "1|" + Cli.TrueColorFailure(r, detail);
+    }
+
+    private static string TrueColorReason(TrueColor.Result r, string detail) => TrueColor.ReasonText(r, detail);
+
+    private static void TrueColorCard(string body)
+    {
+        var dlg = new GhostCardForm("//TRUECOLOR", Lang.T("tc_title"), body, Lang.T("gen_ok"), "", () => { });
+        dlg.Show();
+        dlg.Activate();
+    }
+
+    private void UpdateTrueColorMenu()
+    {
+        int? rec = TrueColor.Recorded();
+        foreach (var it in _tcItems)
+            if (!it.IsDisposed && it.Tag is int id) SetDot(it, rec == id);
+    }
 
     // The ETW-based FPS monitor runs only while someone is looking: the overlay with an FPS metric
     // enabled, or the Status → Gaming sub-tab. Off otherwise — zero idle cost by design.
@@ -1890,7 +2278,7 @@ public sealed class TrayContext : ApplicationContext
         if (_telemetryOnly)
         {
             var t = MsiTelemetry.Read();
-            return new HwSnapshot(t.CpuTemp, t.GpuTemp, 0, 0, 0, _firmware);
+            return new HwSnapshot(t.CpuTemp, t.GpuTemp, t.CpuFan, t.GpuFan, 0, _firmware, t.CpuRpm, t.GpuRpm);
         }
         return new HwSnapshot(0, 0, 0, 0, 0, _firmware);
     }
@@ -1969,6 +2357,7 @@ public sealed class TrayContext : ApplicationContext
         Reg("WinLock", ToggleWinLock);       // software hook, no EC needed
         if (Touchpad.Present()) Reg("Touchpad", ToggleTouchpad);   // devnode switch, no EC needed
         Reg("Mic", ToggleMic);                                     // Core Audio mute flag, no EC needed
+        Reg("Crosshair", ToggleCrosshair);                         // a window over the screen, no EC needed
         if (!Writable) return;
         Reg("Silent", () => SetProfile(ProfileId.Silent, true, ChangeSource.Hotkey));
         Reg("Balanced", () => SetProfile(ProfileId.Balanced, true, ChangeSource.Hotkey));
@@ -2079,7 +2468,8 @@ public sealed class TrayContext : ApplicationContext
             var (tier, color) = TierBadge();
             return new StatusInfo(_current, Writable, Known, DeviceName(), tier, color,
                                   _switches, DateTime.Now - _profileSince, Autostart.Known, AppVersion(),
-                                  _telemetryOnly);
+                                  _telemetryOnly, Ec.OnBackupPath,
+                                  _probeStatus is FirmwareProbeStatus.ClassMissing or FirmwareProbeStatus.InstanceMissing);
         },
         Hw = () => ReadHwOrTelemetry(),
         Current = () => _current,
@@ -2155,6 +2545,10 @@ public sealed class TrayContext : ApplicationContext
         SetOverlay = on => SetOverlay(on, osd: false),
         ApplyOverlaySettings = ApplyOverlaySettings,
         SnapOverlay = SnapOverlayCorner,
+        CrosshairOn = () => CrosshairVisible,
+        SetCrosshair = on => SetCrosshair(on, osd: false),
+        ApplyCrosshairSettings = ApplyCrosshairSettings,
+        SetTrueColor = id => ApplyTrueColor(id, ChangeSource.Panel, manual: true),
         SetFpsViewer = on => { _statusWantsFps = on; UpdateFpsActive(); },
         UpdateAvail = () => _updateAvail,
         OpenUpdates = tag => { OpenMain(MainTab.Updates); if (_main is { IsDisposed: false }) _main.ShowUpdates(tag); },
@@ -2287,9 +2681,8 @@ public sealed class TrayContext : ApplicationContext
         if (!Devices.ApplyOverride(p)) return false;
 
         _device = Devices.Detect(_firmware);
-        _kbdAddr = Known ? Devices.KbdBacklightFor(_firmware) : (byte)0;
-        _webcamSupported = Known && Devices.WebcamSupported(_firmware);
-        _fnSwap = Known ? Devices.FnWinSwapFor(_firmware) : null;
+        Ec.RebindBackupPath(_device);   // the backup path follows the entry now in effect
+        ResolveExtras();
         _telemetryOnly = !Known && !_simulate && MsiTelemetry.Available();
         // captured from the OLD fan-mode register, meaningless against the new tables
         _fanBeforeBoost = null;
@@ -2399,7 +2792,7 @@ public sealed class TrayContext : ApplicationContext
 
     private void TryApplyChargeLimit()
     {
-        if (AutoWritable && !_simulate && AppSettings.ChargeManaged(_settings.ChargeLimit))
+        if (AutoWritable && !_simulate && !Ec.OnBackupPath && AppSettings.ChargeManaged(_settings.ChargeLimit))
         {
             using var _ec = EcBusy();
             try
@@ -2486,7 +2879,8 @@ public sealed class TrayContext : ApplicationContext
                     (short)hw.CpuFan, (short)hw.GpuFan, hw.CpuRpm, hw.GpuRpm, (short)load, _current,
                     (short)FpsMonitor.CurrentFps));
                 if (_settings.TempAlertEnabled) ui?.Post(_ => OnThermalSample(hw), null);
-                ui?.Post(_ => OnChargeSample(hw.ChargeLimit), null);   // someone else may have moved the threshold
+                if (!Ec.OnBackupPath)   // the charge register has no slot on the backup path
+                    ui?.Post(_ => OnChargeSample(hw.ChargeLimit), null);   // someone else may have moved the threshold
                 if (_settings.TempTrayCpu || _settings.TempTrayGpu || _settings.TempTraySsd)
                 {
                     // hottest disk, as the SSD alert sees it; Disks() caches for 10 s, so this
@@ -2819,6 +3213,13 @@ public sealed class TrayContext : ApplicationContext
         CheckBatteryRules();   // both engines gate their own writes (AutoWritable inside)
         if (Environment.TickCount64 >= _scheduleHoldUntil) CheckSchedule();
 
+        if (Ec.OnBackupPath)
+        {
+            // No Fan Boost or webcam register on this path: the one thing to follow is the
+            // profile the hardware reports (the vendor's own software may switch it).
+            try { SyncProfileFromEc(); } catch { }
+            return;
+        }
         if (!Writable) return;
 
         try
@@ -2834,20 +3235,25 @@ public sealed class TrayContext : ApplicationContext
                 if (wc != _webcamOn) { _webcamOn = wc; if (_main is { IsDisposed: false }) _main.RefreshActive(); }
             }
 
-            // While a custom fan curve runs (Advanced fan mode) the fan byte no longer tells
-            // Silent from Balanced, so don't re-detect — keep the profile the user chose.
-            if (Ec.ReadByte(_device!.FanMode) == 0x8D) return;
-            var actual = Ec.GetCurrent(_device!);
-            if (actual != _current)
-            {
-                ChangeLog.Add(ChangeSource.ExternalSync,
-                    string.Format(Lang.T("log_external"), Profiles.Get(_current).Label, Profiles.Get(actual).Label));
-                _current = actual;
-                _profileSince = DateTime.Now;
-                UpdateUi(actual);
-            }
+            SyncProfileFromEc();
         }
         catch { }
+    }
+
+    private void SyncProfileFromEc()
+    {
+        // While a custom fan curve runs (Advanced fan mode) the fan byte no longer tells
+        // Silent from Balanced, so don't re-detect — keep the profile the user chose.
+        if (Ec.ReadByte(_device!.FanMode) == 0x8D) return;
+        var actual = Ec.GetCurrent(_device!);
+        if (actual != _current)
+        {
+            ChangeLog.Add(ChangeSource.ExternalSync,
+                string.Format(Lang.T("log_external"), Profiles.Get(_current).Label, Profiles.Get(actual).Label));
+            _current = actual;
+            _profileSince = DateTime.Now;
+            UpdateUi(actual);
+        }
     }
 
     private void ApplyForPower(PowerLineStatus power, bool osd)
@@ -2871,8 +3277,11 @@ public sealed class TrayContext : ApplicationContext
         // A power test restores the controller on a background thread; ExitThread would kill it
         // mid-sequence, so give that restore a bounded chance to finish before the window goes.
         if (_main is { IsDisposed: false }) _main.StopPowerTest(wait: true);
+        // Same for a path test: cancel it and let its restore run before the process goes.
+        if (_bptTask is { IsCompleted: false }) { try { _bptCts?.Cancel(); _bptTask.Wait(8000); } catch { } }
         _main?.Close();
         _overlay?.Close();
+        _crosshair?.Close();
         _report?.Close();
         _osd.Dispose();
         if (_cpuTray != null) { _cpuTray.Visible = false; _cpuTray.Dispose(); }

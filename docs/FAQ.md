@@ -50,6 +50,30 @@ Your laptop is fine - a freshly installed Windows is just missing one piece. Win
 
 **The fix: install MSI Center once.** The schema is deployed during installation and the interface appears; after that you can keep MSI Center or uninstall it - measurements show the schema stays behind (it even survives MSI's own cleanup tool), and GhostDeck never needs MSI Center running. GhostDeck deliberately does not deploy the file itself: it is an MSI-signed system component, and redistributing it is not the project's call to make. Full write-up with sources and measurements: [MSI-WMI-SCHEMA.md](MSI-WMI-SCHEMA.md); the original report: [discussion #56](../../../discussions/56).
 
+## My laptop is not in the list, or Status says "Unsupported model". What do I do?
+
+GhostDeck recognises a laptop by the EC firmware string, not by the name on the lid, so first check the Status tab: the *EC firmware* line (for example `17S1IMS1.11A`) and the *Model* line. Then pick the case that matches.
+
+**The model is recognised but marked experimental.** It works already: the entry comes from the [msi-ec](https://github.com/BeardOverflow/msi-ec) register maps and writes only the documented profile registers. Switch on *Settings → System → Startup & tray → Enable writes for this model* and use it. What promotes it to *tested* is one of two things from your machine: the **Report my model** wizard (tray menu, or the button on Status), which captures the controller in each scenario of your MSI app and opens a pre-filled issue, or the **Power test** on the Report tab, which needs no MSI software at all and measures in numbers whether Silent really lowers power and what Extreme buys.
+
+**The firmware is not recognised at all.** The app runs read-only on purpose, so it never writes registers on a machine nobody has looked at. Run **Report my model** anyway: the report shows the firmware string and the bytes per scenario, and that is enough to add an entry. No MSI app on the machine? Open a [Model support request](../../../issues/new?template=model-support.yml) with the diagnostic package (Settings → System → Diagnostics).
+
+**The badge says "monitoring only" or the note says MSI's EC control interface is not available.** That is the older generation described in the next question and, in plain language with pictures, on its own page: [Older MSI laptops: the backup WMI path](BACKUP-PATH.md). The short version: the app can still work through the device's data blocks, and one report from your machine is what adds your model.
+
+## Status says "monitoring only", or that MSI's EC control interface is not available. Can GhostDeck still switch profiles?
+
+On some older MSI laptops - the Dragon Center generation, roughly 2018-2021: Delta 15, GF65 Thin, GS75 and their relatives - the firmware does not implement the interface GhostDeck normally uses for profiles. Every call is refused, whatever MSI software is installed, so the clean-install fix above does not apply. The same firmware still serves MSI's **data blocks**, and GhostDeck can work through them: the **backup WMI path**. What you see depends on whether your model's block layout is on record.
+
+**Model on record** (today the GF65 Thin 10UE and the Delta 15 A5EFK): Status names the model and says the laptop works over the backup path. Profile switching starts locked. A **path test**, offered at start and in the tray menu, checks in about a minute and a half that switching works on your machine: it reads the current state, changes one setting and puts it back, goes through the four profiles with short processor loads, and restores what it found. An optional step checks the fan curve. When the test passes, switching is unlocked on that machine; the result is a text file on the desktop, and attaching it to your issue helps the next owner of the same model. Fan Boost, the charge limit, the keyboard backlight and the webcam switch are not available on this path. Passed so far on a GF65 Thin 10UE ([issue #230](../../../issues/230)).
+
+**Model not on record**, but the blocks answer in the layout GhostDeck knows: the badge says *monitoring only*, Status shows temperatures and fan speeds, and a card at start points to the Report tab. *Report my model* captures the blocks in each scenario of your MSI app, and the model can then be added through the signed model database without waiting for a release.
+
+![Status on the backup path](images/backup_path_status.png)
+
+![The path test: intro, running, result](images/path_test_running.png)
+
+Step by step with pictures, and the technical detail with diagrams of both paths: [Older MSI laptops: the backup WMI path](BACKUP-PATH.md). The full write-up with the measurements: [TECHNICAL.md §81](TECHNICAL.md#81-the-backup-wmi-path-data-blocks-when-the-method-interface-is-refused-issues-48-117-230).
+
 ## Can GhostDeck control my keyboard backlight? Why not on my laptop?
 
 It depends on which of the two backlight designs your machine has, and the difference is in the hardware, not in the app.
@@ -233,6 +257,36 @@ Since 1.38 a pinned GhostDeck shows the icon style you chose in Settings (*Appli
 ## Can a Stream Deck, AutoHotkey or a browser bookmark switch my profile?
 
 Yes - as a link: `ghostdeck://profile/silent`, `ghostdeck://scene/Gaming` (spaces as `%20`), `ghostdeck://fanboost/on/300`, `ghostdeck://refresh/max`, `ghostdeck://panic` and every other state-changing command of the [CLI](CLI.md). A Stream Deck *Open* or *Website* action, AutoHotkey's `Run`, the Run dialog (Win+R) or a shortcut launch it directly; a browser asks once whether to open GhostDeck, as it does for any such link. With the app running there is no administrator prompt. The registration lives in your own user profile (Settings → System → *ghostdeck:// links* removes it); `--status`, `--diag` and the maintainer commands are deliberately not reachable from a link, so a web page can never make GhostDeck write a file.
+
+## Can GhostDeck give me the Fn+↓ crosshair from MSI Center?
+
+Not that key, but yes to a crosshair. The `Fn+↓` combination is handled by MSI's own software: the Fn key goes from the laptop's controller to MSI's service, which draws the crosshair, so no other program can take that combination over. GhostDeck draws **its own crosshair** instead (Settings → Gaming → *Crosshair*): eleven shapes or your own PNG, with colour, size, line thickness, a dark rim, opacity, softness, rotation and an X/Y offset for games that aim a little below the centre. Switch it with a hotkey (`Ctrl+Alt+F12`, off until you enable it under Shortcuts), the tile on Scenarios, the tray menu, a scene, `--crosshair on` or `ghostdeck://crosshair/on`. Presets, a share code and PNG/SVG export are there too.
+
+## The crosshair does not show in my game. Is it safe in online games?
+
+GhostDeck draws the crosshair as a small window **over the screen**; it does not touch the game at all (no injection, no hooks into the game's process). That is also its one limit: a game running in **exclusive full-screen** mode owns the screen, and a window over it may stay invisible. Switch the game to *windowed* or *borderless windowed* mode and the crosshair appears; most modern games lose nothing in borderless mode.
+
+On anti-cheat: plain windows over the screen (Discord, Steam, OBS and this one) are not what anti-cheat systems look for, and we found no documented ban for one. Two cautions remain, and the Settings card repeats them: some anti-cheat clients (FACEIT, for example) **block programs they do not recognise** from running next to the game, and a game's rules can be broader than the technology. In ranked online games, prefer the crosshair built into the game. The two options that watch the mouse buttons (the click effect and hide-while-aiming) use a low-level hook like the Windows-key lock; both are off by default.
+
+## How do I keep several crosshairs, share one, or switch it automatically?
+
+Settings → Gaming → *Crosshair* (the Gaming group opens on a Start view with a tile per feature). **Presets:** *Save as...* keeps the current look under a name, without limit; a preset stays selected while you edit it, marked *(modified)*, and *Save* writes the changes back. **Sharing:** *Copy code* puts a short share code (`GDX1.…`) on the clipboard, *Paste code* applies one from a friend; the code carries the settings, not a picture, so a custom image travels as an exported PNG. *Export* writes the crosshair as PNG, or as SVG for the built-in shapes. The settings backup (Settings → System) carries the presets and the custom picture. **Switching:** a hotkey (`Ctrl+Alt+F12`, enable it under Shortcuts), the tile on Scenarios, the tray menu, a tray-click action, the taskbar jump list, a scene field (off / on / on with a preset, so a gaming scene can bring its own crosshair), `GhostDeck.exe --crosshair on|off|preset "Name"|code GDX1.…` or `ghostdeck://crosshair/on`.
+
+## Does GhostDeck switch MSI True Color profiles? (sRGB, Gamer, Movie, Anti-Blue, Office, AdobeRGB, Display P3)
+
+Yes, as an **experimental, opt-in** feature since 1.39 (Settings → System → *MSI True Color*). MSI Center used to switch the True Color profile together with its scenario; GhostDeck can do the same with a **scene field** (*MSI True Color: leave alone / sRGB / Gamer / Movie / Anti-Blue / Office / AdobeRGB / Display P3*), by hand on the Settings card, from the tray menu, with `GhostDeck.exe --truecolor movie` or `ghostdeck://truecolor/movie`.
+
+How it works, honestly: GhostDeck does **not** calculate colours and does not touch True Color's files, calibration or settings. It asks the **running True Color application** to switch, through the same undocumented window message True Color's own helper uses, and then reads back the profile True Color recorded in its registry. That record is what the card shows as *Recorded in True Color* (it follows Fn+A and True Color's own window too); *Last set by GhostDeck* is GhostDeck's own memory. Neither is a measurement of what the panel shows.
+
+The limits, as of 17 October 2026: the mechanism is **confirmed on one laptop** (MSI Raider GE78HX 13VH, built-in display, True Color 5.1.24.0, Windows 11 Home 26H2 build 26300.9711), with all seven profiles switching and no True Color window appearing. On any **other True Color version** the switch stays off; the card offers a one-click test instead (it switches to another profile for five seconds and back, you say whether the colours changed, and a *yes* unlocks the switch on that machine). True Color must be **installed and running** (it normally starts with Windows; if you closed it, start it from the Start menu, GhostDeck never starts it for you). **External monitors and HDR** were not tested: the message carries no monitor parameter, so expect it to act on whatever True Color itself acts on. True Color's own automatic switching (AppSync) is left alone; GhostDeck sends one request per action and never re-asserts a profile in the background. No guarantee that it works, use at your own risk; the author is not responsible for the effects of using an undocumented MSI interface.
+
+## My True Color is not version 5.1.24.0, or the card says it is not running. What now?
+
+**Another version.** The card then says *installed, but this version has not been confirmed* and keeps the switch off, because the message GhostDeck sends is undocumented and was checked on 5.1.24.0 only. Press **Test on my version**: after a consent card GhostDeck asks True Color for another profile (Anti-Blue, or Movie when Anti-Blue is the recorded one), waits five seconds, asks for the previous profile again and then asks *you* whether the screen colours visibly changed and came back. Answer **yes only if you saw it** - the switch then turns on for that version on that computer (the answer is not exported with the settings, another laptop has another True Color). Answer no and nothing is recorded. If it worked for you, say so in a GitHub discussion with the True Color version and your laptop: one line in the project's confirmed-version list unlocks it for everyone with that version, without a test.
+
+**Not running.** True Color normally starts with Windows and sits in the tray. If the card says it is not running (or a scene's history line says the True Color step was skipped), start it from the Start menu; GhostDeck never starts it for you, because starting it shows its window. **The switch is off.** Enable it on the card; with the switch off a scene skips its True Color field with a history line, and `--truecolor <profile>` or a link answers with a refusal (`--truecolor status` works always).
+
+**What the card shows.** *Recorded in True Color* is what True Color itself last recorded, so it follows Fn+A and True Color's own window too, within a moment; *Last set by GhostDeck* is only GhostDeck's memory. Neither is a measurement of the panel. Switching to the profile that is already recorded sends nothing (*already recorded* in the history). Not tested, so not promised: external monitors, HDR, other laptops.
 
 ## Why does it ask for administrator (UAC)?
 

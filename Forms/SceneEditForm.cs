@@ -103,6 +103,35 @@ public sealed class SceneEditForm : GhostCardForm
         Row(Lang.T("overlay_title"), onOff, scene.Overlay != null, scene.Overlay == false ? 1 : 0,
             (on, i) => _scene.Overlay = on ? i == 0 : null);
 
+        // MSI True Color (roadmap #119): the row exists when the application is installed, whatever
+        // its version; a switched-off row = the scene leaves the profile alone. Names are True
+        // Color's own (product names), so they stay untranslated.
+        if (TrueColor.Detect(d.Settings.TrueColorUserVerified).Installed)
+        {
+            var tcIds = TrueColor.Profiles.Select(p => p.Id).ToArray();
+            int tSel = scene.TrueColor is { } stc ? Math.Max(0, Array.IndexOf(tcIds, stc)) : 0;
+            Row(Lang.T("tc_title"), TrueColor.Profiles.Select(p => p.Name).ToArray(), scene.TrueColor != null, tSel,
+                (on, i) => _scene.TrueColor = on ? tcIds[i] : null);
+        }
+
+        // the crosshair: on with the current look, off, or on with one of the saved presets
+        var chItems = new List<string> { onOff[0], onOff[1] };
+        var chPresets = d.Settings.CrosshairPresets.Select(p => p.Name).ToList();
+        chItems.AddRange(chPresets);
+        int xSel = 0;
+        if (scene.Crosshair == false) xSel = 1;
+        else if (scene.Crosshair == true && scene.CrosshairPreset is { Length: > 0 } scp)
+        {
+            int pi = chPresets.FindIndex(n => n.Equals(scp, StringComparison.OrdinalIgnoreCase));
+            if (pi >= 0) xSel = 2 + pi;
+        }
+        Row(Lang.T("ch_title"), chItems.ToArray(), scene.Crosshair != null, xSel,
+            (on, i) =>
+            {
+                _scene.Crosshair = on ? i != 1 : null;
+                _scene.CrosshairPreset = on && i >= 2 ? chPresets[i - 2] : null;
+            });
+
         // The three presets plus, when one is in play, the custom threshold: the scene the user is
         // editing may already carry one, or their current setting may be custom - either way it has
         // to be selectable here, or saving the scene would silently round it to a preset.

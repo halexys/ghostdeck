@@ -67,7 +67,7 @@ public static class Ec
     }
 
     /// <summary>Force a reconnect on the next EC call (used after sleep/resume).</summary>
-    public static void DropSession() { lock (_wmiLock) DropLocked(); }
+    public static void DropSession() { lock (_wmiLock) DropLocked(); EcBlocks.DropCache(); }
 
     /// <summary>Run one EC operation on the shared session, healing a stale one exactly once.</summary>
     private static T WithSession<T>(Func<ManagementObject, ManagementClass, T> body)
@@ -94,10 +94,164 @@ public static class Ec
         WithSession<object?>((i, p) => { body(i, p); return null; });
 
     /// <summary>Read one EC byte (own session handling).</summary>
-    private static byte ReadRaw(byte addr) => WithSession((inst, pkg) => ReadWith(inst, pkg, addr));
+    private static byte ReadRaw(byte addr) =>
+        _backup is { } b ? BackupRead(b, addr) : WithSession((inst, pkg) => ReadWith(inst, pkg, addr));
 
     /// <summary>Write one EC byte (own session handling).</summary>
-    private static void WriteRaw(byte addr, byte val) => WithSession((inst, pkg) => WriteWith(inst, pkg, addr, val));
+    private static void WriteRaw(byte addr, byte val)
+    {
+        if (_backup is { } b)
+        {
+            if (!b.Slots.TryGetValue(addr, out var slot))
+                throw new EcPathException($"Register 0x{addr:X2} is not available on the backup WMI path.");
+            BackupWrite(slot, val);
+            return;
+        }
+        WithSession((inst, pkg) => WriteWith(inst, pkg, addr, val));
+    }
+
+    // ---------------- backup WMI path (data blocks) ----------------
+    // On firmware that refuses the MSI_ACPI methods (0x8004100C on every call - TECHNICAL §81)
+    // the same registers are still served through the device's data blocks. When a model has
+    // that layout on record (DeviceProfile.BlockPath), reads are routed there: the rest of the
+    // app keeps asking for "this model's shift register" by the address in its entry, and the
+    // table below turns exactly those named registers into class[index] slots. Any other
+    // address has no slot and is refused.
+    //
+    // Writes pass three checks, all here and nowhere else (BackupWrite):
+    //  1. the gate is open - it opens for the duration of the path test and stays open on a
+    //     machine where that test has passed (the caller keeps that fact, see OpenBackupWrites);
+    //  2. the slot is on the allow-list - the shift-mode and fan-mode slots from the start, a
+    //     fan-curve speed slot only while the path test has registered it;
+    //  3. the value is on that slot's list - the values the model's own profile recipes carry,
+    //     plus what the path test registers: the original value it has to put back, and for a
+    //     curve slot one value the table already contains.
+
+    private sealed record BackupState(DeviceProfile Dev, BlockPathSpec Spec, Dictionary<byte, BlockRef> Slots,
+                                      Dictionary<BlockRef, HashSet<byte>> Allowed);
+    private static volatile BackupState? _backup;
+    private static volatile bool _backupWritesOpen;
+
+    /// <summary>Open or close the write gate of the backup path. Closed until someone opens it.</summary>
+    public static void OpenBackupWrites(bool open) => _backupWritesOpen = open;
+    public static bool BackupWritesOpen => _backupWritesOpen;
+
+    /// <summary>The layout in effect while the backup path is active, for the path test.</summary>
+    public static BlockPathSpec? BackupSpec => _backup?.Spec;
+
+    /// <summary>Put values on a slot's allow-list (path test only: originals to restore, one curve value).</summary>
+    internal static void BackupAllow(BlockRef slot, params byte[] values)
+    {
+        if (_backup is not { } b) return;
+        lock (b.Allowed)
+        {
+            if (!b.Allowed.TryGetValue(slot, out var set)) b.Allowed[slot] = set = new HashSet<byte>();
+            foreach (var v in values) set.Add(v);
+        }
+    }
+
+    /// <summary>The one place a byte is written on the backup path.</summary>
+    internal static void BackupWrite(BlockRef slot, byte value)
+    {
+        if (_backup is not { } b) throw new EcPathException("The backup WMI path is not active.");
+        if (!_backupWritesOpen) throw new EcPathException("Writes on the backup WMI path are locked until the path test has passed on this machine.");
+        bool ok;
+        lock (b.Allowed) ok = b.Allowed.TryGetValue(slot, out var set) && set.Contains(value);
+        if (!ok) throw new EcPathException($"{slot} = 0x{value:X2} is not on the list of values this path may write.");
+        lock (_wmiLock) EcBlocks.Write(slot, value);
+    }
+
+    /// <summary>True while EC reads go through the data blocks instead of the MSI_ACPI methods.</summary>
+    public static bool OnBackupPath => _backup != null;
+
+    /// <summary>Outcome of the backup-path check, kept for the diagnostic package.</summary>
+    public sealed record BackupProbe(bool Active, string Firmware, DeviceProfile? Device, string Bios, string Detail);
+    public static BackupProbe? LastBackupProbe { get; private set; }
+
+    private static BackupState BuildBackup(DeviceProfile dev, BlockPathSpec spec)
+    {
+        var slots = new Dictionary<byte, BlockRef> { [dev.ShiftMode] = spec.ShiftMode, [dev.FanMode] = spec.FanMode, [dev.CpuTemp] = spec.CpuTemp };
+        if (spec.GpuTemp != null) slots[dev.GpuTemp] = spec.GpuTemp;
+        if (spec.CpuDuty != null) slots[dev.CpuFan] = spec.CpuDuty;
+        if (spec.GpuDuty != null) slots[dev.GpuFan] = spec.GpuDuty;
+        // What the profile recipes of this model write to its shift-mode and fan-mode registers.
+        // A recipe byte for any other register has no slot and never gets this far.
+        var allowed = new Dictionary<BlockRef, HashSet<byte>>
+        {
+            [spec.ShiftMode] = new(dev.Recipes.Values.SelectMany(r => r).Where(p => p.addr == dev.ShiftMode).Select(p => p.val)),
+            [spec.FanMode] = new(dev.Recipes.Values.SelectMany(r => r).Where(p => p.addr == dev.FanMode).Select(p => p.val)),
+        };
+        // A model with a curve on record may also put the fan into Advanced mode.
+        if (dev.FanCurve is { } fc) allowed[spec.FanMode].Add(fc.AdvancedModeValue);
+        return new BackupState(dev, spec, slots, allowed);
+    }
+
+    private static byte BackupRead(BackupState b, byte addr) =>
+        b.Slots.TryGetValue(addr, out var slot)
+            ? (byte)EcBlocks.Read(slot)
+            : throw new EcPathException($"Register 0x{addr:X2} is not available on the backup WMI path.");
+
+    /// <summary>
+    /// Called once the method interface has answered "not supported": can this machine be
+    /// read through its data blocks instead? Three things must hold. The BIOS version names a
+    /// board code that maps to exactly ONE EC firmware line in the database (the EC version
+    /// itself cannot be read here, so an ambiguous board stays unidentified); that model has a
+    /// block layout on record; and the live values in those slots look like what the layout
+    /// says they are - a shift-mode byte in the 0xC0 range, a fan-mode byte ending in 0xD, a
+    /// plausible CPU temperature. On success the path is switched over and the firmware string
+    /// is the EC prefix with the BIOS version it was derived from.
+    /// </summary>
+    public static BackupProbe TryBackupPath()
+    {
+        BackupProbe Done(bool ok, string fw, DeviceProfile? dev, string bios, string detail)
+        {
+            var p = new BackupProbe(ok, fw, dev, bios, detail);
+            LastBackupProbe = p;
+            return p;
+        }
+
+        string bios = EcBlocks.BiosVersion();
+        if (bios.Length == 0) return Done(false, "", null, bios, "BIOS version could not be read");
+        if (EcBlocks.BoardFromBios(bios) is not { } board)
+            return Done(false, "", null, bios, "BIOS version has an unrecognised shape");
+        var hits = Devices.PrefixesForBoard(board);
+        if (hits.Count == 0) return Done(false, "", null, bios, $"no model with board code {board} in the database");
+        if (hits.Count > 1)
+            return Done(false, "", null, bios, $"board code {board} maps to several EC lines ({string.Join(", ", hits.Select(h => h.Prefix))})");
+        var (dev, prefix) = hits[0];
+        if (Devices.BlockPathOf(dev) is not { } spec)
+            return Done(false, "", null, bios, $"{prefix}: no backup-path layout on record for this model");
+
+        try
+        {
+            int shift = EcBlocks.Read(spec.ShiftMode), fan = EcBlocks.Read(spec.FanMode), temp = EcBlocks.Read(spec.CpuTemp);
+            if ((shift & 0xF0) != 0xC0 || (fan & 0x0F) != 0x0D || temp is <= 0 or >= 120)
+                return Done(false, "", null, bios,
+                    $"{prefix}: values do not match the layout ({spec.ShiftMode}=0x{shift:X2}, {spec.FanMode}=0x{fan:X2}, {spec.CpuTemp}={temp})");
+        }
+        catch (Exception ex)
+        {
+            return Done(false, "", null, bios, $"{prefix}: data blocks did not answer ({ex.GetType().Name}: {ex.Message.Trim()})");
+        }
+
+        string fw = $"{prefix} (BIOS {bios})";
+        lock (_wmiLock)
+        {
+            _backup = BuildBackup(dev, spec);
+            _firmwareCache = fw;
+        }
+        return Done(true, fw, dev, bios, $"{prefix}: active");
+    }
+
+    /// <summary>
+    /// Keep the backup path pointed at the entry now in effect after a model-database swap.
+    /// Leaves the path when the model (or its layout) is gone from the new tables.
+    /// </summary>
+    public static void RebindBackupPath(DeviceProfile? dev)
+    {
+        if (_backup == null) return;
+        _backup = dev != null && Devices.BlockPathOf(dev) is { } spec ? BuildBackup(dev, spec) : null;
+    }
 
     private static void WriteWith(ManagementObject inst, ManagementClass pkg, byte addr, byte val)
     {
@@ -124,7 +278,7 @@ public static class Ec
         return ((byte[])outPkg["Bytes"])[1];
     }
 
-    public static string ReadFirmware() => ProbeFirmware().Firmware;
+    public static string ReadFirmware() => _backup != null ? _firmwareCache ?? "" : ProbeFirmware().Firmware;
 
     /// <summary>
     /// Firmware identification with an explicit verdict instead of a swallowed "".
@@ -134,6 +288,9 @@ public static class Ec
     /// </summary>
     public static FirmwareProbe ProbeFirmware()
     {
+        // MSIPS_BLOCKS_FILE replay: the saved dump stands in for a machine whose method
+        // interface refuses the call, so the probe answers the way that machine does.
+        if (EcBlocks.Replaying) return new FirmwareProbe(FirmwareProbeStatus.NotSupported, "", null);
         try
         {
             string s = WithSession((inst, _) => ReadFirmware(inst));
@@ -244,6 +401,20 @@ public static class Ec
     public static (int[] cpuTemp, int[] cpuSpeed, int[] gpuTemp, int[] gpuSpeed)? ReadFanCurve(DeviceProfile dev)
     {
         if (dev.FanCurve is not { } fc) return null;
+        // Backup path: the tables live in block slots (BlockCurveSpec), the same pairs the
+        // editor shows on every other board (anchor + thresholds / speeds).
+        if (_backup is { } bk && bk.Spec.CpuCurve is { } cc)
+        {
+            int[] Slots(BlockCurveSpec? c, Func<BlockCurveSpec, int, BlockRef> pick)
+            {
+                var arr = new int[fc.Points];
+                if (c == null) return arr;
+                for (int i = 0; i < fc.Points && i < c.Count; i++) arr[i] = EcBlocks.Read(pick(c, i));
+                return arr;
+            }
+            return (Slots(cc, (c, i) => c.Temp(i)), Slots(cc, (c, i) => c.Speed(i)),
+                    Slots(bk.Spec.GpuCurve, (c, i) => c.Temp(i)), Slots(bk.Spec.GpuCurve, (c, i) => c.Speed(i)));
+        }
         int[] Read(byte baseAddr)
         {
             var arr = new int[fc.Points];
@@ -257,6 +428,28 @@ public static class Ec
     public static void WriteFanCurve(DeviceProfile dev, int[] cpuTemp, int[] cpuSpeed, int[] gpuTemp, int[] gpuSpeed)
     {
         if (dev.FanCurve is not { } fc) return;
+        // Backup path: every value is range-checked and put on its slot's allow-list right
+        // before the write; the gate in BackupWrite does the rest (locked until the path test
+        // has passed on this machine).
+        if (_backup is { } bk && bk.Spec.CpuCurve is { } cc)
+        {
+            void Table(BlockCurveSpec? c, int[] temps, int[] speeds)
+            {
+                if (c == null) return;
+                for (int i = 0; i < fc.Points && i < c.Count && i < temps.Length && i < speeds.Length; i++)
+                {
+                    byte t = (byte)Math.Clamp(temps[i], 0, 110), s = (byte)Math.Clamp(speeds[i], 0, fc.MaxFanPct);
+                    BackupAllow(c.Temp(i), t); BackupWrite(c.Temp(i), t);
+                    BackupAllow(c.Speed(i), s); BackupWrite(c.Speed(i), s);
+                }
+            }
+            lock (_wmiLock)
+            {
+                Table(cc, cpuTemp, cpuSpeed);
+                if (!fc.SingleFan) Table(bk.Spec.GpuCurve, gpuTemp, gpuSpeed);
+            }
+            return;
+        }
         void W(byte baseAddr, int[] vals)
         {
             for (int i = 0; i < fc.Points && i < vals.Length; i++)
@@ -395,6 +588,19 @@ public static class Ec
 
     private static HwSnapshot ReadHw(DeviceProfile dev)
     {
+        // Backup path: temperatures, fan duty and the tachometers come from their block slots.
+        // The charge-limit register has no slot there, so it reads as 0 (= not managed).
+        if (_backup is { } b)
+        {
+            int Slot(BlockRef? r) => r != null ? EcBlocks.Read(r) : 0;
+            int dutyCap = dev.FanCurve?.MaxFanPct ?? 100;
+            int cpuT = Slot(b.Spec.CpuTemp), gpuT = Slot(b.Spec.GpuTemp);
+            return new HwSnapshot(
+                cpuT is > 0 and < 120 ? cpuT : 0, gpuT is > 0 and < 120 ? gpuT : 0,
+                Math.Min(dutyCap, Slot(b.Spec.CpuDuty)), Math.Min(dutyCap, Slot(b.Spec.GpuDuty)),
+                0, _firmwareCache ?? "",
+                RpmFromRaw(Slot(b.Spec.CpuRpm), dev.RpmConst), RpmFromRaw(Slot(b.Spec.GpuRpm), dev.RpmConst));
+        }
         // One lock for the whole sample: these reads belong to the same tick, and holding it keeps
         // a scene/profile write from landing in the middle of them.
         lock (_wmiLock)
@@ -429,10 +635,10 @@ public static class Ec
     // and reached Status as a number. No reading beats a wrong one.
     private const int MaxPlausibleRpm = 8000;
 
-    private static int RpmFrom(byte addr, int rpmConst)
+    private static int RpmFrom(byte addr, int rpmConst) => addr == 0 ? 0 : RpmFromRaw(ReadRaw(addr), rpmConst);
+
+    internal static int RpmFromRaw(int raw, int rpmConst)
     {
-        if (addr == 0) return 0;
-        int raw = ReadRaw(addr);
         if (raw == 0) return 0;
         int rpm = rpmConst / raw;
         return rpm <= MaxPlausibleRpm ? rpm : 0;

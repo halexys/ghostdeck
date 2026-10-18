@@ -30,11 +30,22 @@ public sealed class HotkeyDef
 
     [JsonIgnore] public bool IsSet => Vk != 0;
 
-    public HotkeyDef Clone() => new() { Mods = Mods, Vk = Vk, Display = Display, Enabled = Enabled };
+    // Fields a newer version wrote and this one does not know: kept and written back unchanged
+    // (see AppSettings.Extra).
+    [JsonExtensionData] public Dictionary<string, JsonElement>? Extra { get; set; }
+
+    public HotkeyDef Clone() => new() { Mods = Mods, Vk = Vk, Display = Display, Enabled = Enabled, Extra = Extra == null ? null : new(Extra) };
 }
 
 public sealed class AppSettings
 {
+    // Every property of settings.json this version does not know lands here and goes back into
+    // the file on the next save, byte for byte. Without it an older version started after a
+    // newer one rewrote the file with only the fields it knew, and the newer version's settings
+    // (presets, scene fields, switches) were gone when it ran again. Applies from the first
+    // version that carries this property on; older versions still drop what they do not know.
+    [JsonExtensionData] public Dictionary<string, JsonElement>? Extra { get; set; }
+
     public string Language { get; set; } = "en";
     public Dictionary<string, HotkeyDef> Hotkeys { get; set; } = new();
     public bool HotkeysEnabled { get; set; } = true;   // master on/off for all keyboard shortcuts (#9)
@@ -93,6 +104,14 @@ public sealed class AppSettings
 
     public bool ExperimentalWriteAllowedFor(string? prefix) =>
         prefix != null && ExperimentalWriteFw.Contains(prefix, StringComparer.OrdinalIgnoreCase);
+
+    // Backup WMI path: firmware labels (EC prefix + BIOS version) on which the path test has
+    // passed ON THIS MACHINE. Profile switching through that path is unlocked only for these.
+    // Machine-local like LastFirmware: never imported from another machine's settings file.
+    public List<string> BackupPathPassed { get; set; } = new();
+
+    public bool BackupPathPassedFor(string? firmware) =>
+        !string.IsNullOrEmpty(firmware) && BackupPathPassed.Contains(firmware, StringComparer.OrdinalIgnoreCase);
 
     // Apex: per-model opt-in for the fourth shift mode (the Extreme recipe then writes the
     // entry's FourthMode value instead of the turbo one). Keyed by firmware prefix, same
@@ -175,6 +194,26 @@ public sealed class AppSettings
         OverlayMetric.CpuRpm | OverlayMetric.GpuRpm | OverlayMetric.Profile | OverlayMetric.CpuLoad | OverlayMetric.Ram |
         OverlayMetric.Fps);
     public bool OverlayBoldText { get; set; } = true;                  // pogrubione etykiety (Segoe UI Semibold) dla czytelnosci przy malej skali
+
+    // ---- Crosshair (roadmap #118, discussion #247) ----
+    public bool CrosshairEnabled { get; set; }                          // last visibility, restored at start like the overlay
+    public CrosshairStyle Crosshair { get; set; } = new();              // the live look
+    public List<CrosshairStyle> CrosshairPresets { get; set; } = new(); // named copies of the look, no limit
+    public string? CrosshairActivePreset { get; set; }                  // the preset the look came from (kept while edited; Save writes back)
+    // The custom picture travels inside an EXPORTED settings file only: the export fills this
+    // from crosshair\custom.png, the import writes it back and clears it. Never saved to
+    // settings.json (null is skipped), so the picture is not duplicated on every save.
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? CrosshairImageBase64 { get; set; }
+    // Settings -> Gaming: 0 = the overlay, 1 = the crosshair (machine-local UI state, like SettingsSubTab)
+    public int SettingsGamingSub { get; set; }
+
+    // ---- MSI True Color (roadmap #119, discussions #150 and #204) - experimental, opt-in ----
+    public bool TrueColorEnabled { get; set; }                          // the switch under Settings -> System
+    public bool TrueColorConfirmed { get; set; }                        // the one-time consent card was acknowledged (not asked again)
+    public string? TrueColorUserVerified { get; set; }                  // a True Color version the owner confirmed with the in-app test ON THIS MACHINE; not exported
+    public int? TrueColorLast { get; set; }                             // the profile GhostDeck last asked for: its own memory, shown as such, not True Color's state
+    public DateTime TrueColorLastUtc { get; set; } = DateTime.MinValue;
     public bool FpsMetricSeeded { get; set; }                          // one-time: dosianie metryki FPS istniejacym uzytkownikom (bitmaska sprzed v1.23)
 
     // ---- game-session report (Status -> Gaming + popup) ----
@@ -402,6 +441,7 @@ public sealed class AppSettings
         DefOff("WinLock",  0x77, "Ctrl+Alt+F8");   // F8 — Windows-key lock (gaming)
         DefOff("Touchpad", 0x78, "Ctrl+Alt+F9");   // F9 — touchpad on/off (keyboard escape hatch)
         DefOff("Mic",      0x7A, "Ctrl+Alt+F11");  // F11 — microphone mute (discussion #231); F10 is the panic reset
+        DefOff("Crosshair", 0x7B, "Ctrl+Alt+F12"); // F12 - crosshair on/off (roadmap #118)
 
         // migrate the earlier dev defaults (Ctrl+Alt+O/G, Win+Alt+G/L) to the new Ctrl+Shift ones
         void MigrateTo(string k, uint vk, string disp, (uint mods, uint vk)[] olds)
@@ -452,7 +492,21 @@ public sealed class AppSettings
             if (s.RefreshHz is null) s.RefreshTarget = null;   // the identity travels with the rate
             if (s.BrightnessPct is { } bp && bp is < 0 or > 100) s.BrightnessPct = null;
             if (s.Profile is { } p && !Enum.TryParse<ProfileId>(p, out _)) s.Profile = null;
+            if (s.Crosshair is null or false) s.CrosshairPreset = null;   // a preset only goes with "on"
+            if (s.TrueColor is { } tc && !TrueColor.IsProfile(tc)) s.TrueColor = null;   // only the seven ids True Color records
         }
+        if (TrueColorLast is { } tcl && !TrueColor.IsProfile(tcl)) TrueColorLast = null;
+        // Crosshair sanity: every value in range, presets named and unique, a scene's preset
+        // that no longer exists falls back to "on with the current look".
+        Crosshair ??= new CrosshairStyle();
+        Crosshair.Normalize();
+        CrosshairPresets.RemoveAll(p => p == null || string.IsNullOrWhiteSpace(p.Name));
+        var seenCh = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        CrosshairPresets.RemoveAll(p => !seenCh.Add(p.Name.Trim()));
+        foreach (var p in CrosshairPresets) { p.Name = p.Name.Trim(); p.Normalize(); }
+        foreach (var s in Scenes)
+            if (s.CrosshairPreset is { } cp && FindCrosshairPreset(cp) == null) s.CrosshairPreset = null;
+        if (CrosshairActivePreset is { } acp && FindCrosshairPreset(acp) == null) CrosshairActivePreset = null;
         foreach (var k in Hotkeys.Keys.Where(k => k.StartsWith("Scene:", StringComparison.OrdinalIgnoreCase)
                                                   && !Scenes.Any(s => s.HotkeyKey.Equals(k, StringComparison.OrdinalIgnoreCase))).ToList())
             Hotkeys.Remove(k);
@@ -529,6 +583,10 @@ public sealed class AppSettings
         ExperimentalWriteFw = new List<string>(src.ExperimentalWriteFw ?? new());
         ApexFw = new List<string>(src.ApexFw ?? new());
         ApexConfirmed = src.ApexConfirmed;
+        // True Color: the switch and the consent travel; the owner-verified version and the last
+        // profile are this machine's (another laptop has another True Color)
+        TrueColorEnabled = src.TrueColorEnabled;
+        TrueColorConfirmed = src.TrueColorConfirmed;
         UpdateCheckEnabled = src.UpdateCheckEnabled;
         DarkMode = src.DarkMode;
         TempAlertEnabled = src.TempAlertEnabled;
@@ -590,8 +648,27 @@ public sealed class AppSettings
         TempTrayColorHot = src.TempTrayColorHot;
         TempTrayMarkStyle = src.TempTrayMarkStyle; TempTrayMarkCpu = src.TempTrayMarkCpu;
         TempTrayMarkGpu = src.TempTrayMarkGpu; TempTrayMarkSsd = src.TempTrayMarkSsd;
+        CrosshairEnabled = src.CrosshairEnabled;
+        Crosshair = (src.Crosshair ?? new CrosshairStyle()).Clone();
+        CrosshairPresets.Clear();
+        foreach (var p in src.CrosshairPresets) CrosshairPresets.Add(p.Clone());
+        CrosshairActivePreset = src.CrosshairActivePreset;
+        // the picture carried by the file replaces the stored one; a file without one leaves it alone
+        if (!string.IsNullOrEmpty(src.CrosshairImageBase64))
+        {
+            try
+            {
+                Directory.CreateDirectory(CrosshairPainter.ImageDir);
+                File.WriteAllBytes(CrosshairPainter.ImagePath, Convert.FromBase64String(src.CrosshairImageBase64));
+            }
+            catch { }
+        }
+        CrosshairImageBase64 = null;
         EnsureDefaults();
     }
+
+    public CrosshairStyle? FindCrosshairPreset(string name) =>
+        CrosshairPresets.FirstOrDefault(p => p.Name.Equals(name.Trim(), StringComparison.OrdinalIgnoreCase));
 
     public Color ColorFor(ProfileId id)
     {
@@ -617,8 +694,11 @@ public sealed class AppSettings
             StatusOnTop = StatusOnTop,
             ExperimentalEnabled = ExperimentalEnabled,
             ExperimentalWriteFw = new List<string>(ExperimentalWriteFw),
+            BackupPathPassed = new List<string>(BackupPathPassed),
             ApexFw = new List<string>(ApexFw),
             ApexConfirmed = ApexConfirmed,
+            TrueColorEnabled = TrueColorEnabled,
+            TrueColorConfirmed = TrueColorConfirmed,
             UpdateCheckEnabled = UpdateCheckEnabled,
             HotkeysEnabled = HotkeysEnabled,
             TrayShowStatus = TrayShowStatus, TrayShowFanCurve = TrayShowFanCurve, TrayShowModels = TrayShowModels,
@@ -694,6 +774,13 @@ public sealed class AppSettings
         c.TempTrayColorHot = TempTrayColorHot;
         c.TempTrayMarkStyle = TempTrayMarkStyle; c.TempTrayMarkCpu = TempTrayMarkCpu;
         c.TempTrayMarkGpu = TempTrayMarkGpu; c.TempTrayMarkSsd = TempTrayMarkSsd;
+        c.CrosshairEnabled = CrosshairEnabled;
+        c.Crosshair = Crosshair.Clone();
+        foreach (var p in CrosshairPresets) c.CrosshairPresets.Add(p.Clone());
+        c.CrosshairActivePreset = CrosshairActivePreset;
+        c.SettingsGamingSub = SettingsGamingSub;
+        c.TrueColorEnabled = TrueColorEnabled; c.TrueColorConfirmed = TrueColorConfirmed;
+        c.TrueColorUserVerified = TrueColorUserVerified; c.TrueColorLast = TrueColorLast; c.TrueColorLastUtc = TrueColorLastUtc;
         return c;
     }
 }

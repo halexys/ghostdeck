@@ -37,6 +37,40 @@ public sealed record FanCurveSpec(
 /// </summary>
 public sealed record FourthModeSpec(string Name, byte ShiftValue);
 
+/// <summary>One slot of an MSI WMI data block: the class in root\wmi and the instance index.</summary>
+public sealed record BlockRef(string Class, int Index)
+{
+    public override string ToString() => $"{Class}[{Index}]";
+}
+
+/// <summary>
+/// Where a model keeps its registers on the backup WMI path - the device's data blocks
+/// (`MSI_System`, `MSI_CPU`, `MSI_VGA`, `MSI_AP`), used when the firmware refuses the
+/// `MSI_ACPI` method interface (TECHNICAL §81). Every slot is addressed as class[index],
+/// which is what the firmware itself indexes by; EC addresses play no part on this path.
+/// Recorded per model, from that model's own block dump. Null on a DeviceProfile = the model
+/// has no backup path on record and stays temperatures-only when the interface is refused.
+/// </summary>
+public sealed record BlockPathSpec(
+    BlockRef ShiftMode, BlockRef FanMode, BlockRef CpuTemp,
+    BlockRef? GpuTemp = null,
+    BlockRef? CpuDuty = null, BlockRef? GpuDuty = null,
+    BlockRef? CpuRpm = null, BlockRef? GpuRpm = null,
+    BlockCurveSpec? CpuCurve = null, BlockCurveSpec? GpuCurve = null);
+
+/// <summary>
+/// Where one fan's curve table sits inside a data block: <see cref="Count"/> temperature
+/// slots from <see cref="TempFirst"/> (the first is the 0-degree anchor) and as many speed
+/// slots from <see cref="SpeedFirst"/>. Recorded so the path test can check whether the
+/// firmware follows the table; no editor uses it. The slot just below the temperature run
+/// holds the firmware's critical-temperature limit and is never part of a table.
+/// </summary>
+public sealed record BlockCurveSpec(string Class, int TempFirst, int SpeedFirst, int Count)
+{
+    public BlockRef Temp(int i) => new(Class, TempFirst + i);
+    public BlockRef Speed(int i) => new(Class, SpeedFirst + i);
+}
+
 /// <summary>
 /// Per-model EC definition: firmware match, EC addresses, per-profile recipes, and a tier.
 /// Tested = verified on real hardware. Experimental = built from msi-ec's documented
@@ -85,6 +119,10 @@ public sealed class DeviceProfile
     // or null. Nothing writes it yet - it is what the Power test probes. See FourthModeSpec.
     public FourthModeSpec? FourthMode { get; init; }
 
+    // Backup WMI path (data blocks) for units of this model whose firmware refuses the method
+    // interface, or null. See BlockPathSpec.
+    public BlockPathSpec? BlockPath { get; init; }
+
     // Community attribution (Models tab "Thanks" column): GitHub login of the person whose
     // report/verification backs this entry, and the issue to link as a thank-you.
     public string Credit { get; init; } = "";
@@ -110,7 +148,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20261011;
+    public const int DataVersion = 20261021;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -191,6 +229,24 @@ public static class Devices
     private static readonly FanCurveSpec ModernCurveVerified =
         new(0x8D, CpuTempBase: 0x69, CpuSpeedBase: 0x72, GpuTempBase: 0x81, GpuSpeedBase: 0x8A, Points: 6, Verified: true);
 
+    // Backup-path layout of the Dragon Center era boards (TECHNICAL §81). Read with GhostDeck's
+    // own diagnostic package on both machines that carry it below - a Delta 15 A5EFK (issue #48)
+    // and a GF65 Thin 10UE (issue #117): the same instance count in every block and the same
+    // slots. Shift mode and fan mode sit in MSI_System (196 / 13 / 141 = C4 / 0D / 8D in the
+    // dumps), live temperature and fan duty in MSI_CPU / MSI_VGA, the fan tachometers in MSI_AP
+    // (0 while a fan stands still, 478000 / raw otherwise). Each fan's curve table is seven
+    // temperature slots from index 4 (the 0-degree anchor, then six thresholds: 55 64 73 76 82 88
+    // on the GF65, 55 60 70 78 85 90 on the Delta) and seven speed slots from index 11; index 3
+    // is the critical-temperature limit and belongs to no table. A model gets this layout only
+    // once its own dump shows it - the layout is never assumed from the generation.
+    internal static BlockPathSpec DragonEraLayout => DragonEraBlocks;
+    private static readonly BlockPathSpec DragonEraBlocks = new(
+        ShiftMode: new("MSI_System", 7), FanMode: new("MSI_System", 9),
+        CpuTemp: new("MSI_CPU", 1), GpuTemp: new("MSI_VGA", 1),
+        CpuDuty: new("MSI_CPU", 2), GpuDuty: new("MSI_VGA", 2),
+        CpuRpm: new("MSI_AP", 2), GpuRpm: new("MSI_AP", 4),
+        CpuCurve: new("MSI_CPU", 4, 11, 7), GpuCurve: new("MSI_VGA", 4, 11, 7));
+
     // ---------------------------------------------------------------------
     // (#26) Keyboard-backlight level register, per firmware prefix. Generated from msi-ec's
     // per-conf kbd_bl blocks (bl_state_address): write 0x80 | level (0-3 = off/low/mid/high),
@@ -224,7 +280,7 @@ public static class Devices
     // (#27) msi-ec documents the webcam switch (0x2E) and webcam block (0x2F) identically on
     // every conf; only these boards are annotated as having no hardware webcam control at all.
     private static readonly HashSet<string> NoWebcamCtrl = new(StringComparer.OrdinalIgnoreCase)
-        { "159KIMS1", "15H5EMS1", "13P5EMS1" };
+        { "159KIMS1", "15H5EMS1", "13P5EMS1", "15A2EMS1" };   // 15A2EMS1: owner-tested, 0x2E moves but the camera stays on (#237)
 
     /// <summary>(#27) Whether the EC webcam switch is expected to exist on this firmware.</summary>
     public static bool WebcamSupported(string firmware) =>
@@ -308,6 +364,9 @@ public static class Devices
             // 2.0.48): recipe bytes match in all four scenarios and all three hardware checks
             // passed - credit shared as thanks. (His Extreme column showed 0xD4=8D: his own
             // MSI Center Advanced curve active at capture time, not a board quirk.)
+            // A third 17S1IMS1.114 capture (issue #246, MSI Center 2.0.48) matched the recipes
+            // again, with 0x34 reading 01 in every scenario, Extreme included, where the
+            // reference unit reads 00 there - the register is dynamic, nothing written changes.
             Credit = "wygodad, megadude9704", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/1",
 
             // Fan-curve tables located via the test tool; 6 points each (read-only preview for now).
@@ -601,6 +660,13 @@ public static class Devices
         //   the stock app's own path has not been verified on this board by anyone yet.
         new() { Name = "MSI GF65 Thin 10UE", FirmwarePrefixes = new[] { "16W2EMS1" }, Tier = Tier.Experimental,
                 ShiftMode = 0xF2, FanMode = 0xF4, ChargeCtrl = 0xEF, Recipes = StdRecipes(0xF2, 0xF4, null),
+                BlockPath = DragonEraBlocks,   // block dump in the diagnostic package of issue #117
+                // Fan curve VERIFIED by the owner's path test (issue #230, 8 Oct 2026): with every
+                // speed slot of the CPU table raised to 85 and the fan mode at 0x8D, the fan went
+                // 2261 -> 4733 RPM while the CPU cooled, in the comfort shift mode already. On the
+                // backup path the table is addressed by block slot (BlockCurveSpec), so the EC
+                // addresses here only name the pairs the editor shows.
+                FanCurve = new FanCurveSpec(0x8D, CpuTempBase: 0x69, CpuSpeedBase: 0x72, GpuTempBase: 0x81, GpuSpeedBase: 0x8A, Points: 6, Verified: true),
                 Credit = "scorvus99", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/230" },
 
         // ===== BULK IMPORT (msi-ec / MControlCenter) — all EXPERIMENTAL, opt-in, unverified =====
@@ -670,7 +736,21 @@ public static class Devices
                     [ProfileId.SuperBattery] = new (byte, byte)[] { (0xD2, 0xC6), (0xD4, 0x0D) },
                 },
                 Credit = "dodi6161, alinayzIr", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/104" },
-        new() { Name = "MSI Raider GE68 HX 14VGG",          FirmwarePrefixes = new[] { "15M2IMS2" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
+        // Raider GE68 HX 14VGG (15M2IMS2) - owner-verified by measurement (issues #244 + #245,
+        // firmware .112, MSI Center 2.0.74). The capture confirmed three recipes - eco C2 with
+        // 0xEB=0F behind that version's "Silent" tile, Balanced C1/0D, Extreme C4/0D (the version
+        // has no Super Battery tile, so that column repeated Balanced); the real Silent came from
+        // the power test, which wrote 1D and read it back intact: Silent 72 % of Balanced's work
+        // at 2486 vs 3462 MHz, 9 C cooler, 1 % drift. Extreme level with Balanced under the
+        // combined CPU+GPU load (shared budget, recorded). Unlike the sibling 15M1IMS2 the eco
+        // write is the family standard here (C2 + 0xEB), so StdRecipes stays.
+        //   RPM: 0xC9/0xCB single-byte divisors, high bytes 00 in every dump (A3/A3 ~2900 rpm in
+        //   Silent, 5A/4D ~5300/6200 in Extreme) - the sibling's HWiNFO-confirmed scheme;
+        //   owner invited to cross-check. 0xD6 = 04 in every scenario, Extreme included (not the
+        //   05/03 pattern of the #52 list) - observation only. 0x34 = 01 throughout.
+        new() { Name = "MSI Raider GE68 HX 14VGG",          FirmwarePrefixes = new[] { "15M2IMS2" }, Tier = Tier.Tested,
+                CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
+                Credit = "Ghli", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/245" },
         // Vector 16 HX AI (15M3EMS1) - the first model promoted on a MEASUREMENT rather than on its
         // owner's judgement. The Power test (issue #74) answers all three hardware checks with
         // numbers: Silent holds 84 % of Balanced's delivered work at 4728 MHz against 5432 and
@@ -859,7 +939,20 @@ public static class Devices
         new() { Name = "MSI Venture 14 AI A2HMG",           FirmwarePrefixes = new[] { "14Q2EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Venture A14 AI+ A3HMG",         FirmwarePrefixes = new[] { "14QKIMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Prestige 14 Flip AI+ D3MTG",    FirmwarePrefixes = new[] { "14T2EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
-        new() { Name = "MSI Vector GP66 12UGS",             FirmwarePrefixes = new[] { "1544EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
+        // Vector GP66 12UGS (1544EMS1) - owner captures (issues #249 + #250, MSI Center 2.0.48,
+        // firmware .112). Per-scenario dump matches StdRecipes 1:1 in all four scenarios (shift
+        // 0xD2 C1/C1/C4/C2, fan 0xD4 1D/0D/0D/0D, 0xEB=0F only in Super Battery). Curve
+        // VERIFIED (#250): the test curve sits byte-for-byte at the shipped 0x72 / 0x8A on both
+        // fans. 0xD6 reads 05 in every scenario, so this board needs none of the extra 0xD6 write
+        // the older GE66/GP66 board (1543EMS1) carries. Tier stays Experimental: no hardware
+        // checks and no power test yet.
+        //   RPM: 0xC9/0xCB single-byte divisors, high bytes 00 in every dump (C6/A1 = ~2400/
+        //   2970 rpm at rest; the Extreme and Super Battery columns were captured with Fan Boost
+        //   on, 0x98=82, hence ~6000 rpm there). Kbd backlight 0xD3 reads 83 / 80 in the
+        //   vendor's Super Battery (the 1583 pattern) - observation only.
+        new() { Name = "MSI Vector GP66 12UGS",             FirmwarePrefixes = new[] { "1544EMS1" }, Tier = Tier.Experimental,
+                CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
+                Credit = "TheOriginalBabu", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/250" },
         new() { Name = "MSI Modern 15 A11M",                FirmwarePrefixes = new[] { "1552EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Stealth 15M A11SEK",            FirmwarePrefixes = new[] { "1562EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Stealth 15M A11UEK",            FirmwarePrefixes = new[] { "1563EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
@@ -976,12 +1069,24 @@ public static class Devices
         new() { Name = "MSI Summit E16 AI Studio A1VETG",   FirmwarePrefixes = new[] { "1596EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Prestige A16 AI+ A3HMG",        FirmwarePrefixes = new[] { "159KIMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Prestige 16 AI Evo B1MG",       FirmwarePrefixes = new[] { "15A1EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
-        // Prestige 16 AI Studio B1VFG (board MS-15A2, EC 15A2EMS1.114): not in msi-ec. Added as the
-        // sibling of 15A1/15A3 (CONF_G2_3); a read-only probe showed the same layout (0xD2=C4 turbo,
-        // 0xD4=8D advanced, CPU temp at 0x68). Fan tach at 0xC9/0xCB (8-bit, 478000/raw): ~3350 /
-        // ~2730 RPM read live, matching the family. Unverified - stays Experimental until confirmed.
-        new() { Name = "MSI Prestige 16 AI Studio B1VFG",  FirmwarePrefixes = new[] { "15A2EMS1" }, Tier = Tier.Experimental,
-                CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
+        // Prestige 16 AI Studio B1VFG (15A2EMS1, board MS-15A2) - owner-verified by measurement
+        // (issue #237, firmware .114, no MSI Center on the machine, a prefix absent from msi-ec;
+        // the siblings 15A1/15A3 sit in CONF_G2_3). The owner built the app with the family
+        // recipes, switched profiles and loaded the processor for 50 s per profile: Silent 77 %
+        // of Balanced's work at 70 vs 81 C, Extreme +6 %, every byte read back as written; Super
+        // Battery (0xEB=0F), Fan Boost (0x98 bit 7), kbd backlight (0xD3 81/83) and the charge
+        // limit (0xD7) confirmed by hand. The EC webcam switch does NOT control the camera here
+        // (0x2E changes, the camera keeps streaming) - listed in NoWebcamCtrl. His GPU-side
+        // measurement: the profile moves the RTX 4060's power limit, 45 W in Silent / Super
+        // Battery, 55 W in Balanced / Extreme (nvidia-smi).
+        //   RPM: 0xC9/0xCB single-byte divisors (~3350 / ~2730 rpm idle, ~6200 with Fan Boost),
+        //   high bytes 00 in every dump. 0xD6 05 -> 03 under Extreme (18th board of the #52
+        //   observation). Fan duty bytes read on the 0-150 scale (MaxFanPct default holds).
+        //   The scenario key Fn+F7 arrives as raw keyboard input from ACPI\MSNB1001, scan code
+        //   E0 11, plus an MSI_Event (0x22001D) - recorded for roadmap #106, nothing wired yet.
+        new() { Name = "MSI Prestige 16 AI Studio B1VFG",   FirmwarePrefixes = new[] { "15A2EMS1" }, Tier = Tier.Tested,
+                CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
+                Credit = "halexys", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/237" },
         new() { Name = "MSI Prestige 16 AI+ Evo B2VMG",     FirmwarePrefixes = new[] { "15A3EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Stealth 15M B12UE",             FirmwarePrefixes = new[] { "15B1EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         // Stealth 16 Studio A13VG (15F2EMS1) - owner-verified via the form path (issue #206,
@@ -1094,6 +1199,11 @@ public static class Devices
         //   fifth wide-tach carrier; readout arrives with the release that ships the format.
         // Tier stays Experimental: the app could not write on the unrecognised machine, so
         // switching stability is unproven - his power test after the entry lands settles it.
+        //   Switching CONFIRMED (issue #251, no MSI Center installed): the owner's second
+        //   capture is the app's own writes read back - every column matches its recipe and
+        //   he ticked "switching stable"; the wide-tach pair read 01:07 (~1817 rpm) again.
+        //   Still missing for Tested: whether Silent is quieter / Extreme faster (checks or a
+        //   power test).
         new() { Name = "MSI Cyborg 15 C13WEO",              FirmwarePrefixes = new[] { "15T1EMS1" }, Tier = Tier.Experimental,
                 CpuRpmAddr16 = 0xC8,
                 FourthMode = new FourthModeSpec("Apex", 0xC5),
@@ -1323,7 +1433,23 @@ public static class Devices
         new() { Name = "MSI Crosshair 17 HX AI D2XW",       FirmwarePrefixes = new[] { "17T4EMS1" }, Tier = Tier.Tested,
                 CpuRpmAddr = 0xC9, GpuRpmAddr = 0xCB, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
                 Credit = "SpeedPlayzz", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/148" },
-        new() { Name = "MSI Titan 18 HX A14V",              FirmwarePrefixes = new[] { "1822EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
+        // Titan 18 HX A14V / Raider 18 HX A14V (1822EMS1) - owner-verified (issue #239, MSI Center
+        // 2.0.48 with the real Silent tile, firmware .312). Per-scenario capture matches
+        // StdRecipes 1:1 in all four scenarios (shift 0xD2 C1/C1/C4/C2, fan 0xD4 1D/0D/0D/0D,
+        // 0xEB=0F only in Super Battery) and all three hardware checks confirmed - the Tested
+        // bar. The owner's machine is sold as the Raider 18 HX A14V while msi-ec lists this
+        // firmware under the Titan 18 HX A14V; the sibling board 1824 is shared the same way
+        // (Titan 18 HX Dragon Edition / Raider 18 HX AI), so the entry carries both names.
+        //   RPM: 16-bit wide-tach pairs 0xC8:0xC9 / 0xCA:0xCB. Proven directly on the idle
+        //   capture: the CPU pair read 01:1C / 01:1B in every column (~1700 rpm), a high byte
+        //   a single-byte scheme never sets; the GPU pair read 00:00 (fan stopped at idle),
+        //   enabled alongside as on every other carrier of this format.
+        //   0xD6 flips 05 -> 03 under the vendor's Extreme on its own (17th board of the #52
+        //   observation); 0x34 = 00 throughout, left alone. Curve tables hold the family layout
+        //   at the shipped addresses, no test curve run yet - curve stays unverified.
+        new() { Name = "MSI Titan 18 HX A14V / Raider 18 HX A14V", FirmwarePrefixes = new[] { "1822EMS1" }, Tier = Tier.Tested,
+                CpuRpmAddr16 = 0xC8, GpuRpmAddr16 = 0xCA, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
+                Credit = "se-240717038", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/239" },
         // Raider A18 HX A7VIG (182KIMS1) — owner per-scenario dump (issue #50) matches StdRecipes on
         // shift 0xD2 C1/C1/C4/C2 and fan 0xD4 1D/0D/0D/0D, and all three hardware checks passed, so
         // Tested. Super battery: upstream msi-ec maps 0xEB for CONF_G2_10, but MSI Center on this AMD
@@ -1507,7 +1633,8 @@ public static class Devices
         new() { Name = "MSI Bravo 15 B5ED", FirmwarePrefixes = new[] { "158MEMS1" }, Tier = Tier.Experimental,
                 ShiftMode = 0xF2, FanMode = 0xF4, ChargeCtrl = 0xEF, Recipes = StdRecipes(0xF2, 0xF4, null) },
         new() { Name = "MSI Delta 15 A5EFK", FirmwarePrefixes = new[] { "15CKEMS1" }, Tier = Tier.Experimental,
-                ShiftMode = 0xF2, FanMode = 0xF4, ChargeCtrl = 0xEF, Recipes = StdRecipes(0xF2, 0xF4, null) },
+                ShiftMode = 0xF2, FanMode = 0xF4, ChargeCtrl = 0xEF, Recipes = StdRecipes(0xF2, 0xF4, null),
+                BlockPath = DragonEraBlocks },   // block dump in the diagnostic package of issue #48
         new() { Name = "MSI Modern 15 B7M", FirmwarePrefixes = new[] { "15HKEMS1" }, Tier = Tier.Experimental,
                 ShiftMode = 0xF2, FanMode = 0xF4, ChargeCtrl = 0xEF, Recipes = StdRecipes(0xF2, 0xF4, null) },
         new() { Name = "MSI GS65 Stealth Thin 8RE / 8RF", FirmwarePrefixes = new[] { "16Q2EMS1" }, Tier = Tier.Experimental,
@@ -1553,4 +1680,29 @@ public static class Devices
 
     public static DeviceProfile? Detect(string firmware) =>
         All.FirstOrDefault(d => d.Matches(firmware));
+
+    /// <summary>
+    /// The model's backup-path layout. A downloaded database written before the key existed
+    /// carries none, so the compiled entry with the same firmware prefix fills in.
+    /// </summary>
+    public static BlockPathSpec? BlockPathOf(DeviceProfile d) =>
+        d.BlockPath ?? BuiltIn.FirstOrDefault(b => b.BlockPath != null &&
+            b.FirmwarePrefixes.Any(p => d.FirmwarePrefixes.Contains(p, StringComparer.OrdinalIgnoreCase)))?.BlockPath;
+
+    /// <summary>
+    /// Every EC firmware prefix in the database that starts with the given board code (the
+    /// four characters MSI shares between the BIOS version and the EC version, e.g. "16W2").
+    /// Used to name the EC line when only the BIOS version can be read. The caller requires
+    /// exactly one hit: a board code can carry two EC lines (16W1EMS1 / 16W1EMS2), and the
+    /// BIOS string cannot tell those apart.
+    /// </summary>
+    public static List<(DeviceProfile Dev, string Prefix)> PrefixesForBoard(string board)
+    {
+        var hits = new List<(DeviceProfile, string)>();
+        if (board.Length != 4) return hits;
+        foreach (var d in All)
+            foreach (var p in d.FirmwarePrefixes)
+                if (p.StartsWith(board, StringComparison.OrdinalIgnoreCase)) hits.Add((d, p));
+        return hits;
+    }
 }

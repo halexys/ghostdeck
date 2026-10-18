@@ -365,7 +365,9 @@ It provides, all gated on the normal write-safety rules (Tested / opted-in Exper
   sits in the coinciding zone at ~1904 rpm or reads 00 with the fans stopped; enabled as
   pairs because the 16-bit read equals the single-byte read while the high byte is `00` and
   is the right one once it is not; confirmed by the owner's HWiNFO64 side-by-side, where
-  716 / 728 rpm - below the coinciding zone - read identically in both programs). Detection caveat: above ~1870 RPM the
+  716 / 728 rpm - below the coinciding zone - read identically in both programs), `1822EMS1`
+  (#239 - the idle capture read the CPU pair as `01:1C` / `01:1B` in every column, a high byte a
+  single-byte scheme never sets; the GPU pair read `00:00` with that fan stopped). Detection caveat: above ~1870 RPM the
   raw divisor fits in one byte and the high byte reads `00`, so a capture taken under load or
   with Fan Boost cannot tell the two formats apart - classify the format from an idle reading
   (raw > 255), where the pair and the single byte diverge. In the signed
@@ -559,7 +561,11 @@ What it changes for GhostDeck:
 - **The tiles have different names.** Pro's four user scenarios are **High Performance**, Balanced,
   Silent and Super Battery. High Performance is the counterpart of "Extreme Performance", and Pro
   offers its fan speed choice (Auto / Advanced / Cooler Boost) only under it. A capture from Pro is
-  read by those names; the version field (`2.1.x`) is what identifies the app.
+  read by those names; the version field (`2.1.x`) is what identifies the app. The "Report my
+  model" steps (`ReportPage.Steps`) carry the alternative name of each tile as a second line and a
+  tooltip, and the instruction line repeats the short ones ("EXTREME PERFORMANCE (High Performance
+  in MSI Center Pro)"), so an owner with a different app in front of him is not left guessing;
+  the same applies to "ECO-Silent", the renamed Super Battery of MSI Center 2.0.49+.
 - **Business-line entries stay Experimental until an owner's measurement promotes them**, so a write
   on them needs the owner's per-model consent (`ExperimentalWriteFw`), the same as on any other
   unconfirmed board.
@@ -977,8 +983,8 @@ print into the parent terminal.
   ChangeLog side effect behaves identically. Response format `<exitcode>|<message>`.
 - **App not running** → one-shot mode: load settings, detect the device, same gates
   (`Tier.Tested` or per-model consent, below), apply directly via `Ec.*`, log to the shared
-  ChangeLog file, exit. Commands that live in the running app (`--overlay`, `--scene`,
-  `--winlock`, the `--fanboost` timer) start it and hand the command over (1.38, §77.4).
+  ChangeLog file, exit. Commands that live in the running app (`--overlay`, `--crosshair`,
+  `--scene`, `--winlock`, the `--fanboost` timer) start it and hand the command over (1.38, §77.4).
 
 **Per-model experimental consent (1.36).** The old global `ExperimentalEnabled` switch is
 replaced by `ExperimentalWriteFw`, a list of firmware prefixes the owner explicitly allowed
@@ -1514,7 +1520,7 @@ same `NotSupported` / `0x8004100C` that the Delta 15 returns for `MSI_ACPI`, ele
 gives different platform generations different WMI surfaces - one board serves the EC method
 interface, another serves the sensor data blocks - and neither machine can verify the other's
 path. That is why the diagnostic package (§37) also carries `msi-wmi-blocks.txt`
-(`MsiTelemetry.Dump()`): every vendor block with its instances and values, or the exact error
+(`EcBlocks.Dump()`): every vendor block with its instances and values, or the exact error
 returned. When telemetry mode does not light up on a machine that should have it, that file
 separates "the blocks are silent here" from "we are reading them wrong" in one step.
 
@@ -1547,24 +1553,12 @@ Two routes for GhostDeck follow from that stack, both rejected:
   survived.
 - *Load or reuse a direct-I/O driver.* Rejected above.
 
-So on firmware without the method interface GhostDeck stays read-only by design, and the
-practical answer for such owners today is an older MSI Center build in which control still
-works.
+The route GhostDeck takes on such firmware is neither of these: the data blocks themselves
+accept writes, and on a model whose block layout is on record the app reads and switches
+profiles through them - see §81. A model without a layout on record stays in the
+telemetry-only mode described above.
 
-**One route is NOT yet ruled out: writing the vendor data blocks.** Those blocks are read in
-telemetry mode, but their MOF marks the value property writable - on the tested GE78HX,
-`MSI_CPU.CPU`, `MSI_AP.AP` and `MSI_System.System` all carry the `write` qualifier next to
-`read` and `WmiDataId`. In ACPI-WMI a writable data block means the firmware may also expose a
-set-block object beside the query one, and the reporter's own dump makes the stakes concrete:
-in `MSI_CPU`, indices 5-10 read `55 60 70 78 85 90` and indices 12-16 read `45 60 81 96 113`,
-which look like the temperature points and speeds of a fan curve, sitting right next to the live
-temperature at index 1. If those blocks accept writes on such a board, fan control without any
-driver would be possible exactly where the method interface is missing.
-
-This is a hypothesis, not a finding. What settles it, in this order: (1) a read-only check of the
-already decompiled firmware tables for a set-block object belonging to those block IDs, (2) only
-then, on a volunteer's machine and at their choice, an actual write. Until (1) comes back, the
-control question stays open rather than closed, and nothing in GhostDeck writes these blocks.
+Since the backup path exists (§81), this mode has grown: on a machine whose blocks show the known layout fingerprint it also reads fan duty and both tachometers, and the report wizard captures the blocks per scenario so the model can be added without a run on that machine. On a model with a layout on record the app leaves this mode altogether and works over the backup path.
 
 ## 40. Fan Boost auto-off timer (v1.24.x, discussion #51)
 
@@ -2478,6 +2472,28 @@ a big gap means heat soak or the running order carried the table, and the run sa
 case that motivated it: a Creator Z17 run (#77) sat at 94-95 °C in all three phases and read
 Silent *above* Balanced - order, not profiles. Cost: one more settle + load, about 75 s.
 
+### 60.11 A phase that was not one steady state
+
+The drift figure of §60.10 compares two 25-second windows, and it assumes each window describes a
+steady machine. Two runs on a Modern 14 B11MOU (#170, nine days apart) broke that assumption the
+same way: about 35 s into the first Balanced phase the processor clock fell from 2.49 to about
+2.05 GHz and stayed there, with the CPU temperature falling alongside (70 → 62 °C), so the window
+measured the slow stretch; the repeat Balanced at the end ran at full speed throughout, and the
+second run added a five-second burst to 4.2 GHz inside its window. The report read 20 % and then
+31 % "faster than it started" and pointed the reader at heat soak, which the samples rule out.
+
+The report now looks at the clock across each phase's whole minute (`Shape`): the average of the
+seconds between the ramp and the window against the window's own average, and the window's
+extremes against its median. A gap of 12 % or more between the two averages is a **step**, and
+the second the clock first left the early average's band is reported with it; a second 25 % or
+more away from the window's median is a **burst**. Phases with either go into a new "Inside the
+phases" section with the two levels (the window level is its median, since the average is what the
+burst already moved), and when either Balanced phase is among them the baseline check says that
+the drift figure measures that, not the whole run. The report states no cause: a step with the
+temperature falling is not throttling, and the test cannot see what else moved. Both #170
+reports, replayed through `BuildReport` from their own samples, print the step at second 35 and
+the burst at second 41.
+
 ### 60.5 Where it lives
 
 `Core/PowerTest.cs` holds the measurement, the processor load and the report builder, with no UI
@@ -3340,7 +3356,326 @@ but "Install vX": `MainForm.InstallUpdate` shows the Updates tab and `UpdatesPag
 takes the tray's find as the page's own and starts the same download the page's Install button
 does, progress bar and restart included - one click from the card to the end.
 
-## 79. Graphics mode: Hybrid / Integrated only (MSI GPU switch)
+## 79. The crosshair (v1.39, roadmap #118, discussion #247)
+
+A user asked for MSI Center's `Fn+↓` crosshair in GhostDeck. The key combination itself is
+out of reach: the Fn key goes from the laptop's controller to MSI's service, which draws the
+crosshair, so no third program can take it over (roadmap #106 keeps that question open).
+What GhostDeck can do is draw its own crosshair with its own hotkey, the way the gaming
+overlay works. This chapter is the record of how.
+
+### 79.1 Shape: a second layered window, not part of the overlay
+
+`Forms/CrosshairForm.cs` is a small per-pixel layered window (`WS_EX_LAYERED` +
+`UpdateLayeredWindow`, premultiplied ARGB; RENDERING.md §3) with `WS_EX_NOACTIVATE`,
+`WS_EX_TOOLWINDOW`, `WS_EX_TOPMOST` and, permanently, `WS_EX_TRANSPARENT`: it never takes
+the focus and every click passes to the game. It is its own window, not a part of the gaming
+overlay, because it has to work with the overlay off. It sits at the centre of the full
+bounds (not the working area: a borderless game covers the taskbar) of the screen the overlay
+uses - the one holding the overlay's saved position, else the main screen - shifted by the
+style's X / Y offset in logical pixels times the window's DPI scale. In the follow-the-pointer
+mode a 16 ms timer reads the cursor and moves the window (an accessibility-style use, like
+PowerToys' mouse crosshair). A 2 s timer re-asserts the topmost order quietly, because a game
+that comes up after the crosshair can land above it. When a future monitor choice for the
+overlay arrives (roadmap #20) the crosshair follows the same choice: `TargetScreen` is the one
+place to change.
+
+![Settings → Gaming → Crosshair: the shape tiles, the preview on a dark and a light half, and the look card](images/settings_crosshair.png)
+
+Nothing is drawn inside the game. There are no DirectX hooks, no injection, no reading of
+the game process; in exclusive full-screen mode a window over the screen may stay invisible,
+which the Settings card and the FAQ say plainly. Anti-cheat: no documented ban for a plain
+window over the screen was found (October 2026); FACEIT's client blocks programs it does not
+recognise rather than banning, EA Javelin had false-positive bans around overlay suites in
+2026, and game rules can be broader than the technology. The card carries an amber note.
+
+### 79.2 The style and the painter
+
+`Core/Crosshair.cs` holds `CrosshairStyle` - the look as data (kind, colour, size, thickness,
+rim, opacity, offset, rotation, softness, click effect, aim-hide, follow) with `Normalize`
+clamping every field, `Clone`, `CopyFrom` and `LooksLike` - and `CrosshairPainter`, the one
+routine that turns a style into a bitmap:
+
+1. `Geometry` builds the shape as primitives (lines, rings, boxes, filled dots) in logical
+   units around the origin, for the eleven built-in kinds. The click effect's progress
+   (0..1) feeds in here: *spread* pushes the arms outwards along a sine wave, *pulse* grows
+   everything by up to 25 %, *flash* changes nothing in the geometry (it brightens the colour).
+2. `Render` draws the primitives twice into a `Format32bppPArgb` bitmap - first a wider pass
+   in dark (alpha 220) for the rim, then the colour at the line thickness - rotated about the
+   centre with `RotateTransform`. The custom picture is drawn into the size box with its
+   proportions kept; a missing file falls back to a plain cross, so the window is never blank.
+3. `PostProcess` runs three box-blur passes (radius softness / 1.7, which approximates a
+   Gaussian of the softness radius) on the premultiplied pixels - blurring all four channels
+   alike is correct in that format - and multiplies every channel by the opacity.
+
+The screen window, the Settings preview, the shape tiles and the PNG export all call
+`Render`, so what the preview shows is what the game gets. Sizes are logical pixels scaled by
+the window's DPI; the bitmap's extent is odd, so the shape has a true centre pixel.
+
+![The eleven shapes at 140 % on a dark and a light strip](images/crosshair_shapes.png)
+
+![Three looks: the default, a bold rim, a soft rotated cyan one](images/crosshair_looks.png)
+
+![The three click effects, frame by frame](images/crosshair_effects.png)
+
+### 79.3 Mouse hook, only when asked for
+
+The click effect and the aim-hide option need the mouse buttons system-wide. `Core/MouseWatch.cs`
+is a low-level mouse hook (`WH_MOUSE_LL`) on its own message-loop thread, the same pattern as
+`WinKeyLock` (keyboard) and `TrayWheel` (wheel): the callback only posts the button to the UI
+thread and passes every event on untouched. The hook is installed only while the crosshair is
+shown *and* one of the two options is on (`CrosshairStyle.NeedsMouseHook`); both options ship
+off, and the Settings card says what they do. Aim-hide pushes a fully transparent frame instead
+of hiding the window, which is cheaper and safer than Hide / Show churn while the right button
+is held.
+
+### 79.4 Presets, share code, export, backup
+
+Presets are `CrosshairStyle` copies with a `Name` in `AppSettings.CrosshairPresets`, with no
+limit; `EnsureDefaults` drops nameless or duplicate ones and clamps their fields, and a scene
+whose preset was deleted falls back to "on with the current look". The preset the live look
+came from is remembered by name (`CrosshairActivePreset`), so an edit does not detach it: the
+list keeps its name with a "(modified)" mark, *Save* writes the look back into it, *Save as...*
+adds a preset or overwrites the one whose name is typed (the prompt says so), and *Delete* is
+two-step (the first click arms the button for three seconds). Loading a preset from the CLI or
+a scene sets the active name; a pasted share code clears it. The share code is
+`"GDX1." + base64url` of 20 bytes: kind, RGB, size (2), thickness, rim, opacity, offset X and
+Y (2 each, biased by 32768), rotation (2), softness, click effect, aim-hide, flags, and a
+checksum byte - 32 characters, pasteable in a chat; a later layout gets a new prefix and this
+decoder keeps reading the old one. The code carries the look, never the picture; the card says
+so when the picture kind is selected. Export: PNG at 100 % scale with everything applied, SVG
+for the built-in kinds only (lines, circles and rectangles; the rim as a wider dark stroke
+underneath, the softness as `feGaussianBlur`, the rotation as a transform). SVG import is not
+offered: .NET has no SVG renderer and GhostDeck stays one exe without libraries.
+
+The custom picture is one file, `%AppData%\GhostDeck\crosshair\custom.png`; an import checks
+the limits (512 × 512 px, 1 MB) and re-encodes BMP / JPG as PNG, the next import replaces it.
+The settings export carries it as base64 in `CrosshairImageBase64`, a property written only
+when not null, so `settings.json` never holds the picture; the import writes it back.
+
+### 79.5 Three fixes the owner's test turned up
+
+*Card widths after the scrollbar.* On entering a Settings view tall enough for a vertical
+scrollbar, the two card columns were laid out for the client width without the scrollbar and
+stayed so until the next card rebuild, which then moved them by half the scrollbar's width.
+`ThemedPage.LayoutAndSyncScroll` drops the re-entrant Resize its own pass raises (the v1.34
+rule), and that Resize was the one reporting the new client width; the helper now compares
+the client width before and after the pass and runs the pass once more when it changed.
+
+*Spread on shapes without arms.* The click effect's spread moved arms apart, so a dot, a
+circle, a square or the picture did nothing on a click; those now grow their ring, box or
+picture by up to 30 % and come back, with a centre dot staying put.
+
+*Exact slider values.* The offset sliders put a thousand values on about 190 pixels of
+track, five units a pixel, so zero could not be hit by dragging. `Slider` takes the mouse
+wheel (one step, ten with Ctrl; the event is marked handled so the page does not scroll
+underneath), the arrow, Page and Home / End keys after a click, a double-click back to a
+`DefaultValue`, and an optional `SnapTo` value reached when the drag lands within half a
+percent of the range; the help dot by the first slider says so.
+
+### 79.6 Where it lives
+
+| Piece | Place |
+|---|---|
+| Style, painter, codec, SVG, picture import | `Core/Crosshair.cs` |
+| Mouse hook | `Core/MouseWatch.cs` |
+| Window | `Forms/CrosshairForm.cs` |
+| Settings → Gaming: the Start view (a tile per feature), the overlay / crosshair switch, the three crosshair cards (crosshair, look, sharing), tiles, preview | `UI/SettingsCrosshair.cs` (partial `SettingsPage`), the switch and the Gaming layout in `SettingsPage` |
+| Tray: menu entry, hotkey `Crosshair` (`Ctrl+Alt+F12`, shipped disabled), tray-click action, jump list, scene field, `--crosshair`, status JSON | `TrayContext.cs`, `Core/TrayWheel.cs`, `Core/Cli.cs`, `Core/Protocol.cs` |
+| Scenarios tile (`crosshair`, hideable), scene editor row (on / off / on with a preset) | `UI/ScenariosPage.cs`, `Forms/SceneEditForm.cs` |
+| Harness: `crosshair` mode (shape sheets at 100 % and 140 %, effect frames, picture, code and SVG round trip, glyph sheet), `GAMINGSUB=1` and `CROSSHAIR=<code>` for the page mode | private render harness |
+
+## 80. MSI True Color profiles (v1.39, roadmap #119, discussions #150 and #204)
+
+### 80.1 What it is and what it is not
+
+MSI True Color is MSI's own display-colour application (made by Portrait Displays): seven
+profiles (sRGB, Gamer, Movie, Anti-Blue, Office, AdobeRGB, Display P3) that MSI Center used
+to switch together with its scenario. GhostDeck now switches them too: by hand (a card under
+Settings → System), from the tray, as a scene field, from `--truecolor` and from
+`ghostdeck://truecolor/...`. It does so by **asking the running True Color application**; it
+never calculates colours, never writes True Color's files, ICC profiles, calibration data or
+registry, and never starts True Color. Discussion #204 (an own calibration / own colour
+profiles) remains declined; this is the opposite thing: one message to the vendor's app.
+
+Everything lives in `Core/TrueColor.cs`; every entry goes through `TrueColor.Set`.
+
+![Settings → System → MSI True Color: the confirmed version, the switch with its standing disclaimer, the seven tiles, the recorded profile and GhostDeck's own last request](images/settings_truecolor.png)
+
+### 80.2 The protocol
+
+True Color keeps a resident hidden window (class `MSITrueColorClass`, title `MSI True Color`)
+for its whole lifetime, with or without the main window open. Its helper talks to it with
+registered window messages. The one that applies a profile:
+
+```text
+hwnd = FindWindowW("MSITrueColorClass", "MSI True Color")
+msg  = RegisterWindowMessageW("SetChromaTuneColorSpace")      // a per-session id, never a constant
+SendMessageTimeout(hwnd, msg, wParam = profile id, lParam = 0,
+                   SMTO_BLOCK | SMTO_ABORTIFHUNG, 1500 ms)
+```
+
+True Color applies the profile (the screen changes) and records it as two `REG_DWORD`
+values under `HKCU\Software\Portrait Displays\MSI True Color`: `CurrentColorSpace` and
+`UserMode`. GhostDeck polls those two for up to 3 s (every 50 ms) and counts the request as
+done when both equal the requested id; measured on the test machine they do so after about
+60 ms. The message's return value is 0 on success as well, so it carries no information.
+
+The profile ids True Color records: `0` sRGB, `2` Gamer, `3` Movie, `4` Anti-Blue,
+`5` Office, `6` AdobeRGB, `9` Display P3. Ids 1, 7 and 8 exist in True Color's pages
+(Customize, Power Savings, DCI-P3) but were not mapped as switchable profiles and are not
+accepted. The names are True Color's own and stay untranslated in every UI language.
+
+The matching `GetChromaTuneColorSpace` message answers 0 whatever the profile, so there is
+no native readback. The registry record is the only one, and it is **what True Color
+recorded**, not what the panel shows: it follows a switch made in True Color's window and
+Fn+A too, and it can be stale when True Color is not running. The UI says so: *Recorded in
+True Color: Office* and, separately, *Last set by GhostDeck: Movie, 17.10.2026 19:59*
+(`AppSettings.TrueColorLast`, GhostDeck's own memory). The word "current" is not used.
+
+Writing the two registry values directly changes the numbers and nothing on the screen;
+True Color's HTML pages reach the same function through `window.external.jsSetColorSpace`,
+which needs a page to exist (the main window or the three-second Fn+A panel), and starting
+`MsiTrueColor.exe` shows its window for at least a frame. Those are the reasons the
+message, and only the message, is used.
+
+### 80.3 Detection and the version gate
+
+`TrueColor.Detect` (cheap: the install lookup is cached for ten seconds, the window and the
+registry are read live):
+
+1. the install folder from the Uninstall hive (`DisplayName` containing "True Color",
+   `InstallLocation`), else `Program Files\Portrait Displays\MSI True Color`; `MsiTrueColor.exe`
+   must exist there, its `FileVersion` is the version;
+2. the resident window, accepted only when its owning process runs from that exe
+   (`GetWindowThreadProcessId` + `QueryFullProcessImageName`; the limited query right works
+   from GhostDeck's elevated process to True Color's user-level one). A window of that class
+   from any other process is "not running";
+3. the recorded profile (null when the two values disagree or the key is missing).
+
+The protocol is undocumented and confirmed on one machine (MSI Raider GE78HX 13VH, built-in
+display, True Color 5.1.24.0, Windows 11 Home 26H2 build 26300.9711, 17 October 2026: all
+seven profiles, confirmation within 60 ms each, no window appeared, back to the start
+profile). Switching is therefore allowed only when the installed version is in
+`TrueColor.ConfirmedVersions` (one line per version) **or** equals
+`AppSettings.TrueColorUserVerified`, a version the owner confirmed with the card's own test
+on that machine: one request for another profile, five seconds, one request back, and a card
+asking whether the colours visibly changed and came back. A *yes* stores the version; the
+value is not exported with the settings (another laptop has another True Color). Detection,
+the status and `--truecolor status` work on any version; nothing is ever sent to an
+unconfirmed one outside that test. The exe's SHA-256 goes into the diagnostic zip for triage
+and gates nothing.
+
+![An unconfirmed version: the status line in amber, the switch off, the tiles greyed and the test button](images/settings_truecolor_unconfirmed.png)
+
+![The question after the test; "Yes" records the version as verified on this machine](images/truecolor_verify.png)
+
+### 80.4 Threads, gates and reporting
+
+`TrueColor.Set` is synchronous and may wait up to 4.5 s, so it never runs on the window
+thread: the Settings card, the tray and a scene hand it to a worker
+(`TrayContext.ApplyTrueColor`), the in-app CLI runs it on the pipe thread
+(`StartCliServer` takes `--truecolor` before the UI post), the one-shot CLI runs it in the
+calling process without elevation (a window message needs no administrator and no EC). One
+request at a time (a monitor with a five-second wait, then `Busy`). A scene with the field
+set fires the request after its other steps and does not wait; the result arrives in the
+change history on its own (`True Color: Movie`, `(already recorded)`, `failed` with the
+reason, `skipped` when the switch is off). A card appears only for a manual action; an
+automatic scene never shows one. Errors land in `errors.log` through `AppLifecycle.Report`.
+The one-time consent card (`TrueColorConfirmed`) follows the Apex pattern; the switch
+(`TrueColorEnabled`) is off by default and the tray submenu exists only while it is on and
+the version is confirmed.
+
+A profile True Color records on its own (its window, Fn+A, AppSync) reaches the card and the
+tray dots at once: a background thread sleeps on `RegNotifyChangeKeyValue` for True Color's
+key (`TrueColor.StartWatch`, event-driven, nothing polled) and raises `TrueColor.Changed` on
+the window thread after each change. The thread exists only when True Color is installed.
+
+### 80.5 Known limits
+
+- One machine, one version. Other True Color versions: the owner's test (80.3) or a
+  confirmed report; a new confirmed version is one line in `ConfirmedVersions`.
+- The message carries no monitor parameter. External monitors and HDR were not tested;
+  the request goes to True Color and acts on whatever True Color itself acts on.
+- True Color's own automatic profile switching (AppSync per application) is left alone:
+  one request per action, no background re-assertion, no tug of war.
+- True Color must be running. GhostDeck does not start it (its window would show); the
+  card says so and a scene skips the field with a history line.
+- The same profile again: when the record already shows the requested id nothing is sent
+  (`already recorded`).
+
+### 80.6 Where it lives
+
+| Piece | Place |
+|---|---|
+| Profiles, detection, version gate, the message, the registry readback, the diagnostic line | `Core/TrueColor.cs` |
+| Settings → System card (status, switch + consent, disclaimer, tiles, state lines, the owner's test) | `UI/SettingsTrueColor.cs` (partial `SettingsPage`) |
+| Worker, history, cards, tray submenu, scene step, in-app CLI | `TrayContext.cs` |
+| Scene field (`SceneDef.TrueColor`), editor row, chip | `Core/Scene.cs`, `Forms/SceneEditForm.cs` |
+| `--truecolor`, status JSON field `trueColor`, the one-shot path, link allow-list | `Core/Cli.cs`, `Core/Protocol.cs` |
+| Settings (`TrueColorEnabled`, `TrueColorConfirmed`, `TrueColorUserVerified`, `TrueColorLast`) | `Core/AppSettings.cs` |
+| Harness: `TRUECOLOR=<none|old|notrunning|ready|verified>` for the page mode, `tccards` | private render harness |
+
+## 81. The backup WMI path: data blocks when the method interface is refused (issues #48, #117, #230)
+
+A plain-language guide for owners, with the same material condensed and three diagrams (both WMI paths, the decision at start, the path test), is [BACKUP-PATH.md](BACKUP-PATH.md).
+
+**When it applies.** Some MSI firmware answers `0x8004100C` ("not supported") to every call on the `MSI_ACPI` method interface (§39). The same firmware still serves MSI's data blocks, and on a model whose block layout is on record GhostDeck works through them instead: it reads the active profile, temperatures, fan duty and fan speed, and - once the path test below has passed on that machine - switches profiles. Nothing else changes for the user: tiles, hotkeys, tray, scenes and the CLI drive the same recipes. Two machines carry a layout today, both from the Dragon Center era: the Delta 15 A5EFK (`15CKEMS1`) and the GF65 Thin 10UE (`16W2EMS1`). The path uses the Windows ACPI-WMI mapper only; no driver is involved (§12).
+
+**The blocks.** Each block is a class in `root\wmi` served as instances `ACPI\PNP0C14\0_N`; the value sits in a property named after the class. The layout below comes from GhostDeck's own diagnostic packages of both machines (attached to #48 and #117) and is identical on the two: the same instance count in every block (`MSI_CPU` 19, `MSI_VGA` 18, `MSI_System` 21, `MSI_AP` 8) and the same slots.
+
+| Slot | Meaning | Delta 15 | GF65 |
+|---|---|---|---|
+| `MSI_System[7]` | shift mode | `0xC4` | `0xC4` |
+| `MSI_System[9]` | fan mode | `0x8D` | `0x0D` |
+| `MSI_CPU[1]`, `MSI_VGA[1]` | temperature, °C | 58, 53 | 49, 0 (GPU asleep) |
+| `MSI_CPU[2]`, `MSI_VGA[2]` | fan duty | 60, 0 | 43, 0 |
+| `MSI_CPU[3]` | critical-temperature limit, never written | 120 | 100 |
+| `MSI_CPU[4]`, `[5..10]` | curve: 0-degree anchor, six thresholds | 0, 55 60 70 78 85 90 | 0, 55 64 73 76 82 88 |
+| `MSI_CPU[11..17]` | curve: seven speeds | 0 45 60 81 96 113 80 | 38 43 48 54 60 70 85 |
+| `MSI_AP[2]`, `MSI_AP[4]` | CPU / GPU tachometer, RPM = 478000 / raw, 0 = stopped | 132, 0 | 207, 0 |
+
+The curve table has the shape of the §17.3 tables: an anchor, six thresholds and seven speeds. `MSI_VGA` holds the GPU fan's table at the same indices.
+
+**Addressing.** A slot is addressed as class[index], per model (`DeviceProfile.BlockPath`, `BlockPathSpec`). That index is what the firmware's own read and write routines take, and it does not follow EC addresses in order: on the Delta 15, whose firmware table the owner decoded, `MSI_CPU[3]` is EC `0x70` while `MSI_CPU[5..10]` are `0x6A..0x6F`, and `MSI_AP[2]` is `0xCD`. EC addresses therefore play no part on this path. The rest of the app keeps naming "this model's shift register" by the address in its entry; `Ec` turns exactly those named registers (shift mode, fan mode, temperatures, duty) into slots, and any other address is refused with `EcPathException`. That is why the charge limit, Fan Boost, keyboard backlight, the webcam switch, the Fn/Win swap, the full EC dump of the report wizard and the power test are unavailable here.
+
+**Identification.** The EC version cannot be read on this path, so the model is named from the SMBIOS BIOS version. MSI BIOS versions read `E` + four-character board code + platform letter + `MS` (`E16W2IMS.105`, `E15CKAMS.10C`); the EC line of the same board starts with the same four characters (`16W2EMS1`, `15CKEMS1`). `Ec.TryBackupPath` requires three things: the board code maps to exactly one EC prefix in the database (a board with two EC lines, such as `16W1EMS1` / `16W1EMS2`, stays unidentified), that model has a layout on record, and the live values look like the layout says (shift byte in the `0xC0` range, fan-mode byte ending in `0xD`, a plausible CPU temperature). The firmware string becomes the EC prefix with the BIOS version it came from, e.g. `16W2EMS1 (BIOS E16W2IMS.105)`.
+
+**Writes.** One function writes on this path, `Ec.BackupWrite`, and it checks three things: the gate is open, the slot is on the allow-list, and the value is on that slot's list. The gate opens for the duration of the path test and stays open on a machine where the test has passed. The allow-list holds the shift-mode and fan-mode slots with the values the model's own profile recipes carry; the path test adds the original values it has to put back and, for its curve check, the speed slots of one fan with one value the table already contains. `EcBlocks.Write` is the transport behind it: the instance is found by index, its value property is set and the instance is put back, which makes Windows call the firmware's write routine for that block.
+
+**The path test** (`Core/BackupPathTest.cs`, cards in `Forms/BackupTestForm.cs`) establishes on the owner's machine that profile switching works, and unlocks it there. It is offered at start while it has not passed, and from the tray menu. The order is fixed and each stage must succeed before the next one writes:
+
+1. *Read.* Block survey, current shift and fan mode, layout check. A mismatch ends the run with nothing written.
+2. *One byte.* The fan-mode slot is set to the other stock value (auto / silent), read back, and put back. A value that does not stick ends the run.
+3. *Profiles.* Silent and Balanced are applied, read back, held for 6 s and read again. Extreme, Super Battery and Extreme again each run a 20 s all-core load.
+4. *Fan curve (optional, off unless the owner turns it on).* See below.
+5. *Restore.* The values found in stage 1 are written back and confirmed by read-back.
+
+The original values go to `backup-path-restore.json` before the first write, so a run that never reaches stage 5 is undone at the next start. The result is one text report on the desktop (also carried by the diagnostic package). A pass is stored per firmware label in `AppSettings.BackupPathPassed` and is not imported with a settings file from another machine; a later run that fails removes it. The whole run takes about a minute and a half, about three minutes with the curve check.
+
+**The pass criterion.** Stored bytes are not enough: the test passes when Super Battery delivers at most **90 %** of the work of the slower of the two Extreme runs (work = completed iterations per second of the same synthetic load the power test uses, §60). The line sits between two things. Two runs of the same mode differ by a few percent - up to 5 % was seen on a busy machine - so chance alone does not produce a pass, and running Extreme both before and after Super Battery keeps a machine that merely warmed up or cooled down from looking like a reaction. A power-saving shift mode, on the other hand, is expected to cost tens of percent; that expectation is an estimate, because no power measurement exists for this generation yet. Each load lasts 20 s and its first 5 s are not counted: a processor may run above its sustained limit for the first seconds of a load in every mode, and counting that stretch would blur the difference being looked for. One risk remains, mostly on AMD boards where power limits take hold slowly: the test can report no reaction on a machine where switching works. The outcome is then a locked feature and a report with the raw shares, from which the verdict can be judged by eye and the criterion adjusted. The opposite error, unlocking a machine that does not react, is far less likely.
+
+**The fan-curve check** raises every speed slot of the CPU fan's table to the highest value the table already holds, sets the fan mode to Advanced (`0x8D`), and watches the tachometer for 40 s in the comfort shift mode and 40 s in the turbo one; temperature slots are never written. A rise of 500 RPM or more over the baseline counts as the fan following the table. The two phases exist because of what the Delta 15 owner measured (#48): there the firmware follows the table only with the fan mode at Advanced and a shift mode other than the two power-saving ones. The verdict of this check never changes the verdict of the test; it is data for the decision whether to offer the curve editor on this path.
+
+**The fan curve on this path.** The curve editor works through the same slots. `Ec.ReadFanCurve` and `Ec.WriteFanCurve` take the entry's `BlockCurveSpec` (block class, first temperature index, first speed index, count) and go through `Ec.BackupWrite`, so a curve write passes the same three checks as a profile write and is refused while the gate is closed; the slots of both fans' tables and the Advanced fan-mode value (`0x8D`) are on the allow-list, temperatures are accepted in 0..110 and speeds in 0..the model's maximum. Since DataVersion 20261020 the GF65 Thin 10UE entry carries its `FanCurve` as verified: in the owner's two path tests of 8 October 2026 (#230) the fan followed the raised table in both phases (2261 to 4733 RPM), so the editor is offered there once the path test has passed, with the same opt-in as on other models. The Delta 15 entry has no curve: no run on that board has arrived, and the owner's own measurement (#48) says the firmware there follows the table only outside the two power-saving shift modes.
+
+**Machines without an entry: the layout fingerprint.** Three boards of three generations - the Delta 15 A5EFK (`15CK`), the GF65 Thin 10UE (`16W2`) and the GS75 Stealth 8SE (`17G1`) - answered with the same instance count in every block and the same constant markers: `MSI_CPU[0]` = 13, `MSI_System[1]` = 2, `MSI_System[11]` = 5, `MSI_System[19]` = 226, `MSI_AP[1]` = 20. `EcBlocks.LayoutKnown()` checks exactly that (19 / 18 / 21 / 8 instances plus the five markers). A machine that shows the fingerprint but has no entry runs in the monitoring-only mode of §39 with fan duty and both tachometers next to the temperatures, the Status note carries one more sentence, and a card at start (`blocks_report_hint`) points to the Report tab. The report wizard then captures the data blocks instead of an EC image: one `EcBlocks.Snapshot` per scenario (every slot of the surveyed blocks, read fresh), and the report lists the slots that differ between scenarios followed by the full snapshots, so an entry can be written from the report alone and shipped through the signed database (§54). The fingerprint never unlocks a write: it says where the registers are, a recipe says what may go into them.
+
+**Trigger.** The backup path is tried when the probe ends `NotSupported`, `ClassMissing` or `InstanceMissing`. The GS75 firmware has no `MSI_ACPI` in its `_WDG` at all, so on a machine without MSI's schema file the probe ends `ClassMissing` rather than `NotSupported`; the Status note tells the two apart (`telemetry_note` against `telemetry_note_schema`). The GS75 also shows the limit of the BIOS-string identification: board code `17G1` maps to two EC lines (`17G1EMS1` / `17G1EMS2`), so that machine stays unidentified until something else names its EC line; a candidate is the `MSI_Software` block, not yet read.
+
+![Status on the backup path: the model, the firmware label from the BIOS string, the note](images/backup_path_status.png)
+
+![Monitoring-only mode on a machine with the known block layout: temperatures, fan duty and RPM, the hint about the report](images/monitoring_only_status.png)
+
+![The card at start on such a machine](images/blocks_hint_card.png)
+
+**Model database.** The layout travels as an optional `blockPath` object per model (slots written as `"MSI_System[7]"`, curve tables as class / tempFirst / speedFirst / count). Older clients ignore the key; a database without it falls back to the compiled entry with the same prefix (`Devices.BlockPathOf`). A slot may only name one of the known block classes, and a curve table may not start below index 4.
+
+**Diagnostics and testing.** `msi-wmi-blocks.txt` in the diagnostic package lists eight blocks in full with the time each query took, the type and `write` qualifier of the value property, whether a single instance can be fetched by path, and the block routine names found in the firmware table (`WQxx` read, `WSxx` write). `MSI_Software` is not read: the firmware flags it as an expensive collection. `wmi-interface.txt` carries the verdict of the backup-path check and its readings. `MSIPS_BLOCKS_FILE=<msi-wmi-blocks.txt>` with `MSIPS_BLOCKS_BIOS=<version>` replays a saved dump instead of querying WMI (writes land in the in-memory copy; `MSIPS_BLOCKS_STUCK=1` makes the copy ignore them).
+
+**What is confirmed so far.** The read path: by the diagnostic packages of all three machines. The write path and the test on hardware: two path tests by the GF65 Thin 10UE owner on 8 October 2026 (#230), one with Windows turbo boost and one without, both passed - Super Battery delivered 52 % and 34 % of the slower Extreme run's work, every profile read back as written, the restore was confirmed by read-back, and the fan followed the raised table in both phases of the curve check. MSI's services were running during both runs and did not interfere. Against replayed dumps: the full run on all three machines, including a firmware that ignores a write. The Delta 15: no run on hardware yet.
+
+## 82. Graphics mode: Hybrid / Integrated only (MSI GPU switch)
 
 MSI Center's *GPU Switch* on recent laptops offers MSHybrid and **Integrated graphics**, the
 latter powering the discrete GPU off completely for battery life. It is not an EC register like
@@ -3388,7 +3723,7 @@ restart: the RTX and the external monitor on it are back. After each boot EC `0x
 `Get_AP(0)` byte 2 read `00` again - the firmware consumes the arm. The card, the display warning
 and Cancel were also exercised. MsiGT verified the same sequence on a Creator Z16HX Studio B13VGTO.
 
-## 80. Overlay: CPU and GPU power in watts
+## 83. Overlay: CPU and GPU power in watts
 
 Two optional overlay cells, **CPU W** and **GPU W** (Settings → Overlay; offered only where the
 source exists). Both keep the "no kernel driver" rule (§21):
@@ -3407,7 +3742,7 @@ there, costing battery on a hybrid laptop. So NVML is initialised and asked only
 `GpuTelemetry` already sees the card clocked (a powered-down card reports no clock) and only while
 the GPU W cell is switched on; otherwise the cell shows `--`, like the GPU temperature. Checking
 whether to offer the item does not touch NVML at all (an NVIDIA discrete adapter in the roles and
-`nvml.dll` on disk). In Integrated-only mode (§79) the discrete card is gone from Windows and the
+`nvml.dll` on disk). In Integrated-only mode (§82) the discrete card is gone from Windows and the
 cell is dropped.
 
 Measured on the Prestige 16 AI Studio B1VFG: idle CPU W 9-11 W, GPU W 2 W; under the power test's

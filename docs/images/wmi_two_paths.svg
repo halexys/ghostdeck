@@ -1,0 +1,81 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 980 700" width="980" height="700" font-family="Segoe UI, Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#8d98ab"/>
+    </marker>
+    <marker id="arrowc" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#46c8ff"/>
+    </marker>
+  </defs>
+  <rect width="980" height="700" fill="#0e1420"/>
+  <text x="40" y="44" fill="#dbe4f0" font-size="22" font-weight="600">Two ways from GhostDeck to the same controller</text>
+  <text x="40" y="68" fill="#8d98ab" font-size="14">Both go through Windows's own ACPI-WMI mapper. No vendor driver on either path.</text>
+
+  <!-- column headings -->
+  <text x="255" y="108" fill="#46c8ff" font-size="15" font-weight="600" text-anchor="middle" letter-spacing="1">THE NORMAL PATH  ·  method interface</text>
+  <text x="725" y="108" fill="#46c8ff" font-size="15" font-weight="600" text-anchor="middle" letter-spacing="1">THE BACKUP PATH  ·  data blocks</text>
+
+  <!-- left column -->
+  <g>
+    <rect x="40" y="124" width="430" height="64" rx="10" fill="#151d2c" stroke="#26314a"/>
+    <text x="60" y="150" fill="#dbe4f0" font-size="15" font-weight="600">GhostDeck</text>
+    <text x="60" y="172" fill="#8d98ab" font-size="13">names a register by its address: "write 0x1D to 0xD4"</text>
+    <line x1="255" y1="188" x2="255" y2="214" stroke="#8d98ab" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+    <rect x="40" y="216" width="430" height="64" rx="10" fill="#151d2c" stroke="#26314a"/>
+    <text x="60" y="242" fill="#dbe4f0" font-size="15" font-weight="600">WMI class MSI_ACPI  (root\wmi)</text>
+    <text x="60" y="264" fill="#8d98ab" font-size="13">methods Get_Data / Set_Data, 32-byte buffer: [0] = address, [1] = value</text>
+    <line x1="255" y1="280" x2="255" y2="306" stroke="#8d98ab" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+    <rect x="40" y="308" width="430" height="64" rx="10" fill="#151d2c" stroke="#26314a"/>
+    <text x="60" y="334" fill="#dbe4f0" font-size="15" font-weight="600">Windows ACPI-WMI mapper  (wmiacpi.sys)</text>
+    <text x="60" y="356" fill="#8d98ab" font-size="13">part of Windows; turns the WMI call into a call into the firmware</text>
+    <line x1="255" y1="372" x2="255" y2="398" stroke="#8d98ab" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+    <rect x="40" y="400" width="430" height="88" rx="10" fill="#151d2c" stroke="#f47067"/>
+    <text x="60" y="426" fill="#dbe4f0" font-size="15" font-weight="600">Firmware method  (ACPI, listed in the _WDG table)</text>
+    <text x="60" y="448" fill="#8d98ab" font-size="13">reads or writes one EC register by address</text>
+    <rect x="60" y="458" width="390" height="22" rx="11" fill="#40191a"/>
+    <text x="255" y="474" fill="#f47067" font-size="12" font-weight="600" text-anchor="middle">Dragon Center generation: absent, every call answers 0x8004100C</text>
+    <line x1="255" y1="488" x2="255" y2="514" stroke="#8d98ab" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+    <rect x="40" y="516" width="430" height="64" rx="10" fill="#151d2c" stroke="#26314a"/>
+    <text x="60" y="542" fill="#dbe4f0" font-size="15" font-weight="600">EC register</text>
+    <text x="60" y="564" fill="#8d98ab" font-size="13">0xD2 shift mode · 0xD4 fan mode · 0x68 CPU temperature · ...</text>
+  </g>
+
+  <!-- right column -->
+  <g>
+    <rect x="510" y="124" width="430" height="64" rx="10" fill="#151d2c" stroke="#26314a"/>
+    <text x="530" y="150" fill="#dbe4f0" font-size="15" font-weight="600">GhostDeck</text>
+    <text x="530" y="172" fill="#8d98ab" font-size="13">names a slot by block and index: "write 0x1D to MSI_System[9]"</text>
+    <line x1="725" y1="188" x2="725" y2="214" stroke="#46c8ff" stroke-width="1.5" marker-end="url(#arrowc)"/>
+
+    <rect x="510" y="216" width="430" height="64" rx="10" fill="#151d2c" stroke="#26314a"/>
+    <text x="530" y="242" fill="#dbe4f0" font-size="15" font-weight="600">WMI data blocks  (root\wmi)</text>
+    <text x="530" y="264" fill="#8d98ab" font-size="13">MSI_System · MSI_CPU · MSI_VGA · MSI_AP; one instance per index (0_N)</text>
+    <line x1="725" y1="280" x2="725" y2="306" stroke="#46c8ff" stroke-width="1.5" marker-end="url(#arrowc)"/>
+
+    <rect x="510" y="308" width="430" height="64" rx="10" fill="#151d2c" stroke="#26314a"/>
+    <text x="530" y="334" fill="#dbe4f0" font-size="15" font-weight="600">Windows ACPI-WMI mapper  (wmiacpi.sys)</text>
+    <text x="530" y="356" fill="#8d98ab" font-size="13">the same mapper; a Put() on an instance calls the block's write routine</text>
+    <line x1="725" y1="372" x2="725" y2="398" stroke="#46c8ff" stroke-width="1.5" marker-end="url(#arrowc)"/>
+
+    <rect x="510" y="400" width="430" height="88" rx="10" fill="#151d2c" stroke="#3fb950"/>
+    <text x="530" y="426" fill="#dbe4f0" font-size="15" font-weight="600">Firmware block routines  (WQxx read, WSxx write)</text>
+    <text x="530" y="448" fill="#8d98ab" font-size="13">the firmware's own table maps each index to a register</text>
+    <rect x="530" y="458" width="390" height="22" rx="11" fill="#12351f"/>
+    <text x="725" y="474" fill="#3fb950" font-size="12" font-weight="600" text-anchor="middle">served by the same firmware that refuses the method interface</text>
+    <line x1="725" y1="488" x2="725" y2="514" stroke="#46c8ff" stroke-width="1.5" marker-end="url(#arrowc)"/>
+
+    <rect x="510" y="516" width="430" height="64" rx="10" fill="#151d2c" stroke="#26314a"/>
+    <text x="530" y="542" fill="#dbe4f0" font-size="15" font-weight="600">EC register</text>
+    <text x="530" y="564" fill="#8d98ab" font-size="13">MSI_System[7] shift mode · [9] fan mode · MSI_CPU[1] temperature</text>
+  </g>
+
+  <!-- footer note -->
+  <rect x="40" y="604" width="900" height="70" rx="10" fill="#101827" stroke="#26314a"/>
+  <text x="60" y="630" fill="#dbe4f0" font-size="13">Both paths end at the same registers. The normal path names a register by its address; the backup path names it by block and index.</text>
+  <text x="60" y="652" fill="#8d98ab" font-size="13">Only the firmware knows how the two line up (on the Delta 15 MSI_CPU[3] is register 0x70, but [5..10] are 0x6A..0x6F), so GhostDeck never</text>
+  <text x="60" y="668" fill="#8d98ab" font-size="13">derives one from the other: every slot it uses is recorded per model, as block[index].</text>
+</svg>

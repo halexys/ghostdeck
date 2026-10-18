@@ -3,6 +3,112 @@
 All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.40.0] - 2026-10-18
+### Added
+- **Backup WMI path for laptops whose firmware refuses MSI's EC control interface**
+  ([#48](../../issues/48), [#117](../../issues/117), [#230](../../issues/230), thanks
+  @scorvus99 and @SavAlexander) - firmware of the Dragon Center generation (Delta 15, GF65
+  Thin, GS75 and relatives) answers "not supported" to every call on the method interface, and
+  such a laptop used to get temperatures only. GhostDeck now works through the device's WMI
+  data blocks on a model whose block layout is on record: profiles, temperatures, fan duty and
+  fan RPM, and on the GF65 Thin 10UE also the fan curve. Profile switching starts locked; a
+  **path test** (offered at start, also in the tray menu) unlocks it on that machine: it reads
+  the state, changes one setting and puts it back, applies the four profiles with short
+  processor loads, optionally checks the fan curve, and restores everything, with a text report
+  on the desktop. Passed on a GF65 Thin 10UE in two runs on 8 October 2026. Every write on this
+  path goes through one gate (open during the test and after a pass) and an allow-list of slots
+  and values; Fan Boost, the charge limit, the keyboard backlight and the webcam switch stay
+  unavailable there. A laptop whose blocks answer in the known layout but whose model is not
+  on record runs in *monitoring only* mode with fan speeds next to the temperatures, gets a card
+  pointing to the Report tab, and "Report my model" captures the data blocks per scenario so
+  the model can be added through the signed database. The layout travels in the model database
+  (20261020) as an optional `blockPath` key; the diagnostic package lists the blocks in full.
+- **MSI Prestige 16 AI Studio B1VFG (`15A2EMS1`): new model, Tested on arrival** ([#237](../../issues/237),
+  thanks @halexys) - a 157th recognised board, absent from msi-ec, measured by its owner: Silent
+  delivers 77 % of Balanced's work 11 C cooler, Extreme above Balanced, every byte read back as
+  written. Fan RPM on; the EC webcam switch is marked unavailable on this board (it does not
+  control the camera there).
+- **Crosshair** (roadmap #118, [discussion #247](../../discussions/247), thanks @arcfybr) - a
+  crosshair drawn at the centre of the screen over the game, as its own small window that never
+  takes the focus and lets every click through; nothing is injected into the game. Eleven
+  built-in shapes (cross, cross with gap, gap cross with dot, dot, circle, circle with dot, T, X,
+  chevron, square with dot, reticle) or your own PNG / BMP / JPG (up to 512 × 512 px and 1 MB,
+  copied into the settings folder), each with colour, size, line thickness, a dark rim, opacity,
+  softness, rotation and an X / Y offset; the position can also follow the mouse pointer. Optional
+  click effect on the left button (spread, pulse, flash) and hide-while-aiming on the right button
+  (both off by default; they watch the mouse through a low-level hook like the Windows-key lock).
+  Named presets without limit, a short share code (`GDX1.…`) with *Copy code* / *Paste code*,
+  PNG and SVG export, and a live preview on a dark and a light background. Switch it with a
+  hotkey (`Ctrl+Alt+F12`, shipped disabled), the tile on Scenarios, the tray menu, a tray-click
+  action, the taskbar jump list, a scene field (off / on / on with a preset), `--crosshair
+  on|off|preset|code` and `ghostdeck://crosshair/...`. Settings → Gaming now opens on a
+  *Start* view with a tile per feature (its state and a quick switch, like the Settings Start
+  page) and has the *Gaming overlay* and *Crosshair* views behind the same switch. A preset
+  stays selected while you edit it, marked "(modified)", with *Save* writing the look back
+  and *Save as...* adding or overwriting a preset. The settings backup carries the presets
+  and the custom picture.
+- **Sliders take the mouse wheel, the arrow keys and a double-click** - one step per wheel
+  notch or arrow (ten with Ctrl), a double-click puts the slider back to its default, and a
+  slider with a natural zero (the crosshair offsets and rotation) snaps to it when dragged
+  close. The value column is as wide as the longest value, so "100%" is no longer clipped.
+- **MSI True Color profiles, experimental** (roadmap #119, [discussion #150](../../discussions/150)
+  and [#204](../../discussions/204)) - the display colour profile of MSI's True Color application
+  (sRGB, Gamer, Movie, Anti-Blue, Office, AdobeRGB, Display P3) switched from GhostDeck: a card
+  under Settings → System with seven tiles, a *True Color* submenu in the tray, a scene field
+  (leave alone, or one of the seven), `--truecolor <profile|status>` and
+  `ghostdeck://truecolor/<profile>`. GhostDeck asks the running True Color through the window
+  message its own helper uses and reads the profile True Color records back; it writes nothing to
+  True Color's files or settings and never calculates colours. Off by default, opt-in with a
+  consent card; confirmed on True Color 5.1.24.0 (one GE78HX, 17 October 2026) and off on other
+  versions until the owner runs the one-click test on their own machine. The card shows what True
+  Color recorded and what GhostDeck last asked for, never a measured state. A scene with the field
+  set runs it on a worker and never waits for it; a failure is a history line (and a card only
+  for a manual action). `--truecolor status` works with the switch off; the diagnostic zip lists
+  the installed version.
+
+### Fixed
+- **An older version no longer erases the settings of a newer one** - settings.json keeps every
+  field this version does not know (top level, scenes, crosshair presets, hotkeys) and writes it
+  back unchanged, so starting an older build after a newer one no longer drops the newer
+  build's presets, scene fields and switches. Applies from this version on; 1.38.0 and older
+  still rewrite the file with only the fields they know.
+- **Settings cards laid out for the width before the scrollbar** - when a Settings view grew
+  tall enough for a vertical scrollbar on entry, the two card columns kept the width they
+  had without it until the next rebuild, which then shifted them by half the scrollbar.
+  The layout pass now runs again at the settled width.
+- **MSI Vector GP66 12UGS (`1544EMS1`): fan curve verified, fan RPM on** ([#249](../../issues/249),
+  [#250](../../issues/250), thanks @TheOriginalBabu) - his test curve sits byte-for-byte at the
+  shipped addresses on both fans, and both tachometers are live. Recipes confirmed in all four
+  scenarios; the model stays experimental until a power test.
+- **MSI Raider GE68 HX 14VGG (`15M2IMS2`) promoted to Tested** ([#244](../../issues/244),
+  [#245](../../issues/245), thanks @Ghli) - a clean power test (1 % drift): Silent delivers 72 %
+  of Balanced's work at 2.49 instead of 3.46 GHz and 9 C cooler; Extreme level with Balanced
+  under the combined load. Fan RPM readout on, as on the sibling GE68 HX 14VIG.
+- **MSI Titan 18 HX A14V / Raider 18 HX A14V (`1822EMS1`) promoted to Tested** ([#239](../../issues/239),
+  thanks @se-240717038) - the owner's per-scenario capture matches the standard recipe set
+  in all four scenarios with the real Silent tile, and all three hardware checks are confirmed.
+  His machine is sold as the Raider 18 HX A14V on the Titan 18 HX A14V board, so the entry
+  carries both names. Fan RPM reads as 16-bit tachometer pairs, proven on his idle capture.
+- **The "Report my model" steps name the tile in the other MSI apps** ([#170](../../issues/170)) -
+  each step shows the scenario as MSI Center 2.0.48 names it and, underneath, the name the owner
+  may be looking at instead: "High Performance" in MSI Center Pro for Extreme, "ECO-Silent" in
+  MSI Center 2.0.49 and newer for Super Battery, and a note that those newer versions have no
+  Silent tile at all. The instruction line carries the short alternatives too, and the card at the
+  left says that a business laptop with MSI Center Pro can use it as it is.
+- **The power test report names a phase that did not run evenly** - a new "Inside the phases"
+  section lists a phase whose processor clock stepped to a different level partway through, or
+  spiked inside the measured window, with the second it happened and both levels. The baseline
+  check then says that its drift figure measures that step, instead of describing a machine
+  that heated up over the run.
+
+### Changed
+- The "Report my model" texts use plain hyphens instead of long dashes in all 15 languages.
+
+### Fixed
+- **Changing the language left the "Report my model" window half translated** - the three
+  info cards, the "Start over" buttons and the consent line of the power test kept the old
+  language until the app was restarted; they now follow the switch.
+
 ## [1.38.0] - 2026-10-07
 ### Added
 - **Profiles and scenes from the taskbar** (roadmap #88) - a right-click on the GhostDeck
