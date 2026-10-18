@@ -1886,7 +1886,8 @@ and a **Check now** button; the change log gets one line when a database goes li
 MSIPS_FORCE_FIRMWARE).
 
 **Release flow for a model change:** edit `Devices.cs`, bump `Devices.DataVersion`
-(date-serial), build, `GhostDeck.exe --dump-models data/models.json`,
+(date-serial), `python tools/model-history.py` (stamps the dates of new prefixes and
+promotions, §82), build, `GhostDeck.exe --dump-models data/models.json`,
 `pwsh tools/sign-models.ps1`, then `GhostDeck.exe --dump-supported-md
 docs/SUPPORTED_MODELS.md`, commit all three files (plus the `.sig`), push - users have it
 within a day. The next exe release compiles the same tables in, so the override retires
@@ -3674,3 +3675,52 @@ The original values go to `backup-path-restore.json` before the first write, so 
 **Diagnostics and testing.** `msi-wmi-blocks.txt` in the diagnostic package lists eight blocks in full with the time each query took, the type and `write` qualifier of the value property, whether a single instance can be fetched by path, and the block routine names found in the firmware table (`WQxx` read, `WSxx` write). `MSI_Software` is not read: the firmware flags it as an expensive collection. `wmi-interface.txt` carries the verdict of the backup-path check and its readings. `MSIPS_BLOCKS_FILE=<msi-wmi-blocks.txt>` with `MSIPS_BLOCKS_BIOS=<version>` replays a saved dump instead of querying WMI (writes land in the in-memory copy; `MSIPS_BLOCKS_STUCK=1` makes the copy ignore them).
 
 **What is confirmed so far.** The read path: by the diagnostic packages of all three machines. The write path and the test on hardware: two path tests by the GF65 Thin 10UE owner on 8 October 2026 (#230), one with Windows turbo boost and one without, both passed - Super Battery delivered 52 % and 34 % of the slower Extreme run's work, every profile read back as written, the restore was confirmed by read-back, and the fan followed the raised table in both phases of the curve check. MSI's services were running during both runs and did not interfere. Against replayed dumps: the full run on all three machines, including a firmware that ignores a write. The Delta 15: no run on hardware yet.
+
+## 82. The Models tab: five sub-tabs and the model history dates (2026-10)
+
+**Layout.** The tab has the Settings-style sub-tab strip (`SubTabs`): **Start** (your laptop
+with what works on it, or a "not in the database yet" card with *Report my model* and a link
+to the backup-path guide; the database in numbers as clickable tiles; a growth chart of
+recognised and tested models; *closest to tested* = experimental models with a confirmed
+curve, a backup-path layout, a partial credit or a known fourth mode; the five latest
+changes), **List** (the table: filter chips, a result count, rows that grow instead of
+ending in "...", zebra rows, a NEW badge, a click opens the row's details with every prefix,
+the dates, the fourth mode, the backup path, the report link, each thanked login as its own
+link and *Copy row*; under the table a *Report my model* box), **Features** (coverage tiles
+and a dot matrix: filled = works, ring = curve addresses from the maps, not yet confirmed),
+**Series** (tested share per series = first word of the name; a click opens the List
+filtered) and **Community** (every thanked login, sorted by the number of models, and the
+full timeline). The search box stays in the header; typing on Start, Series or Community
+switches to the List. The tab opens on Start; clicking the Models tab again returns there.
+
+**Everything is computed from the database in effect** (`Devices.All`) in `ModelsStats.Build`,
+rebuilt on every database change (`OnDeviceDbChanged`), so a new model, a promotion, a curve,
+an RPM address or a credit updates every number, the chart, the timeline, the series and the
+thanks with no hand edits. Each sub-tab is ONE drawn surface (`ModelsView` in
+`UI/ModelsViews.cs` and `UI/ModelsListView.cs`, measure and paint share one `Render` pass,
+click zones registered while painting), hosted in the page's scrolling panel, so the tab adds
+no window per row. Text measuring is cached per text and font (`UI/ModelsText.cs`; the font
+is keyed by reference, because `Font.GetHashCode` reads the family name through GDI+ on every
+call), wrapped cells count lines from cached word widths instead of a GDI measure per cell,
+and the List draws only the rows inside the repaint area. Pitfall found on the way:
+`TextRenderer.MeasureText` with `WordBreak` and an empty size wraps at every space and
+returns the widest word, not the line. `&` in a credit is drawn with `NoPrefix`.
+
+**History dates.** `data/model-history.json` (embedded in the exe as
+`GhostDeck.model-history.json`, read by `Core/ModelHistory.cs`) holds, per firmware PREFIX,
+the day it was first recognised (`added`) and the day its model was first seen as Tested
+(`tested`); a model's dates are the earliest over its prefixes, so renaming or merging an
+entry keeps its history. `tools/model-history.py` writes the file: `--backfill` rebuilt it
+from the git history of `Devices.cs` (first model 2026-06-26, the msi-ec import on
+2026-06-29), a plain run adds today's date for every new prefix and every new promotion, and
+`--check` (CI step "Model history dates") fails while `Devices.cs` has a prefix or a Tested
+model without a date. The dates travel in the signed database as optional `added` /
+`tested` keys per model (first carried by dataVersion 20261023); older clients ignore them,
+and a downloaded database without them gets the compiled dates by prefix
+(`ModelHistory.Apply(onlyMissing: true)` in `Devices.ApplyOverride`).
+
+**NEW badge.** `AppSettings.ModelsSeen` keeps first prefix + tier (`17S1IMS1|T`) of every
+model at the previous visit. The list as it was when the app started is the reference for
+the whole run, so a model added or promoted since then carries the badge (List, header line,
+"New" chip) until the next start. The very first run marks nothing.
+

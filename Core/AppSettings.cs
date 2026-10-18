@@ -140,6 +140,9 @@ public sealed class AppSettings
     // rate-limited GitHub API. Sharing one field also meant a manual release check silently
     // cancelled the next model-database fetch.
     public DateTime LastModelDbCheckUtc { get; set; } = DateTime.MinValue;
+    // Models tab "new since your last visit": first firmware prefix + tier ("17S1IMS1|T") of every
+    // model in the database at the previous visit (ModelsPage.UpdateNew).
+    public List<string> ModelsSeen { get; set; } = new();
     public List<string> SeenNoticeIds { get; set; } = new();           // ktore ogloszenia (announcements.json) juz pokazano
 
     public bool DarkMode { get; set; } = true;                         // ciemny motyw domyslnie (brand ghostdeck.dev)

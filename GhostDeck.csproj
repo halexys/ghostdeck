@@ -27,6 +27,8 @@
   <ItemGroup>
     <!-- multi-size ghost icon reachable at runtime (window/taskbar); ApplicationIcon only brands the exe file -->
     <EmbeddedResource Include="app.ico" LogicalName="GhostDeck.app.ico" />
+    <!-- Models tab history dates (tools/model-history.py), see Core/ModelHistory.cs -->
+    <EmbeddedResource Include="data\model-history.json" LogicalName="GhostDeck.model-history.json" />
   </ItemGroup>
 
 </Project>

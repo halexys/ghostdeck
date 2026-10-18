@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "dataVersion": 20261022,
+  "dataVersion": 20261023,
   "models": [
     {
       "name": "MSI Raider GE78HX 13V / Vector 17 HX A14V",
@@ -23,6 +23,8 @@
       },
       "credit": "wygodad, megadude9704",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/1",
+      "added": "2026-06-26",
+      "tested": "2026-06-26",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -70,6 +72,8 @@
       },
       "credit": "cesarcamps",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/5",
+      "added": "2026-06-28",
+      "tested": "2026-07-04",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -109,6 +113,8 @@
       },
       "credit": "skandy121",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/6",
+      "added": "2026-06-29",
+      "tested": "2026-07-05",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -152,6 +158,8 @@
       },
       "credit": "alibi90, Hobby-Schrauber-88",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/14",
+      "added": "2026-06-29",
+      "tested": "2026-07-12",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -195,6 +203,8 @@
       },
       "credit": "moragab1993",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/47",
+      "added": "2026-06-29",
+      "tested": "2026-07-29",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -238,6 +248,8 @@
       },
       "credit": "hengeleng10-tech, M-Essa11, qq588849, DeimosCreator",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/19",
+      "added": "2026-06-29",
+      "tested": "2026-07-15",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -281,6 +293,8 @@
       },
       "credit": "fwbvng",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/21",
+      "added": "2026-06-29",
+      "tested": "2026-07-26",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -324,6 +338,8 @@
       },
       "credit": "Mung-Bean-Monkey",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/23",
+      "added": "2026-06-29",
+      "tested": "2026-07-26",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -365,6 +381,8 @@
       },
       "credit": "AnyTw",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/25",
+      "added": "2026-06-29",
+      "tested": "2026-07-26",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -403,6 +421,8 @@
       },
       "credit": "Qaron-makaron, SrBeans",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/30",
+      "added": "2026-06-29",
+      "tested": "2026-07-26",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -446,6 +466,8 @@
       },
       "credit": "mewmrow, vlf1e",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/34",
+      "added": "2026-06-29",
+      "tested": "2026-07-26",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -487,6 +509,8 @@
       },
       "credit": "inokra",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/40",
+      "added": "2026-06-29",
+      "tested": "2026-07-26",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -526,6 +550,8 @@
       },
       "credit": "eaglent1",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/38",
+      "added": "2026-06-29",
+      "tested": "2026-07-26",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -567,6 +593,8 @@
       },
       "credit": "Harsh3456D",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/44",
+      "added": "2026-06-29",
+      "tested": "2026-07-28",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -609,6 +637,8 @@
       },
       "credit": "ping-myildirim",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/61",
+      "added": "2026-06-29",
+      "tested": "2026-08-04",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -652,6 +682,8 @@
       },
       "credit": "migecko",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/68",
+      "added": "2026-06-29",
+      "tested": "2026-08-12",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -695,6 +727,8 @@
       },
       "credit": "Punssama \u0026 Gangan-Lin, GabrielGby, houstonmcknight790-byte, sefouhi3400-hash",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/90",
+      "added": "2026-06-29",
+      "tested": "2026-08-14",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -734,6 +768,7 @@
         "verified": false,
         "singleFan": false
       },
+      "added": "2026-06-26",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -766,6 +801,7 @@
       "shiftMode": "0xF2",
       "fanMode": "0xF4",
       "chargeCtrl": "0xEF",
+      "added": "2026-06-26",
       "recipes": {
         "Silent": [
           "0xF2=0xC1",
@@ -801,6 +837,7 @@
         "verified": false,
         "singleFan": false
       },
+      "added": "2026-06-26",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -840,6 +877,7 @@
         "verified": false,
         "singleFan": false
       },
+      "added": "2026-06-26",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -883,6 +921,8 @@
       },
       "credit": "krystian-pytlik",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/52",
+      "added": "2026-06-26",
+      "tested": "2026-08-10",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -919,6 +959,7 @@
       "shiftMode": "0xF2",
       "fanMode": "0xF4",
       "chargeCtrl": "0xEF",
+      "added": "2026-06-26",
       "recipes": {
         "Silent": [
           "0xF2=0xC1",
@@ -981,6 +1022,7 @@
       },
       "credit": "scorvus99",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/230",
+      "added": "2026-06-26",
       "recipes": {
         "Silent": [
           "0xF2=0xC1",
@@ -1020,6 +1062,7 @@
       },
       "credit": "Fanilo-Nantenaina",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/131",
+      "added": "2026-06-29",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -1063,6 +1106,8 @@
       },
       "credit": "Matt99-sys",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/130",
+      "added": "2026-08-23",
+      "tested": "2026-08-24",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -1103,6 +1148,8 @@
       },
       "credit": "dodi6161, alinayzIr",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/104",
+      "added": "2026-06-29",
+      "tested": "2026-08-23",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -1142,6 +1189,8 @@
       },
       "credit": "Ghli",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/245",
+      "added": "2026-06-29",
+      "tested": "2026-10-17",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -1189,6 +1238,8 @@
       },
       "credit": "xulu19861102-hub, mithril01, H0tSTUff, girfli, STRIEH, onrchnn",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/74",
+      "added": "2026-06-29",
+      "tested": "2026-08-10",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -1232,6 +1283,8 @@
       },
       "credit": "OrbNRG",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/102",
+      "added": "2026-06-29",
+      "tested": "2026-08-23",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -1271,6 +1324,7 @@
         "verified": false,
         "singleFan": false
       },
+      "added": "2026-06-29",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -1312,6 +1366,8 @@
       },
       "credit": "A7GoD",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/171",
+      "added": "2026-06-29",
+      "tested": "2026-09-14",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -1351,6 +1407,7 @@
         "verified": false,
         "singleFan": false
       },
+      "added": "2026-06-29",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -1390,6 +1447,7 @@
         "verified": false,
         "singleFan": false
       },
+      "added": "2026-06-29",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -1429,6 +1487,7 @@
         "verified": false,
         "singleFan": false
       },
+      "added": "2026-06-29",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -1468,6 +1527,7 @@
         "verified": false,
         "singleFan": false
       },
+      "added": "2026-06-29",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -1507,6 +1567,7 @@
         "verified": false,
         "singleFan": false
       },
+      "added": "2026-06-29",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -1546,6 +1607,7 @@
         "verified": false,
         "singleFan": false
       },
+      "added": "2026-06-29",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -1585,6 +1647,7 @@
         "verified": false,
         "singleFan": false
       },
+      "added": "2026-06-29",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -1625,6 +1688,7 @@
         "verified": false,
         "singleFan": false
       },
+      "added": "2026-06-29",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -1667,6 +1731,8 @@
       },
       "credit": "Acoustichayes",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/160",
+      "added": "2026-06-29",
+      "tested": "2026-09-14",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -1710,6 +1776,8 @@
       },
       "credit": "kltk",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/109",
+      "added": "2026-06-29",
+      "tested": "2026-08-23",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -1749,6 +1817,7 @@
         "verified": false,
         "singleFan": false
       },
+      "added": "2026-06-29",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -1788,6 +1857,7 @@
         "verified": false,
         "singleFan": false
       },
+      "added": "2026-06-29",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -1827,6 +1897,7 @@
         "verified": false,
         "singleFan": false
       },
+      "added": "2026-06-29",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -1870,6 +1941,8 @@
       },
       "credit": "gkyrios",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/156",
+      "added": "2026-06-29",
+      "tested": "2026-09-02",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -1909,6 +1982,7 @@
         "verified": false,
         "singleFan": false
       },
+      "added": "2026-06-29",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -1951,6 +2025,8 @@
       },
       "credit": "otherpartsoftheworld-spec",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/91",
+      "added": "2026-08-16",
+      "tested": "2026-08-23",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -1990,6 +2066,7 @@
         "verified": false,
         "singleFan": false
       },
+      "added": "2026-08-04",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -2029,6 +2106,7 @@
         "verified": false,
         "singleFan": false
       },
+      "added": "2026-06-29",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -2068,6 +2146,7 @@
         "verified": false,
         "singleFan": false
       },
+      "added": "2026-08-04",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -2111,6 +2190,7 @@
       },
       "credit": "TheOriginalBabu",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/250",
+      "added": "2026-06-29",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -2150,6 +2230,7 @@
         "verified": false,
         "singleFan": false
       },
+      "added": "2026-06-29",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -2189,6 +2270,7 @@
         "verified": false,
         "singleFan": false
       },
+      "added": "2026-06-29",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -2228,6 +2310,7 @@
         "verified": false,
         "singleFan": false
       },
+      "added": "2026-06-29",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -2267,6 +2350,7 @@
         "verified": false,
         "singleFan": false
       },
+      "added": "2026-06-29",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -2306,6 +2390,7 @@
         "verified": false,
         "singleFan": false
       },
+      "added": "2026-06-29",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -2349,6 +2434,8 @@
       },
       "credit": "VamiCLAY, SvinoSuper",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/142",
+      "added": "2026-06-29",
+      "tested": "2026-08-27",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -2392,6 +2479,8 @@
       },
       "credit": "messer2212, Error29112002",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/116",
+      "added": "2026-06-29",
+      "tested": "2026-08-23",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -2431,6 +2520,7 @@
         "verified": false,
         "singleFan": false
       },
+      "added": "2026-06-29",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -2472,6 +2562,7 @@
         "verified": false,
         "singleFan": false
       },
+      "added": "2026-06-29",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -2515,6 +2606,8 @@
       },
       "credit": "zajebistylukasz-beep, DRLOGIC01, Osanosa, sensini82",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/63",
+      "added": "2026-06-29",
+      "tested": "2026-08-06",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -2558,6 +2651,7 @@
       },
       "credit": "dmas-dll, Lofre",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/27",
+      "added": "2026-06-29",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -2593,6 +2687,7 @@
         "verified": false,
         "singleFan": false
       },
+      "added": "2026-06-29",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -2632,6 +2727,7 @@
         "verified": false,
         "singleFan": false
       },
+      "added": "2026-06-29",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -2675,6 +2771,8 @@
       },
       "credit": "Flo827",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/127",
+      "added": "2026-06-29",
+      "tested": "2026-08-23",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -2714,6 +2812,7 @@
         "verified": false,
         "singleFan": false
       },
+      "added": "2026-06-29",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -2753,6 +2852,7 @@
         "verified": false,
         "singleFan": false
       },
+      "added": "2026-06-29",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -2792,6 +2892,7 @@
         "verified": false,
         "singleFan": false
       },
+      "added": "2026-06-29",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -2835,6 +2936,8 @@
       },
       "credit": "halexys",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/237",
+      "added": "2026-10-18",
+      "tested": "2026-10-18",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -2874,6 +2977,7 @@
         "verified": false,
         "singleFan": false
       },
+      "added": "2026-06-29",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -2913,6 +3017,7 @@
         "verified": false,
         "singleFan": false
       },
+      "added": "2026-08-04",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -2954,6 +3059,8 @@
       },
       "credit": "sevi-05",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/206",
+      "added": "2026-06-29",
+      "tested": "2026-09-27",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -2993,6 +3100,7 @@
         "verified": false,
         "singleFan": false
       },
+      "added": "2026-06-29",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -3032,6 +3140,7 @@
         "verified": false,
         "singleFan": false
       },
+      "added": "2026-06-29",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -3071,6 +3180,7 @@
         "verified": false,
         "singleFan": false
       },
+      "added": "2026-06-29",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -3110,6 +3220,7 @@
         "verified": false,
         "singleFan": false
       },
+      "added": "2026-06-29",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -3151,6 +3262,8 @@
       },
       "credit": "Sagajaz",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/199",
+      "added": "2026-06-29",
+      "tested": "2026-09-18",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -3186,6 +3299,7 @@
         "verified": false,
         "singleFan": false
       },
+      "added": "2026-06-29",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -3225,6 +3339,7 @@
         "verified": false,
         "singleFan": false
       },
+      "added": "2026-08-04",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -3264,6 +3379,7 @@
         "verified": false,
         "singleFan": false
       },
+      "added": "2026-06-29",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -3303,6 +3419,7 @@
         "verified": false,
         "singleFan": false
       },
+      "added": "2026-06-29",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -3342,6 +3459,7 @@
         "verified": false,
         "singleFan": false
       },
+      "added": "2026-08-04",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -3381,6 +3499,7 @@
         "verified": false,
         "singleFan": false
       },
+      "added": "2026-06-29",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -3420,6 +3539,7 @@
         "verified": false,
         "singleFan": false
       },
+      "added": "2026-06-29",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -3462,6 +3582,8 @@
       },
       "credit": "parkisutama, tenduo",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/97",
+      "added": "2026-08-04",
+      "tested": "2026-08-27",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -3501,6 +3623,7 @@
         "verified": false,
         "singleFan": false
       },
+      "added": "2026-08-04",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -3542,6 +3665,8 @@
       },
       "credit": "ondrapa150",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/198",
+      "added": "2026-09-16",
+      "tested": "2026-09-17",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -3582,6 +3707,7 @@
         "name": "Apex",
         "shiftValue": "0xC5"
       },
+      "added": "2026-09-14",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -3625,6 +3751,8 @@
       },
       "credit": "Xakson",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/228",
+      "added": "2026-10-01",
+      "tested": "2026-10-02",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -3653,6 +3781,7 @@
       "shiftMode": "0xF2",
       "fanMode": "0xF4",
       "chargeCtrl": "0xEF",
+      "added": "2026-08-04",
       "recipes": {
         "Silent": [
           "0xF2=0xC1",
@@ -3688,6 +3817,7 @@
         "verified": false,
         "singleFan": false
       },
+      "added": "2026-06-29",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -3730,6 +3860,8 @@
       },
       "credit": "arcfybrr, pushtamper-nice",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/111",
+      "added": "2026-06-29",
+      "tested": "2026-09-01",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -3769,6 +3901,7 @@
         "verified": false,
         "singleFan": false
       },
+      "added": "2026-06-29",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -3808,6 +3941,7 @@
         "verified": false,
         "singleFan": false
       },
+      "added": "2026-06-29",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -3847,6 +3981,7 @@
         "verified": false,
         "singleFan": false
       },
+      "added": "2026-06-29",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -3886,6 +4021,7 @@
         "verified": false,
         "singleFan": false
       },
+      "added": "2026-06-29",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -3925,6 +4061,7 @@
         "verified": false,
         "singleFan": false
       },
+      "added": "2026-06-29",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -3964,6 +4101,7 @@
         "verified": false,
         "singleFan": false
       },
+      "added": "2026-08-04",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -4005,6 +4143,7 @@
       },
       "credit": "Themazin",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/208",
+      "added": "2026-06-29",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -4044,6 +4183,7 @@
         "verified": false,
         "singleFan": false
       },
+      "added": "2026-06-29",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -4076,6 +4216,7 @@
       "shiftMode": "0xF2",
       "fanMode": "0xF4",
       "chargeCtrl": "0xEF",
+      "added": "2026-08-04",
       "recipes": {
         "Silent": [
           "0xF2=0xC1",
@@ -4115,6 +4256,8 @@
       },
       "credit": "ezn24",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/200",
+      "added": "2026-06-29",
+      "tested": "2026-09-20",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -4154,6 +4297,7 @@
         "verified": false,
         "singleFan": false
       },
+      "added": "2026-06-29",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -4197,6 +4341,8 @@
       },
       "credit": "Liuwins",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/152",
+      "added": "2026-06-29",
+      "tested": "2026-09-01",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -4233,6 +4379,7 @@
         "verified": false,
         "singleFan": false
       },
+      "added": "2026-06-29",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -4272,6 +4419,7 @@
         "verified": false,
         "singleFan": false
       },
+      "added": "2026-06-29",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -4311,6 +4459,7 @@
         "verified": false,
         "singleFan": false
       },
+      "added": "2026-06-29",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -4352,6 +4501,7 @@
       },
       "credit": "Dkrimz",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/125",
+      "added": "2026-06-29",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -4391,6 +4541,7 @@
         "verified": false,
         "singleFan": false
       },
+      "added": "2026-06-29",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -4430,6 +4581,7 @@
         "verified": false,
         "singleFan": false
       },
+      "added": "2026-06-29",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -4469,6 +4621,7 @@
         "verified": false,
         "singleFan": false
       },
+      "added": "2026-06-29",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -4510,6 +4663,7 @@
       },
       "credit": "oscarschulzbongert-oss",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/77",
+      "added": "2026-06-29",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -4549,6 +4703,7 @@
         "verified": false,
         "singleFan": false
       },
+      "added": "2026-06-29",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -4588,6 +4743,7 @@
         "verified": false,
         "singleFan": false
       },
+      "added": "2026-06-29",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -4627,6 +4783,7 @@
         "verified": false,
         "singleFan": false
       },
+      "added": "2026-06-29",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -4666,6 +4823,7 @@
         "verified": false,
         "singleFan": false
       },
+      "added": "2026-06-29",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -4707,6 +4865,8 @@
       },
       "credit": "GalacticPasha",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/139",
+      "added": "2026-06-29",
+      "tested": "2026-08-27",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -4750,6 +4910,8 @@
       },
       "credit": "SorgZZ",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/195",
+      "added": "2026-09-14",
+      "tested": "2026-09-15",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -4793,6 +4955,8 @@
       },
       "credit": "SpeedPlayzz",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/148",
+      "added": "2026-08-28",
+      "tested": "2026-08-28",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -4836,6 +5000,8 @@
       },
       "credit": "se-240717038",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/239",
+      "added": "2026-06-29",
+      "tested": "2026-10-17",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -4879,6 +5045,8 @@
       },
       "credit": "afk789",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/50",
+      "added": "2026-06-29",
+      "tested": "2026-07-29",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -4918,6 +5086,8 @@
       },
       "credit": "Skullkidsrevenge, bnjhdaskghsnlh, UzaydaGezen",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/54",
+      "added": "2026-06-29",
+      "tested": "2026-08-01",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -4957,6 +5127,8 @@
       },
       "credit": "funcompsition-hash, SorgZZ",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/180",
+      "added": "2026-09-14",
+      "tested": "2026-09-18",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -5000,6 +5172,8 @@
       },
       "credit": "sw1n3flu80085",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/197",
+      "added": "2026-09-14",
+      "tested": "2026-09-16",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -5043,6 +5217,8 @@
       },
       "credit": "SteppinStone, AiM-lab-owl",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/66",
+      "added": "2026-08-07",
+      "tested": "2026-09-14",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -5090,6 +5266,8 @@
       },
       "credit": "Giperzvuk",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/221",
+      "added": "2026-09-28",
+      "tested": "2026-10-01",
       "recipes": {
         "Silent": [
           "0xD2=0xC1",
@@ -5122,6 +5300,7 @@
       "shiftMode": "0xF2",
       "fanMode": "0xF4",
       "chargeCtrl": "0xEF",
+      "added": "2026-06-29",
       "recipes": {
         "Silent": [
           "0xF2=0xC1",
@@ -5150,6 +5329,7 @@
       "shiftMode": "0xF2",
       "fanMode": "0xF4",
       "chargeCtrl": "0xEF",
+      "added": "2026-06-29",
       "recipes": {
         "Silent": [
           "0xF2=0xC1",
@@ -5178,6 +5358,7 @@
       "shiftMode": "0xF2",
       "fanMode": "0xF4",
       "chargeCtrl": "0xEF",
+      "added": "2026-06-29",
       "recipes": {
         "Silent": [
           "0xF2=0xC1",
@@ -5206,6 +5387,7 @@
       "shiftMode": "0xF2",
       "fanMode": "0xF4",
       "chargeCtrl": "0xEF",
+      "added": "2026-06-29",
       "recipes": {
         "Silent": [
           "0xF2=0xC1",
@@ -5234,6 +5416,7 @@
       "shiftMode": "0xF2",
       "fanMode": "0xF4",
       "chargeCtrl": "0xEF",
+      "added": "2026-06-29",
       "recipes": {
         "Silent": [
           "0xF2=0xC1",
@@ -5262,6 +5445,7 @@
       "shiftMode": "0xF2",
       "fanMode": "0xF4",
       "chargeCtrl": "0xEF",
+      "added": "2026-06-29",
       "recipes": {
         "Silent": [
           "0xF2=0xC1",
@@ -5290,6 +5474,7 @@
       "shiftMode": "0xF2",
       "fanMode": "0xF4",
       "chargeCtrl": "0xEF",
+      "added": "2026-06-29",
       "recipes": {
         "Silent": [
           "0xF2=0xC1",
@@ -5318,6 +5503,7 @@
       "shiftMode": "0xF2",
       "fanMode": "0xF4",
       "chargeCtrl": "0xEF",
+      "added": "2026-06-29",
       "recipes": {
         "Silent": [
           "0xF2=0xC1",
@@ -5346,6 +5532,7 @@
       "shiftMode": "0xF2",
       "fanMode": "0xF4",
       "chargeCtrl": "0xEF",
+      "added": "2026-06-29",
       "recipes": {
         "Silent": [
           "0xF2=0xC1",
@@ -5374,6 +5561,7 @@
       "shiftMode": "0xF2",
       "fanMode": "0xF4",
       "chargeCtrl": "0xEF",
+      "added": "2026-06-29",
       "recipes": {
         "Silent": [
           "0xF2=0xC1",
@@ -5402,6 +5590,7 @@
       "shiftMode": "0xF2",
       "fanMode": "0xF4",
       "chargeCtrl": "0xEF",
+      "added": "2026-06-29",
       "recipes": {
         "Silent": [
           "0xF2=0xC1",
@@ -5430,6 +5619,7 @@
       "shiftMode": "0xF2",
       "fanMode": "0xF4",
       "chargeCtrl": "0xEF",
+      "added": "2026-06-29",
       "recipes": {
         "Silent": [
           "0xF2=0xC1",
@@ -5480,6 +5670,7 @@
           "count": 7
         }
       },
+      "added": "2026-06-29",
       "recipes": {
         "Silent": [
           "0xF2=0xC1",
@@ -5508,6 +5699,7 @@
       "shiftMode": "0xF2",
       "fanMode": "0xF4",
       "chargeCtrl": "0xEF",
+      "added": "2026-06-29",
       "recipes": {
         "Silent": [
           "0xF2=0xC1",
@@ -5536,6 +5728,7 @@
       "shiftMode": "0xF2",
       "fanMode": "0xF4",
       "chargeCtrl": "0xEF",
+      "added": "2026-06-29",
       "recipes": {
         "Silent": [
           "0xF2=0xC1",
@@ -5564,6 +5757,7 @@
       "shiftMode": "0xF2",
       "fanMode": "0xF4",
       "chargeCtrl": "0xEF",
+      "added": "2026-06-29",
       "recipes": {
         "Silent": [
           "0xF2=0xC1",
@@ -5592,6 +5786,7 @@
       "shiftMode": "0xF2",
       "fanMode": "0xF4",
       "chargeCtrl": "0xEF",
+      "added": "2026-06-29",
       "recipes": {
         "Silent": [
           "0xF2=0xC1",
@@ -5620,6 +5815,7 @@
       "shiftMode": "0xF2",
       "fanMode": "0xF4",
       "chargeCtrl": "0xEF",
+      "added": "2026-06-29",
       "recipes": {
         "Silent": [
           "0xF2=0xC1",
@@ -5648,6 +5844,7 @@
       "shiftMode": "0xF2",
       "fanMode": "0xF4",
       "chargeCtrl": "0xEF",
+      "added": "2026-06-29",
       "recipes": {
         "Silent": [
           "0xF2=0xC1",
@@ -5676,6 +5873,7 @@
       "shiftMode": "0xF2",
       "fanMode": "0xF4",
       "chargeCtrl": "0xEF",
+      "added": "2026-06-29",
       "recipes": {
         "Silent": [
           "0xF2=0xC1",
@@ -5704,6 +5902,7 @@
       "shiftMode": "0xF2",
       "fanMode": "0xF4",
       "chargeCtrl": "0xEF",
+      "added": "2026-06-29",
       "recipes": {
         "Silent": [
           "0xF2=0xC1",
@@ -5732,6 +5931,7 @@
       "shiftMode": "0xF2",
       "fanMode": "0xF4",
       "chargeCtrl": "0xEF",
+      "added": "2026-06-29",
       "recipes": {
         "Silent": [
           "0xF2=0xC1",
@@ -5760,6 +5960,7 @@
       "shiftMode": "0xF2",
       "fanMode": "0xF4",
       "chargeCtrl": "0xEF",
+      "added": "2026-06-29",
       "recipes": {
         "Silent": [
           "0xF2=0xC1",
@@ -5788,6 +5989,7 @@
       "shiftMode": "0xF2",
       "fanMode": "0xF4",
       "chargeCtrl": "0xEF",
+      "added": "2026-06-29",
       "recipes": {
         "Silent": [
           "0xF2=0xC1",
@@ -5820,6 +6022,7 @@
       "shiftMode": "0xF2",
       "fanMode": "0xF4",
       "chargeCtrl": "0xEF",
+      "added": "2026-06-29",
       "recipes": {
         "Silent": [
           "0xF2=0xC1",
@@ -5848,6 +6051,7 @@
       "shiftMode": "0xF2",
       "fanMode": "0xF4",
       "chargeCtrl": "0xEF",
+      "added": "2026-06-29",
       "recipes": {
         "Silent": [
           "0xF2=0xC1",
@@ -5876,6 +6080,7 @@
       "shiftMode": "0xF2",
       "fanMode": "0xF4",
       "chargeCtrl": "0xEF",
+      "added": "2026-06-29",
       "recipes": {
         "Silent": [
           "0xF2=0xC1",
@@ -5904,6 +6109,7 @@
       "shiftMode": "0xF2",
       "fanMode": "0xF4",
       "chargeCtrl": "0xEF",
+      "added": "2026-06-29",
       "recipes": {
         "Silent": [
           "0xF2=0xC1",
@@ -5932,6 +6138,7 @@
       "shiftMode": "0xF2",
       "fanMode": "0xF4",
       "chargeCtrl": "0xEF",
+      "added": "2026-06-29",
       "recipes": {
         "Silent": [
           "0xF2=0xC1",
@@ -5960,6 +6167,7 @@
       "shiftMode": "0xF2",
       "fanMode": "0xF4",
       "chargeCtrl": "0xEF",
+      "added": "2026-06-29",
       "recipes": {
         "Silent": [
           "0xF2=0xC1",

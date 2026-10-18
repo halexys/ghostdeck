@@ -128,6 +128,12 @@ public sealed class DeviceProfile
     public string Credit { get; init; } = "";
     public string CreditUrl { get; init; } = "";
 
+    // Models tab history (yyyy-MM-dd, "" = unknown): first recognised, and first seen as Tested
+    // ("" while Experimental). Filled from data/model-history.json (tools/model-history.py), never
+    // by hand; carried in the signed database so the growth chart and timeline follow it.
+    public string Added { get; internal set; } = "";
+    public string TestedOn { get; internal set; } = "";
+
     public required Dictionary<ProfileId, (byte addr, byte val)[]> Recipes { get; init; }
 
     public bool Matches(string firmware) =>
@@ -148,7 +154,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20261022;
+    public const int DataVersion = 20261023;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -164,6 +170,7 @@ public static class Devices
     public static bool ApplyOverride(ModelDb.Parsed parsed)
     {
         if (parsed.DataVersion <= EffectiveDataVersion) return false;
+        ModelHistory.Apply(parsed.Models, onlyMissing: true);   // a database from before the dates
         _override = parsed;
         return true;
     }
@@ -1681,6 +1688,9 @@ public static class Devices
         new() { Name = "MSI Alpha 17 B5EEK", FirmwarePrefixes = new[] { "17LLEMS1" }, Tier = Tier.Experimental,
                 ShiftMode = 0xF2, FanMode = 0xF4, ChargeCtrl = 0xEF, Recipes = StdRecipes(0xF2, 0xF4, null) },
     };
+
+    // Runs after the field initialisers above: stamps the compiled table with its history dates.
+    static Devices() => ModelHistory.Apply(BuiltIn, onlyMissing: false);
 
     public static DeviceProfile? Detect(string firmware) =>
         All.FirstOrDefault(d => d.Matches(firmware));

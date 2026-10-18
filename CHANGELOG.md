@@ -4,6 +4,24 @@ All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
+### Added
+- **Models tab in five sub-tabs** - **Start** (your laptop and what works on it, or a "not in the
+  database yet" card with *Report my model*; the database in numbers; a growth chart of recognised
+  and tested models; the experimental models closest to tested; the latest changes), **List** (the
+  table with filter chips, a result count, a NEW badge for models added or promoted since your last
+  visit, and a click on a row for its details: every prefix, the dates, the fourth mode, the
+  backup path, the report link, every thanked person as a link, *Copy row*), **Features** (coverage
+  and a dot matrix), **Series** (how much of each series owners have tested) and **Community**
+  (everyone thanked and the full timeline). Everything is computed from the model database, so it
+  follows every database update without a release.
+- Model database 20261023: every model carries the day it was added and the day it became Tested,
+  rebuilt from the project history (optional `added` / `tested` keys; older versions ignore them).
+
+### Fixed
+- Models tab: long model names and thank-you lists wrap onto extra lines instead of ending in
+  "...", "&" in a credit is shown instead of underlining the next letter, rows alternate in
+  colour, and the Family, SB and Status columns are as wide as their headers need in every language.
+
 ### Changed
 - Model database 20261022: Vector 16 HX AI / Raider 16 HX AI (`15M3EMS1`) - seventh owner credit after a clean power test on 1.40.0 ([#254](../../issues/254), thanks @onrchnn).
 
