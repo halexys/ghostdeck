@@ -44,6 +44,9 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   colour, and the Family, SB and Status columns are as wide as their headers need in every language.
 
 ### Changed
+- Settings → System → Updates: the model database row reads like the Models tab header - its name,
+  and under it the version with the number of models and tested ones - with *Check now* beside it,
+  instead of a bare version number.
 - Model database 20261022: Vector 16 HX AI / Raider 16 HX AI (`15M3EMS1`) - seventh owner credit after a clean power test on 1.40.0 ([#254](../../issues/254), thanks @onrchnn).
 
 ## [1.40.0] - 2026-10-18
