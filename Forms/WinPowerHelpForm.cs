@@ -24,18 +24,18 @@ public sealed class WinPowerHelpForm : GhostCardForm
     private readonly List<(Rectangle R, int Zone)> _zones = new();   // window coordinates
 
     public WinPowerHelpForm()
-        : base("//WIN-POWER", Lang.T("pw_grp"), Lang.T("pw_help_intro"), Lang.T("gen_ok"), "", () => { })
+        : base("//WIN-POWER", Lang.T("pw_grp"), "", Lang.T("gen_ok"), "", () => { })   // the intro opens the first page, so the tall modes page keeps its room
     {
     }
 
-    protected override int CardWidth => 880;
+    protected override int CardWidth => 960;
     protected override string AuxLabel => Lang.T("pw_help_guide");
     protected override Color AuxColor => Fill;
     protected override void AuxClick() => ModelsPage.OpenUrl(GuideUrl);
 
     // ---------------- one layout routine for measure and paint ----------------
 
-    private enum Kind { Tab, Head, Para, Callout, Th, Cell, Line }
+    private enum Kind { Tab, Head, Para, Callout, Th, Cell, Line, Icon }
     private sealed record Item(Rectangle R, Kind K, string Text, int Zone = -1, bool On = false, Color? Tint = null);
 
     private sealed class Fonts : IDisposable
@@ -82,6 +82,7 @@ public sealed class WinPowerHelpForm : GhostCardForm
         switch (page)
         {
             case 0:
+                Para(Lang.T("pw_help_intro"));
                 Head(Lang.T("pw_help_switch_h"));
                 Para(string.Format(Lang.T("pw_help_switch"), off));
                 Head(Lang.T("pw_help_less_h"));
@@ -89,36 +90,66 @@ public sealed class WinPowerHelpForm : GhostCardForm
                 break;
             case 1:
             {
-                // value | name in Windows | what it does | lowers power?
-                string[] th = { Lang.T("pw_help_col_value"), Lang.T("pw_help_col_name"), Lang.T("pw_help_col_desc"), Lang.T("pw_help_col_less") };
-                // the narrow columns are as wide as their caption, so no caption breaks inside a word
-                int CapW(string s) => Ce(g.MeasureString(s.ToUpperInvariant(), f.Cap).Width);
-                int cV = Math.Max(Ce(56 * k), CapW(th[0]) + Ce(14 * k)), cL = Math.Max(Ce(96 * k), CapW(th[3]) + Ce(4 * k));
-                int cN = Ce(190 * k), cD = width - cV - cN - cL;
-                int[] x = { 0, cV, cV + cN, cV + cN + cD };
-                int[] w = { cV - Ce(10 * k), cN - Ce(12 * k), cD - Ce(14 * k), cL };
+                // value | name in Windows (with the icon of its group) | what it does
+                string[] th = { Lang.T("pw_help_col_value"), Lang.T("pw_help_col_name"), Lang.T("pw_help_col_desc") };
+                // the value column is as wide as its caption, so the caption never breaks inside a word
+                int cV = Math.Max(Ce(56 * k), Ce(g.MeasureString(th[0].ToUpperInvariant(), f.Cap).Width) + Ce(14 * k));
+                int cN = Ce(236 * k), cD = width - cV - cN;
+                int[] x = { 0, cV, cV + cN };
+                int[] w = { cV - Ce(10 * k), cN - Ce(12 * k), cD };
+                int ic = Ce(20 * k), icGap = Ce(8 * k);
                 int thH = 0;
-                for (int j = 0; j < 4; j++) thH = Math.Max(thH, TextH(th[j].ToUpperInvariant(), f.Cap, w[j]));
-                for (int j = 0; j < 4; j++) items.Add(new Item(new Rectangle(x[j], y, w[j], thH), Kind.Th, th[j].ToUpperInvariant()));
+                for (int j = 0; j < 3; j++) thH = Math.Max(thH, TextH(th[j].ToUpperInvariant(), f.Cap, w[j]));
+                for (int j = 0; j < 3; j++) items.Add(new Item(new Rectangle(x[j], y, w[j], thH), Kind.Th, th[j].ToUpperInvariant()));
                 y += thH + Ce(6 * k);
                 items.Add(new Item(new Rectangle(0, y, width, 1), Kind.Line, ""));
                 foreach (var m in _modes)
                 {
-                    string less = m.Value == 0 ? Lang.T("pw_help_yes") : m.Value <= 6 ? Lang.T("pw_help_no") : Lang.T("pw_help_unknown");
-                    Color lessCol = m.Value == 0 ? Cyan : Muted;
-                    string[] cells = { m.Value.ToString(), m.Name, PowerPlan.BoostDescription(m.Value), less };
-                    int rh = 0;
-                    for (int j = 0; j < 4; j++) rh = Math.Max(rh, TextH(cells[j], f.Cell, w[j]));
-                    int top = y + Ce(7 * k);
-                    for (int j = 0; j < 4; j++)
-                        items.Add(new Item(new Rectangle(x[j], top, w[j], rh), Kind.Cell, cells[j],
-                            Tint: j == 3 ? lessCol : j == 2 ? Ink : j == 1 ? White : Muted));
-                    y = top + rh + Ce(7 * k);
+                    var grp = PowerPlan.GroupOf(m.Value, _autonomous);
+                    string desc = PowerPlan.BoostDescription(m.Value);
+                    int nameW = w[1] - ic - icGap;
+                    int rh = Math.Max(ic, Math.Max(TextH(m.Name, f.Cell, nameW), TextH(desc, f.Cell, w[2])));
+                    int top = y + Ce(5 * k);
+                    items.Add(new Item(new Rectangle(x[0], top, w[0], rh), Kind.Cell, m.Value.ToString(), Tint: Muted));
+                    items.Add(new Item(new Rectangle(x[1], top, ic, ic), Kind.Icon, "", (int)grp));
+                    items.Add(new Item(new Rectangle(x[1] + ic + icGap, top, nameW, rh), Kind.Cell, m.Name, Tint: White));
+                    items.Add(new Item(new Rectangle(x[2], top, w[2], rh), Kind.Cell, desc, Tint: Ink));
+                    y = top + rh + Ce(5 * k);
                     items.Add(new Item(new Rectangle(0, y, width, 1), Kind.Line, ""));
                 }
-                y += Ce(12 * k);
-                Para(Lang.T("pw_help_modes_note"));
+                y += Ce(14 * k);
+
+                // legend: what each icon means and which modes it covers, three columns (two rows keep the page short)
+                int capH = TextH(Lang.T("pw_lg_title").ToUpperInvariant(), f.Cap, width);
+                items.Add(new Item(new Rectangle(0, y, width, capH), Kind.Th, Lang.T("pw_lg_title").ToUpperInvariant()));
+                y += capH + Ce(8 * k);
+                var legend = new (PowerPlan.BoostGroup G, string Modes, string Key)[]
+                {
+                    (PowerPlan.BoostGroup.Less, "0", "pw_lg_less"),
+                    (PowerPlan.BoostGroup.Turbo, _autonomous ? "1-4" : "1, 3", "pw_lg_turbo"),
+                    (PowerPlan.BoostGroup.TurboMax, "2, 4", "pw_lg_max"),
+                    (PowerPlan.BoostGroup.AskMore, "5, 6", "pw_lg_more"),
+                    (PowerPlan.BoostGroup.Unknown, Lang.T("pw_lg_other"), "pw_lg_unknown"),
+                };
+                int cols = 3, colGap = Ce(20 * k), colW = (width - colGap * (cols - 1)) / cols, textX = ic + icGap, textW = colW - textX;
+                for (int i = 0; i < legend.Length; i += cols)
+                {
+                    int rowH = 0;
+                    for (int c = 0; c < cols && i + c < legend.Length; c++)
+                    {
+                        var (grp, modes, key) = legend[i + c];
+                        int lx = c * (colW + colGap);
+                        string head = PowerPlan.GroupLabel(grp) + "  ·  " + modes;
+                        int hh = TextH(head, f.Tab, textW), mh = TextH(Lang.T(key), f.Cell, textW);
+                        items.Add(new Item(new Rectangle(lx, y, ic, ic), Kind.Icon, "", (int)grp));
+                        items.Add(new Item(new Rectangle(lx + textX, y, textW, hh), Kind.Cell, head, Tint: PowerPlan.GroupColor(grp), On: true));
+                        items.Add(new Item(new Rectangle(lx + textX, y + hh, textW, mh), Kind.Cell, Lang.T(key), Tint: Muted));
+                        rowH = Math.Max(rowH, Math.Max(ic, hh + mh));
+                    }
+                    y += rowH + Ce(10 * k);
+                }
                 if (_autonomous) Callout(string.Format(Lang.T("pw_help_autonomous"), on, off));
+                else Para(Lang.T("pw_lg_note"));
                 break;
             }
             case 2:
@@ -193,7 +224,13 @@ public sealed class WinPowerHelpForm : GhostCardForm
                 case Kind.Cell:
                 {
                     using var tb = new SolidBrush(it.Tint ?? Ink);
-                    g.DrawString(it.Text, f.Cell, tb, new RectangleF(r.X, r.Y, r.Width, r.Height + Ce(2 * k)));
+                    g.DrawString(it.Text, it.On ? f.Tab : f.Cell, tb, new RectangleF(r.X, r.Y, r.Width, r.Height + Ce(2 * k)));
+                    break;
+                }
+                case Kind.Icon:
+                {
+                    var grp = (PowerPlan.BoostGroup)it.Zone;
+                    IconPainter.BoostGroup(g, grp, r, PowerPlan.GroupColor(grp));
                     break;
                 }
                 case Kind.Line: g.DrawLine(hair, r.X, r.Y, r.Right, r.Y); break;

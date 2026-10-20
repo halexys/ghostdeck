@@ -140,8 +140,68 @@ public static class PowerPlan
     }
 
     /// <summary>Autonomous mode is on for both power sources of the active plan.</summary>
-    public static bool AutonomousOn() =>
-        TryGetActiveScheme(out var scheme) && TryReadAutonomous(scheme, out uint ac, out uint dc) && ac == 1 && dc == 1;
+    public static bool AutonomousOn(Guid? activeScheme = null)
+    {
+        if (_autonomousPreview is { } preview) return preview;
+        Guid scheme;
+        if (activeScheme is { } known) scheme = known;
+        else if (!TryGetActiveScheme(out scheme)) return false;
+        return TryReadAutonomous(scheme, out uint ac, out uint dc) && ac == 1 && dc == 1;
+    }
+
+    // Set only by the render harness (reflection) to draw the "autonomous mode off" look on a
+    // machine that has it on; never assigned by the app.
+    private static bool? _autonomousPreview = null;
+
+    // ---------------- what a turbo mode really does (#117) ----------------
+    // The card, its lists, By profile, the editor and the help card show every mode with the
+    // icon and colour of its group, so seven names that mostly behave alike read as the few
+    // behaviours they are. Groups follow Microsoft's tables: 0 is the one mode that lowers power;
+    // 1 and 3 are plain turbo; 2 and 4 are plain turbo too while autonomous mode is on, and only
+    // otherwise a group of their own (Aggressive is described apart only on non-autonomous CPPC);
+    // 5 and 6 ask for more than the guaranteed level.
+
+    public enum BoostGroup { Less, Turbo, TurboMax, AskMore, Unknown }
+
+    public static BoostGroup GroupOf(uint value, bool autonomous) => value switch
+    {
+        0 => BoostGroup.Less,
+        1 or 3 => BoostGroup.Turbo,
+        2 or 4 => autonomous ? BoostGroup.Turbo : BoostGroup.TurboMax,
+        5 or 6 => BoostGroup.AskMore,
+        _ => BoostGroup.Unknown,
+    };
+
+    public static Color GroupColor(BoostGroup g) => g switch
+    {
+        BoostGroup.Less => Theme.Green,
+        BoostGroup.Turbo => Theme.Accent,
+        BoostGroup.TurboMax => Theme.Amber,
+        BoostGroup.AskMore => Theme.Violet,
+        _ => Theme.Muted,
+    };
+
+    public static string GroupLabel(BoostGroup g) => Lang.T(g switch
+    {
+        BoostGroup.Less => "pw_bg_less",
+        BoostGroup.Turbo => "pw_bg_turbo",
+        BoostGroup.TurboMax => "pw_bg_max",
+        BoostGroup.AskMore => "pw_bg_more",
+        _ => "pw_bg_unknown",
+    });
+
+    /// <summary>The one-line description under a list on the card; the full ones stay in the help card.</summary>
+    public static string ShortDescription(uint value, bool autonomous) => value switch
+    {
+        0 => Lang.T("pw_bmshort_less"),
+        1 => Lang.T("pw_bmshort_on"),
+        2 or 3 or 4 when autonomous => string.Format(Lang.T("pw_bmshort_like"), BoostName(1)),
+        2 => Lang.T("pw_bmshort_max"),
+        3 => string.Format(Lang.T("pw_bmshort_like_ms"), BoostName(1)),
+        4 => string.Format(Lang.T("pw_bmshort_like_ms"), BoostName(2)),
+        5 or 6 => Lang.T("pw_bmshort_more"),
+        _ => Lang.T("pw_bm_unknown"),
+    };
 
     /// <summary>Writes both values to the given plan; refreshes only when that plan is active.</summary>
     public static bool WriteBoost(Guid scheme, uint ac, uint dc)

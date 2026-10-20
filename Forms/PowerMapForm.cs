@@ -25,12 +25,17 @@ public sealed class PowerMapForm : GhostCardForm
     private static readonly string[] ModeKeys = { "pw_seg_eff", "pw_seg_bal", "pw_seg_perf" };
 
     // hit zones: profile tab = i; mode chip = 100 + j; turbo chip = 200 / 300 + index (0 = no change)
+
+    /// <summary>The turbo mode a chip stands for, or -1 (a profile tab, a power-mode chip, "no change").</summary>
+    private int ModeOfZone(int zone) => zone >= ZAc && zone % 100 > 0 && zone % 100 - 1 < _modes.Count ? (int)_modes[zone % 100 - 1].Value : -1;
+    private static int ChipIcon(float k) => (int)Math.Ceiling(17 * k);
     private const int ZMode = 100, ZAc = 200, ZDc = 300;
 
     private readonly AppSettings _settings;
     private readonly Func<ProfileId, Color> _colorOf;
     private readonly Action _onSaved;
     private readonly List<PowerPlan.BoostMode> _modes = PowerPlan.BoostModes();
+    private readonly bool _autonomous = PowerPlan.AutonomousOn();   // the groups of modes 2 and 4 follow it
     private readonly int[] _mode = new int[Rows.Length], _ac = new int[Rows.Length], _dc = new int[Rows.Length];
     private int _p;                                              // the profile being edited
     private readonly List<(Rectangle R, int Zone)> _zones = new();   // window coordinates
@@ -99,7 +104,9 @@ public sealed class PowerMapForm : GhostCardForm
             int x = 0;
             foreach (var (text, zone, on) in chips)
             {
-                int w = Math.Min(width, Ce(g.MeasureString(text, chipF).Width) + padX * 2);
+                // a turbo-mode chip carries the icon of its group in front of the name
+                int iconW = ModeOfZone(zone) >= 0 ? ChipIcon(k) + Ce(7 * k) : 0;
+                int w = Math.Min(width, Ce(g.MeasureString(text, chipF).Width) + padX * 2 + iconW);
                 if (x > 0 && x + w > width) { x = 0; y += chipH + gap; }
                 items.Add(new Item(new Rectangle(x, y, w, chipH), zone, text, on, 1));
                 x += w + gap;
@@ -183,7 +190,15 @@ public sealed class PowerMapForm : GhostCardForm
                     using var cp = RoundPath(r, r.Height / 2);
                     using (var cb = new SolidBrush(it.On ? Fill : hot ? Color.FromArgb(24, 255, 255, 255) : Color.FromArgb(10, 255, 255, 255))) g.FillPath(cb, cp);
                     if (!it.On) { using var pen = new Pen(Color.FromArgb(40, 243, 247, 255), 1f); g.DrawPath(pen, cp); }
-                    g.DrawString(it.Text, chipF, it.On || hot ? whiteB : inkB, r, center);
+                    int mode = ModeOfZone(it.Zone);
+                    if (mode < 0) { g.DrawString(it.Text, chipF, it.On || hot ? whiteB : inkB, r, center); break; }
+                    int ic = ChipIcon(k), gapI = Ce(7 * k);
+                    float tw = g.MeasureString(it.Text, chipF).Width;
+                    float x0 = r.X + Math.Max(Ce(8 * k), (r.Width - (ic + gapI + tw)) / 2f);
+                    var grp = PowerPlan.GroupOf((uint)mode, _autonomous);
+                    IconPainter.BoostGroup(g, grp, new RectangleF(x0, r.Y + (r.Height - ic) / 2f, ic, ic), PowerPlan.GroupColor(grp), it.On ? White : null);
+                    using (var lf = new StringFormat(StringFormatFlags.NoWrap) { LineAlignment = StringAlignment.Center, Trimming = StringTrimming.EllipsisCharacter })
+                        g.DrawString(it.Text, chipF, it.On || hot ? whiteB : inkB, new RectangleF(x0 + ic + gapI, r.Y, Math.Max(10, r.Right - (x0 + ic + gapI) - Ce(6 * k)), r.Height), lf);
                     break;
                 }
                 case 2: g.DrawString(it.Text, labF, mutedB, r, left); break;

@@ -85,6 +85,18 @@ public sealed class ThemedComboBox : Control
     /// <summary>Width of the open list; anything below the field's width means "as wide as the field".</summary>
     public int DropDownWidth { get; set; }
 
+    /// <summary>
+    /// Optional icon in front of an item: (graphics, item index, icon box, highlighted row). Null =
+    /// text only, as in every list that does not set it. Drawn in the field for the selected item
+    /// and on every row of the open list (#117: the turbo-mode group icons).
+    /// </summary>
+    public Action<Graphics, int, Rectangle, bool>? ItemIcon { get; set; }
+    /// <summary>Optional short note at the right end of a row of the open list (grey), e.g. the group of a mode.</summary>
+    public Func<int, string>? ItemNote { get; set; }
+
+    /// <summary>Side of the icon box for a row or field of the given height.</summary>
+    internal static int IconSide(int rowHeight) => Math.Max(10, (int)(rowHeight * 0.7f));
+
     /// <summary>Height of one row of the open list; the field is this plus 6.</summary>
     public int ItemHeight
     {
@@ -146,6 +158,12 @@ public sealed class ThemedComboBox : Control
         g.SmoothingMode = SmoothingMode.AntiAlias;
         using (var bg = new SolidBrush(Theme.Surface)) g.FillRectangle(bg, ClientRectangle);
         var textRect = new Rectangle(8, 0, Width - 30, Height);
+        if (ItemIcon != null && _sel >= 0)
+        {
+            int ic = IconSide(Height - 6);
+            ItemIcon(g, _sel, new Rectangle(8, (Height - ic) / 2, ic, ic), false);
+            textRect = new Rectangle(8 + ic + 8, 0, Width - 30 - ic - 8, Height);
+        }
         TextRenderer.DrawText(g, Text, Font, textRect, Enabled ? Theme.Text : Theme.Muted,
             TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPrefix);
         int cx = Width - 13, cy = Height / 2;
@@ -501,8 +519,23 @@ public sealed class ThemedComboBox : Control
                 var row = new Rectangle(1, 1 + r * RowH, Width - 2 - bar, RowH);
                 bool hot = i == Hot;
                 if (hot) { using var b = new SolidBrush(Theme.AccentFill); g.FillRectangle(b, row); }
+                int tx = row.X + 8, tw = row.Width - 10;
+                if (_field.ItemIcon != null)
+                {
+                    int ic = IconSide(row.Height);
+                    _field.ItemIcon(g, i, new Rectangle(tx, row.Y + (row.Height - ic) / 2, ic, ic), hot);
+                    tx += ic + 8; tw -= ic + 8;
+                }
+                if (_field.ItemNote?.Invoke(i) is { Length: > 0 } note)
+                {
+                    var ns = TextRenderer.MeasureText(note, Font, Size.Empty, TextFormatFlags.NoPadding);
+                    TextRenderer.DrawText(g, note, Font, new Rectangle(row.Right - 10 - ns.Width, row.Y, ns.Width, row.Height),
+                        hot ? Color.FromArgb(220, 255, 255, 255) : Theme.Faint,
+                        TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding | TextFormatFlags.NoPrefix);
+                    tw -= ns.Width + 14;
+                }
                 TextRenderer.DrawText(g, _field._items[i]?.ToString() ?? "", Font,
-                    new Rectangle(row.X + 8, row.Y, row.Width - 10, row.Height), hot ? Color.White : Theme.Text,
+                    new Rectangle(tx, row.Y, Math.Max(10, tw), row.Height), hot ? Color.White : Theme.Text,
                     TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPrefix);
             }
             if (Scrolls)
