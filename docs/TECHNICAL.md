@@ -2951,7 +2951,10 @@ leave that source). Under each list `PowerPlan.BoostDescription` gives a plain d
 selected value: 0-4 follow Microsoft's PERFBOOSTMODE table (on ACPI P-state and autonomous CPPC,
 Aggressive behaves as Enabled; the Efficient variants as their plain counterparts), and the texts
 take the Windows names of modes 1 and 2 as arguments so they match the user's Windows language;
-5 and 6 are undocumented by Microsoft and say so; any other value is "unknown". The main switch
+5 and 6 follow Microsoft's ProcessorPerformanceBoostMode reference (5: Windows calculates the extra
+performance needed above the guaranteed level and requests that level; 6: Windows always requests the
+highest level above guaranteed); the Efficient Enabled text says that the PERFBOOSTMODE table makes it
+the same as Enabled, since the name alone suggests otherwise; any other value is "unknown". The main switch
 keeps its meaning and its callers (scenes, hotkey, CLI, `ghostdeck://turbo`): off = 0/0 with the
 snapshot, on = the snapshot back. The snapshot now follows the lists: while one exists, a pick on a
 source updates that side, and `TurboOff` keeps a side that is already 0 from the earlier snapshot,

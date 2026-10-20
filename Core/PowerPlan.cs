@@ -322,7 +322,8 @@ public static class PowerPlan
         2 => string.Format(Lang.T("pw_bm_2"), BoostName(1)),
         3 => string.Format(Lang.T("pw_bm_3"), BoostName(1)),
         4 => string.Format(Lang.T("pw_bm_4"), BoostName(2)),
-        5 or 6 => Lang.T("pw_bm_undoc"),
+        5 => Lang.T("pw_bm_5"),
+        6 => Lang.T("pw_bm_6"),
         _ => Lang.T("pw_bm_unknown"),
     };
 

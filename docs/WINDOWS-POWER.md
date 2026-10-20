@@ -51,14 +51,17 @@ Under each list is a plain description of the selected mode. On a typical Window
 | 0 | Disabled | The processor stays at its base clock. Cooler and quieter, clearly slower. Besides Silent, the only mode that surely lowers power. |
 | 1 | Enabled | The processor speeds up when it has work. Windows decides how much. |
 | 2 | Aggressive | Speeds up whenever it can. On processors that manage their own clock, Microsoft says it works like *Enabled*. |
-| 3 | Efficient Enabled | Speeds up when it pays off in energy. Microsoft says it works like *Enabled*. |
+| 3 | Efficient Enabled | Microsoft says it works like *Enabled*. The name suggests saving energy, but the documentation does not confirm it. |
 | 4 | Efficient Aggressive | Microsoft says it works like *Aggressive*. |
-| 5 | Aggressive At Guaranteed | Microsoft does not describe what this mode does. |
-| 6 | Efficient Aggressive At Guaranteed | Microsoft does not describe what this mode does. |
+| 5 | Aggressive At Guaranteed | Windows works out how much extra speed above the processor's guaranteed level is needed and asks for exactly that. |
+| 6 | Efficient Aggressive At Guaranteed | Windows always asks for the highest speed above the processor's guaranteed level. |
 
 Most current Intel and AMD laptop processors manage their own clock, so several of these modes
-can behave the same. The descriptions repeat only what Microsoft documents; a mode Windows lists
-that GhostDeck does not know is shown as such.
+can behave the same. The descriptions repeat only what Microsoft documents: modes 0-4 in the
+[PERFBOOSTMODE table](https://learn.microsoft.com/en-us/windows-hardware/customize/power-settings/options-for-perf-state-engine-perfboostmode),
+modes 5 and 6 in the [ProcessorPerformanceBoostMode reference](https://learn.microsoft.com/en-us/dotnet/api/microsoft.windows.eventtracing.power.processorperformanceboostmode).
+"Guaranteed" is a level the processor reports about itself, not a cap: both of those modes ask
+for more than it. A mode Windows lists that GhostDeck does not know is shown as such.
 
 **Picking a mode while turbo is off** turns turbo on for that power source. Picking *Disabled*
 in one list switches turbo off for that source only (for example: off on battery, full speed
