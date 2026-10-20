@@ -3095,21 +3095,21 @@ public static class Lang
         };
         m["pw_bm_3"] = new[]
         {
-            "Speeds up when it pays off in energy. Microsoft says it works like \"{0}\". The name suggests saving energy, but the documentation does not confirm it.",
-            "Przyspiesza, gdy to się opłaca energetycznie. Według Microsoftu działa jak „{0}”. Nazwa sugeruje oszczędzanie energii, ale dokumentacja tego nie potwierdza.",
-            "Beschleunigt, wenn es sich energetisch lohnt. Laut Microsoft wirkt der Modus wie „{0}“. Der Name deutet auf Energiesparen hin, die Dokumentation bestätigt das aber nicht.",
-            "Accélère quand cela vaut la dépense d'énergie. Selon Microsoft, il agit comme « {0} ». Le nom suggère une économie d'énergie, mais la documentation ne le confirme pas.",
-            "Acelera cuando compensa en energía. Según Microsoft, funciona como «{0}». El nombre sugiere ahorro de energía, pero la documentación no lo confirma.",
-            "在能耗上划算时才加速。据 Microsoft 说明，其效果与“{0}”相同。名称暗示节能，但文档并未证实这一点。",
-            "Acelera quando compensa em energia. Segundo a Microsoft, funciona como \"{0}\". O nome sugere economia de energia, mas a documentação não confirma isso.",
-            "Ускоряется, когда это выгодно по энергии. По данным Microsoft, работает как «{0}». Название намекает на экономию энергии, но документация этого не подтверждает.",
-            "エネルギー的に見合うときに加速します。Microsoft によると「{0}」と同じ動作です。名前は省電力を思わせますが、ドキュメントでは確認されていません。",
-            "에너지 면에서 이득일 때 가속합니다. Microsoft에 따르면 '{0}'과(와) 같이 동작합니다. 이름은 절전을 암시하지만 문서에서는 확인되지 않습니다.",
-            "在能耗上划算時才加速。依 Microsoft 說明，效果與「{0}」相同。名稱暗示節能，但文件並未證實這一點。",
-            "Enerji açısından değdiğinde hızlanır. Microsoft'a göre \"{0}\" gibi çalışır. Adı enerji tasarrufu çağrıştırsa da belgeler bunu doğrulamıyor.",
-            "Tăng tốc khi đáng về mặt năng lượng. Theo Microsoft, chế độ này hoạt động như \"{0}\". Tên gọi gợi ý tiết kiệm điện, nhưng tài liệu không xác nhận điều đó.",
-            "Mempercepat saat sepadan dari sisi energi. Menurut Microsoft, mode ini bekerja seperti \"{0}\". Namanya mengesankan hemat energi, tetapi dokumentasi tidak mengonfirmasinya.",
-            "Accelera quando conviene in termini di energia. Secondo Microsoft, funziona come \"{0}\". Il nome fa pensare al risparmio energetico, ma la documentazione non lo conferma.",
+            "Microsoft says it works like \"{0}\". The name suggests saving energy, but the documentation does not confirm it.",
+            "Według Microsoftu działa jak „{0}”. Nazwa sugeruje oszczędzanie energii, ale dokumentacja tego nie potwierdza.",
+            "Laut Microsoft wirkt der Modus wie „{0}“. Der Name deutet auf Energiesparen hin, die Dokumentation bestätigt das aber nicht.",
+            "Selon Microsoft, il agit comme « {0} ». Le nom suggère une économie d'énergie, mais la documentation ne le confirme pas.",
+            "Según Microsoft, funciona como «{0}». El nombre sugiere ahorro de energía, pero la documentación no lo confirma.",
+            "据 Microsoft 说明，其效果与“{0}”相同。名称暗示节能，但文档并未证实这一点。",
+            "Segundo a Microsoft, funciona como \"{0}\". O nome sugere economia de energia, mas a documentação não confirma isso.",
+            "По данным Microsoft, работает как «{0}». Название намекает на экономию энергии, но документация этого не подтверждает.",
+            "Microsoft によると「{0}」と同じ動作です。名前は省電力を思わせますが、ドキュメントでは確認されていません。",
+            "Microsoft에 따르면 '{0}'과(와) 같이 동작합니다. 이름은 절전을 암시하지만 문서에서는 확인되지 않습니다.",
+            "依 Microsoft 說明，效果與「{0}」相同。名稱暗示節能，但文件並未證實這一點。",
+            "Microsoft'a göre \"{0}\" gibi çalışır. Adı enerji tasarrufu çağrıştırsa da belgeler bunu doğrulamıyor.",
+            "Theo Microsoft, chế độ này hoạt động như \"{0}\". Tên gọi gợi ý tiết kiệm điện, nhưng tài liệu không xác nhận điều đó.",
+            "Menurut Microsoft, mode ini bekerja seperti \"{0}\". Namanya mengesankan hemat energi, tetapi dokumentasi tidak mengonfirmasinya.",
+            "Secondo Microsoft, funziona come \"{0}\". Il nome fa pensare al risparmio energetico, ma la documentazione non lo conferma.",
         };
         m["pw_bm_4"] = new[]
         {
