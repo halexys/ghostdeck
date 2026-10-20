@@ -137,7 +137,7 @@ public sealed class PowerMapForm : GhostCardForm
         {
             Label(title);
             var chips = new List<(string, int, bool)> { (Lang.T("pw_unchanged"), zbase, sel < 0) };
-            for (int j = 0; j < _modes.Count; j++) chips.Add((PowerPlan.BoostLabel(_modes[j].Value), zbase + 1 + j, sel == (int)_modes[j].Value));
+            for (int j = 0; j < _modes.Count; j++) chips.Add((PowerPlan.BoostName(_modes[j].Value), zbase + 1 + j, sel == (int)_modes[j].Value));
             Chips(chips);
             Desc(sel);
         }

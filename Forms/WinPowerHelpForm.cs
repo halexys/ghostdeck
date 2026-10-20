@@ -90,7 +90,7 @@ public sealed class WinPowerHelpForm : GhostCardForm
             items.Add(new Item(new Rectangle(0, y, width, h), Kind.Callout, s));
             y += h + Ce(14 * k);
         }
-        string off = PowerPlan.BoostLabel(0), on = PowerPlan.BoostLabel(1);
+        string off = PowerPlan.BoostName(0), on = PowerPlan.BoostName(1);
 
         switch (page)
         {
@@ -131,7 +131,7 @@ public sealed class WinPowerHelpForm : GhostCardForm
                     items.Add(new Item(new Rectangle(0, y, width, 1), Kind.Line, ""));
                 }
                 y += Ce(12 * k);
-                Para(Lang.T("pw_help_number"));   // the [2] in front of a name elsewhere on the card
+                Para(Lang.T("pw_help_number"));   // what the Value column is
                 break;
             }
             case 2:

@@ -4085,21 +4085,21 @@ public static class Lang
         };
         m["pw_help_number"] = new[]
         {
-            "The number in square brackets, as in \"[2]\", is the number under which Windows stores the mode in the power plan.",
-            "Liczba w nawiasach kwadratowych, np. „[2]”, to numer, pod którym Windows zapisuje tryb w planie zasilania.",
-            "Die Zahl in eckigen Klammern, etwa „[2]“, ist die Nummer, unter der Windows den Modus im Energieplan speichert.",
-            "Le nombre entre crochets, comme « [2] », est le numéro sous lequel Windows enregistre le mode dans le mode de gestion de l'alimentation.",
-            "El número entre corchetes, como «[2]», es el número con el que Windows guarda el modo en el plan de energía.",
-            "方括号中的数字（如“[2]”）是 Windows 在电源计划中保存该模式时使用的编号。",
-            "O número entre colchetes, como \"[2]\", é o número com que o Windows grava o modo no plano de energia.",
-            "Число в квадратных скобках, например «[2]», это номер, под которым Windows хранит режим в схеме питания.",
-            "「[2]」のような角かっこ内の数字は、Windows が電源プランにモードを保存するときの番号です。",
-            "'[2]'처럼 대괄호 안의 숫자는 Windows가 전원 관리 옵션에 모드를 저장하는 번호입니다.",
-            "方括號中的數字（如「[2]」）是 Windows 在電源計畫中儲存該模式時使用的編號。",
-            "Köşeli parantez içindeki sayı, örneğin \"[2]\", Windows'un modu güç planında kaydettiği numaradır.",
-            "Số trong ngoặc vuông, như \"[2]\", là số mà Windows dùng để lưu chế độ trong gói nguồn.",
-            "Angka dalam kurung siku, seperti \"[2]\", adalah nomor yang dipakai Windows untuk menyimpan mode di rencana daya.",
-            "Il numero tra parentesi quadre, come \"[2]\", è il numero con cui Windows salva la modalità nella combinazione per il risparmio di energia.",
+            "The \"Value\" column is the number under which Windows stores the mode in the power plan.",
+            "Kolumna „Wartość” to numer, pod którym Windows zapisuje tryb w planie zasilania.",
+            "Die Spalte „Wert“ ist die Nummer, unter der Windows den Modus im Energieplan speichert.",
+            "La colonne « Valeur » est le numéro sous lequel Windows enregistre le mode dans le mode de gestion de l'alimentation.",
+            "La columna «Valor» es el número con el que Windows guarda el modo en el plan de energía.",
+            "“值”一列是 Windows 在电源计划中保存该模式时使用的编号。",
+            "A coluna \"Valor\" é o número com que o Windows grava o modo no plano de energia.",
+            "Столбец «Значение» это номер, под которым Windows хранит режим в схеме питания.",
+            "「値」の列は、Windows が電源プランにモードを保存するときの番号です。",
+            "'값' 열은 Windows가 전원 관리 옵션에 모드를 저장하는 번호입니다.",
+            "「值」一欄是 Windows 在電源計畫中儲存該模式時使用的編號。",
+            "\"Değer\" sütunu, Windows'un modu güç planında kaydettiği numaradır.",
+            "Cột \"Giá trị\" là số mà Windows dùng để lưu chế độ trong gói nguồn.",
+            "Kolom \"Nilai\" adalah nomor yang dipakai Windows untuk menyimpan mode di rencana daya.",
+            "La colonna \"Valore\" è il numero con cui Windows salva la modalità nella combinazione per il risparmio di energia.",
         };
         m["pwm_req_eff"]  = new[] { "best power efficiency", "najlepsza efektywność energetyczna", "beste Energieeffizienz", "meilleure efficacité énergétique", "mejor eficiencia energética", "最佳能效", "melhor eficiência energética", "максимальная энергоэффективность", "最適な電力効率", "최고의 전력 효율", "最佳電源效率", "en iyi güç verimliliği", "hiệu quả năng lượng tốt nhất", "efisiensi daya terbaik", "massima efficienza energetica" };
         m["pwm_req_bal"]  = new[] { "balanced", "zrównoważony", "ausbalanciert", "équilibré", "equilibrado", "平衡", "equilibrado", "сбалансированный", "バランス", "균형", "平衡", "dengeli", "cân bằng", "seimbang", "bilanciato" };

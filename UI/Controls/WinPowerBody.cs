@@ -85,7 +85,7 @@ public sealed class WinPowerBody : Control
         foreach (var cb in new[] { _cbAc, _cbDc })
         {
             cb.BeginUpdate();
-            foreach (var m in _modes) cb.Items.Add(PowerPlan.BoostLabel(m.Value));
+            foreach (var m in _modes) cb.Items.Add(PowerPlan.BoostName(m.Value));
             cb.EndUpdate();
             cb.MaxDropDownItems = Math.Max(8, _modes.Count);
             cb.WrapSelected = true;   // a long Windows name wraps and the field grows; never "..."
@@ -143,7 +143,7 @@ public sealed class WinPowerBody : Control
         var m = _modes[cb.SelectedIndex];
         int v = (int)m.Value;
         Apply(PowerPlan.TurboSetModes(_d.Settings, acSide ? v : -1, acSide ? -1 : v, out _),
-              $"CPU turbo boost ({(acSide ? "plugged in" : "battery")}): {PowerPlan.BoostLabel(m.Value)}");
+              $"CPU turbo boost ({(acSide ? "plugged in" : "battery")}): {PowerPlan.BoostName(m.Value)}");
     }
 
     private void OnSegment(int i)
@@ -253,13 +253,13 @@ public sealed class WinPowerBody : Control
         finally { _syncing = false; }
         if (_haveBoost)
         {
-            string an = PowerPlan.BoostLabel(_ac), dn = PowerPlan.BoostLabel(_dc);
+            string an = PowerPlan.BoostName(_ac), dn = PowerPlan.BoostName(_dc);
             _turbo.Checked = !(_ac == 0 && _dc == 0);   // the Checked setter never fires Toggled
             if (_ac == 0 && _dc == 0)
             {
                 // two honest OFF texts: "comes back" ONLY when a snapshot really exists
-                if (_snap != null) { _statusText = string.Format(Lang.T("pw_turbo_off_snap_fmt"), PowerPlan.BoostLabel((uint)_snap[0]), PowerPlan.BoostLabel((uint)_snap[1])); _statusKind = 1; }
-                else { _statusText = string.Format(Lang.T("pw_turbo_off_nosnap_fmt"), PowerPlan.FallbackBoost() is { } fbm ? PowerPlan.BoostLabel(fbm.Value) : "—"); _statusKind = 1; }
+                if (_snap != null) { _statusText = string.Format(Lang.T("pw_turbo_off_snap_fmt"), PowerPlan.BoostName((uint)_snap[0]), PowerPlan.BoostName((uint)_snap[1])); _statusKind = 1; }
+                else { _statusText = string.Format(Lang.T("pw_turbo_off_nosnap_fmt"), PowerPlan.FallbackBoost() is { } fbm ? PowerPlan.BoostName(fbm.Value) : "—"); _statusKind = 1; }
             }
             else if (_ac != 0 && _dc != 0) { _statusText = string.Format(Lang.T("pw_turbo_on_fmt"), an, dn); _statusKind = 0; }
             else { _statusText = string.Format(Lang.T("pw_turbo_mixed_fmt"), an, dn); _statusKind = 1; }   // a real MIXED state, named
@@ -285,7 +285,7 @@ public sealed class WinPowerBody : Control
 
         _restoreLines.Clear();
         foreach (var (g2, v) in PowerPlan.RestoreTargets(s))
-            _restoreLines.Add(string.Format(Lang.T("pw_restore_turbo_fmt"), PowerPlan.SchemeName(g2), PowerPlan.BoostLabel((uint)v[0]), PowerPlan.BoostLabel((uint)v[1])));
+            _restoreLines.Add(string.Format(Lang.T("pw_restore_turbo_fmt"), PowerPlan.SchemeName(g2), PowerPlan.BoostName((uint)v[0]), PowerPlan.BoostName((uint)v[1])));
         if (s.PowerModePrev.Length > 0 && Guid.TryParse(s.PowerModePrev, out var pm))
             _restoreLines.Add(string.Format(Lang.T("pw_restore_mode_fmt"), Lang.T(PowerPlan.ModeKey(pm))));
         if (_auto) _restoreLines.Add(Lang.T("pw_restore_auto"));
@@ -358,7 +358,7 @@ public sealed class WinPowerBody : Control
         }
         y += rowH + S(6);
         y = Strip(g, y, _statusText, _statusKind == 0 ? null : Theme.Amber) + S(8);
-        string hint = string.Format(Lang.T("pw_toggle_hint"), PowerPlan.BoostLabel(0));
+        string hint = string.Format(Lang.T("pw_toggle_hint"), PowerPlan.BoostName(0));
         int hintH = TextH(hint, FBody, W);
         if (g != null) TextRenderer.DrawText(g, hint, FBody, new Rectangle(0, y, W, hintH), Theme.Faint, FmtWrap);
         y += hintH + S(18);
@@ -391,7 +391,7 @@ public sealed class WinPowerBody : Control
                 int nameMax = 0, noteMax = 0;
                 foreach (var m in _modes)
                 {
-                    nameMax = Math.Max(nameMax, TextRenderer.MeasureText(PowerPlan.BoostLabel(m.Value), _cbAc.Font).Width);
+                    nameMax = Math.Max(nameMax, TextRenderer.MeasureText(PowerPlan.BoostName(m.Value), _cbAc.Font).Width);
                     noteMax = Math.Max(noteMax, TextRenderer.MeasureText(PowerPlan.GroupLabel(PowerPlan.GroupOf(m.Value, _autonomous)), _cbAc.Font).Width);
                 }
                 _ddw = nameMax + noteMax + ThemedComboBox.IconSide(_cbAc.ItemHeight) + S(64);
@@ -437,8 +437,8 @@ public sealed class WinPowerBody : Control
         string none = Lang.T("pw_none");
         var rows = new (string Label, string A, string B, Color Col)[]
         {
-            (Lang.T("pw_now"), _haveBoost ? PowerPlan.BoostLabel(_ac) : "—", _haveBoost ? PowerPlan.BoostLabel(_dc) : "—", Theme.Text),
-            (Lang.T("pw_saved"), _snap != null ? PowerPlan.BoostLabel((uint)_snap[0]) : none, _snap != null ? PowerPlan.BoostLabel((uint)_snap[1]) : none, _snap != null ? Theme.Amber : Theme.Faint),
+            (Lang.T("pw_now"), _haveBoost ? PowerPlan.BoostName(_ac) : "—", _haveBoost ? PowerPlan.BoostName(_dc) : "—", Theme.Text),
+            (Lang.T("pw_saved"), _snap != null ? PowerPlan.BoostName((uint)_snap[0]) : none, _snap != null ? PowerPlan.BoostName((uint)_snap[1]) : none, _snap != null ? Theme.Amber : Theme.Faint),
         };
         for (int i = 0; i < rows.Length; i++)
         {
@@ -505,8 +505,8 @@ public sealed class WinPowerBody : Control
             var cells = new (string Text, int Mode)[]
             {
                 (Lang.T(ModeKeys[PowerPlan.ModeGroupFor(_d.Settings, id)]), -2),   // -2 = not a turbo cell
-                (ta >= 0 ? PowerPlan.BoostLabel((uint)ta) : unchanged, ta),
-                (td >= 0 ? PowerPlan.BoostLabel((uint)td) : unchanged, td),
+                (ta >= 0 ? PowerPlan.BoostName((uint)ta) : unchanged, ta),
+                (td >= 0 ? PowerPlan.BoostName((uint)td) : unchanged, td),
             };
             // a set turbo mode carries its group icon; long Windows mode names wrap to a second line
             int gi = S(18), gGap = S(8);
