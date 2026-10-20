@@ -49,6 +49,7 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   instead of a bare version number. The button shows the check and its result itself ("Checking...",
   "Already up to date", "Updated"), so the card no longer grows into the one below it.
 - Model database 20261022: Vector 16 HX AI / Raider 16 HX AI (`15M3EMS1`) - seventh owner credit after a clean power test on 1.40.0 ([#254](../../issues/254), thanks @onrchnn).
+- Model database 20261025: Bravo 17 (`17LNIMS1`) gains the D7VF name and a second owner credit after the fan curve was confirmed again on firmware .10E ([#256](../../issues/256), thanks @andreyminayevdev).
 
 ## [1.40.0] - 2026-10-18
 ### Added

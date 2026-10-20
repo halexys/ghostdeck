@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "dataVersion": 20261024,
+  "dataVersion": 20261025,
   "models": [
     {
       "name": "MSI Raider GE78HX 13V / Vector 17 HX A14V",
@@ -587,7 +587,7 @@
       }
     },
     {
-      "name": "MSI Bravo 17 C7VE / D7VFK",
+      "name": "MSI Bravo 17 C7VE / D7VF / D7VFK",
       "prefixes": [
         "17LNIMS1"
       ],
@@ -602,12 +602,15 @@
         "verified": true,
         "singleFan": false
       },
-      "credit": "inokra",
+      "credit": "inokra, andreyminayevdev",
       "creditUrl": "https://github.com/wygodad/ghostdeck/issues/40",
       "creditIssues": {
         "inokra": [
           40,
           41
+        ],
+        "andreyminayevdev": [
+          256
         ]
       },
       "added": "2026-06-29",
