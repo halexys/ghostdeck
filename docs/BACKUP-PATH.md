@@ -149,6 +149,7 @@ The optional fan-curve check raises every speed slot of the CPU fan's table to t
 | GF65 Thin 10UE (owner, #230) | `16W2EMS1`, BIOS `E16W2IMS.105` | two runs on 8 October 2026, with and without Windows turbo boost: **passed** (Super Battery at 52 % and 34 % of Extreme), restore confirmed, the fan followed the raised table in both phases. Curve editor enabled for the model. On 18 October the owner confirmed that Silent is audibly quieter than Balanced and that switching stayed stable over days, and the entry was promoted to **tested**. |
 | Delta 15 A5EFK (#48, discussion #241) | `15CKEMS1` | layout on record from the diagnostic package; no run on hardware yet. The owner's own measurement says the firmware follows the curve table only outside the two power-saving shift modes. |
 | GS75 Stealth 8SE | board `17G1` | blocks served in the same layout, firmware without `MSI_ACPI`; stays in monitoring only until the EC line can be told apart. |
+| GS63VR 7RG Stealth Pro (#257) | board `16K3`, BIOS `E16K3IMS.116` | blocks served with the same instance counts and four of the five markers, but `MSI_System[11]` reads 3 instead of 5, so the fingerprint does not match and the laptop shows temperatures only. In the owner's report the shift slot (`MSI_System[7]` = `0xC3`) and the fan slot (`MSI_System[9]` = `0x0C`) kept the same value in all four scenarios, so no recipe can be read from it. Asked whether switching scenarios changes anything audible and for the diagnostic package. |
 
 ### 5.7 For developers
 
