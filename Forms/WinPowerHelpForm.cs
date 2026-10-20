@@ -142,7 +142,7 @@ public sealed class WinPowerHelpForm : GhostCardForm
                         string head = PowerPlan.GroupLabel(grp) + "  ·  " + modes;
                         int hh = TextH(head, f.Tab, textW), mh = TextH(Lang.T(key), f.Cell, textW);
                         items.Add(new Item(new Rectangle(lx, y, ic, ic), Kind.Icon, "", (int)grp));
-                        items.Add(new Item(new Rectangle(lx + textX, y, textW, hh), Kind.Cell, head, Tint: PowerPlan.GroupColor(grp), On: true));
+                        items.Add(new Item(new Rectangle(lx + textX, y, textW, hh), Kind.Cell, head, Tint: PowerPlan.GroupColor(grp, onDarkCard: true), On: true));
                         items.Add(new Item(new Rectangle(lx + textX, y + hh, textW, mh), Kind.Cell, Lang.T(key), Tint: Muted));
                         rowH = Math.Max(rowH, Math.Max(ic, hh + mh));
                     }
@@ -230,7 +230,7 @@ public sealed class WinPowerHelpForm : GhostCardForm
                 case Kind.Icon:
                 {
                     var grp = (PowerPlan.BoostGroup)it.Zone;
-                    IconPainter.BoostGroup(g, grp, r, PowerPlan.GroupColor(grp));
+                    IconPainter.BoostGroup(g, grp, r, PowerPlan.GroupColor(grp, onDarkCard: true));
                     break;
                 }
                 case Kind.Line: g.DrawLine(hair, r.X, r.Y, r.Right, r.Y); break;

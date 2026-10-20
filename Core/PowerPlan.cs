@@ -172,14 +172,25 @@ public static class PowerPlan
         _ => BoostGroup.Unknown,
     };
 
-    public static Color GroupColor(BoostGroup g) => g switch
-    {
-        BoostGroup.Less => Theme.Green,
-        BoostGroup.Turbo => Theme.Accent,
-        BoostGroup.TurboMax => Theme.Amber,
-        BoostGroup.AskMore => Theme.Violet,
-        _ => Theme.Muted,
-    };
+    /// <summary>Group colour from the app theme; GhostDeck cards are always dark, so they pass
+    /// <paramref name="onDarkCard"/> and get the dark-theme values whatever the app theme is.</summary>
+    public static Color GroupColor(BoostGroup g, bool onDarkCard = false) => onDarkCard
+        ? g switch
+        {
+            BoostGroup.Less => Color.FromArgb(0x61, 0xE7, 0xA4),
+            BoostGroup.Turbo => Color.FromArgb(0x3D, 0xE3, 0xFF),
+            BoostGroup.TurboMax => Color.FromArgb(0xFF, 0xC1, 0x5D),
+            BoostGroup.AskMore => Theme.Violet,
+            _ => Color.FromArgb(0xA4, 0xAD, 0xBD),
+        }
+        : g switch
+        {
+            BoostGroup.Less => Theme.Green,
+            BoostGroup.Turbo => Theme.Accent,
+            BoostGroup.TurboMax => Theme.Amber,
+            BoostGroup.AskMore => Theme.Violet,
+            _ => Theme.Muted,
+        };
 
     public static string GroupLabel(BoostGroup g) => Lang.T(g switch
     {

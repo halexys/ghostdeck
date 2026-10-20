@@ -196,7 +196,7 @@ public sealed class PowerMapForm : GhostCardForm
                     float tw = g.MeasureString(it.Text, chipF).Width;
                     float x0 = r.X + Math.Max(Ce(8 * k), (r.Width - (ic + gapI + tw)) / 2f);
                     var grp = PowerPlan.GroupOf((uint)mode, _autonomous);
-                    IconPainter.BoostGroup(g, grp, new RectangleF(x0, r.Y + (r.Height - ic) / 2f, ic, ic), PowerPlan.GroupColor(grp), it.On ? White : null);
+                    IconPainter.BoostGroup(g, grp, new RectangleF(x0, r.Y + (r.Height - ic) / 2f, ic, ic), PowerPlan.GroupColor(grp, onDarkCard: true), it.On ? White : null);
                     using (var lf = new StringFormat(StringFormatFlags.NoWrap) { LineAlignment = StringAlignment.Center, Trimming = StringTrimming.EllipsisCharacter })
                         g.DrawString(it.Text, chipF, it.On || hot ? whiteB : inkB, new RectangleF(x0 + ic + gapI, r.Y, Math.Max(10, r.Right - (x0 + ic + gapI) - Ce(6 * k)), r.Height), lf);
                     break;
