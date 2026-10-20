@@ -47,7 +47,13 @@ The two lists under **Turbo mode** hold every mode Windows offers on your machin
 and named in your Windows language. The number of modes depends on the processor and the
 Windows version, so your list may be shorter or longer than the one below.
 
-Under each list is a plain description of the selected mode. On a typical Windows 11 laptop:
+Every mode carries the icon of what it really does (see [What the icons mean](#what-the-icons-mean)),
+in the field and in the open list, where its group is also named on the right. Under the lists is
+one short line about the selected mode; when both power sources use the same mode, one line
+covers both ("Both sources: ..."). The full descriptions are in the help card. On a typical
+Windows 11 laptop:
+
+![The turbo mode list, open](images/windows_power_list.png)
 
 | Value | Mode (Windows name in English) | What it does |
 |---|---|---|
@@ -73,6 +79,27 @@ table then gives modes 1 to 4 the same behaviour as *Enabled*: the real differen
 sources, the help card says so under its table of modes, and the test reports record it.
 Microsoft notes that the platform may ignore the setting, so GhostDeck reports what Windows has
 switched on, not what the processor does.
+
+## What the icons mean
+
+Seven names, but only a few different behaviours. GhostDeck sorts the modes into groups by
+Microsoft's own tables and gives each group one icon and colour, everywhere a mode appears: the
+lists, the *By profile* table, the editor and the help card.
+
+| Icon | Group | Modes | What it means |
+|---|---|---|---|
+| green leaf | **less power** | 0 | The only sure way to less power, besides the Silent profile. |
+| blue lightning bolt | **turbo** | 1, 3 (1 to 4 with autonomous mode on) | Turbo works the usual way. |
+| amber flame | **max turbo** | 2, 4 (only with autonomous mode off) | Speeds up whenever it can. Microsoft describes these apart only when autonomous mode is off. |
+| violet up arrow | **asks for more** | 5, 6 | Asks for more than the processor's guaranteed level. |
+| grey question mark | **unknown** | any other | A mode GhostDeck does not know. |
+
+With autonomous mode on (see above), modes 1 to 4 are one group: turbo. The help card shows the
+same legend under its table of modes:
+
+![The help card with autonomous mode on](images/windows_power_help.png)
+
+![The help card with autonomous mode off: max turbo is a group of its own](images/windows_power_help_noauto.png)
 
 **Picking a mode while turbo is off** turns turbo on for that power source. Picking *Disabled*
 in one list switches turbo off for that source only (for example: off on battery, full speed
@@ -139,10 +166,10 @@ not make it appear on those laptops.
 
 The **?** next to *CPU turbo boost* opens a GhostDeck card with four pages: the switch and the
 two lists (and the sure ways to less power), a table of every turbo mode your Windows offers
-(value, Windows name, what it does, whether it lowers power), the power mode and *By profile*,
-and *Restore* with the Power Options link. Its *Guide on GitHub* button opens this page.
-
-![The help card, turbo modes](images/windows_power_help.png)
+(value, the Windows name with its group icon, what it does) with the icon legend under it, the
+power mode and *By profile*, and *Restore* with the Power Options link. Its *Guide on GitHub*
+button opens this page. The pictures of the modes page are in
+[What the icons mean](#what-the-icons-mean).
 
 ![The help card, the switch](images/windows_power_help_turbo.png)
 

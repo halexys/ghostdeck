@@ -2987,6 +2987,31 @@ the setting, so the text says what Windows has switched on, never what the proce
 `ReportLine()` adds `autonomous mode AC n, battery n` to both test reports. The details table
 shows each value as the Windows name with its number ("Aggressive (2)") in *Now* and *Saved*.
 
+**What a mode really does: groups, icons, short lines (#117, third round).**
+`PowerPlan.GroupOf(value, autonomous)` sorts the boost values by Microsoft's tables: 0 = less
+power; 1 and 3 = turbo; 2 and 4 = turbo while autonomous mode is on for both sources, otherwise
+their own group "max turbo" (Aggressive is described apart only on non-autonomous CPPC); 5 and
+6 = asks for more (above the guaranteed level); anything else unknown. `GroupColor` takes theme
+tokens (Green, Accent, Amber, Violet, Muted), `GroupLabel` the short name, and
+`IconPainter.BoostGroup` draws the icon: a rounded tile in the group colour at low alpha with a
+drawn leaf (Segoe MDL2 has none) or an MDL2 glyph (LightningBolt E945, the flame ECAD, Up E74A,
+a circled question mark E9CE); on a highlighted list row the symbol is white. The icon appears
+in the lists (`ThemedComboBox.ItemIcon`, a new optional delegate for the field and every row,
+plus `ItemNote` for the grey group name at the right of an open row; lists that set neither
+draw as before, `combotest` 30/30), in the By profile table, on the editor chips and in the help
+card's table, whose "lowers power?" column and note gave way to a three-column legend (with
+the autonomous sentence under it, or the generic "1-4 are one group" note when it is off).
+Under the lists `PowerPlan.ShortDescription` gives one short line per source, one line across
+both columns when the two sources hold the same mode. The full `pw_bm_*` descriptions stay in
+the help card and the editor. The help card moved its intro into the first page and is 960
+logical px wide, so its tallest page fits a 1080p screen at 125 %. The render harness can draw
+the "autonomous mode off" look on a machine that has it on (`AUTONOMOUS=0`, through a private
+preview field read by `AutonomousOn`, which the app never sets).
+Measured against main in the harness (2026-10-20, 134 % DPI): the Power sub-tab builds in the same
+time with the same 529 system windows; a card Sync costs about 1 ms on both once the layout pass
+remembers its text heights (without that it was 3 ms); a click in the By profile editor repaints once
+in about 15 ms against 9 ms on main, because the card is taller and carries more chips.
+
 **The Windows power mode row.** A FOUR-segment control: the three modes of the Windows power
 slider, set directly for both power sources through the official Windows 11 API
 (`PowerSetUserConfiguredAC/DCPowerMode`, resolved dynamically; the long-lived but
