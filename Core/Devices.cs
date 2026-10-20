@@ -159,7 +159,7 @@ public static class Devices
     // generated data/models.json carries the same number (CI byte-compares a fresh dump
     // against the committed file, so the two cannot drift). A downloaded database is used
     // only when its dataVersion is strictly NEWER than this (anti-rollback, see ModelDb).
-    public const int DataVersion = 20261025;
+    public const int DataVersion = 20261026;
 
     // A signed, newer database downloaded from the repo (ModelDb.LoadOverride). Null = the
     // compiled tables below are in effect. Volatile because it is applied on the UI thread and
@@ -665,8 +665,15 @@ public static class Devices
         // G2 family — same EC layout as the tested model (shift 0xD2 / fan 0xD4 / super-batt 0xEB)
         new() { Name = "MSI Raider GE68HX 13V",          FirmwarePrefixes = new[] { "15M2IMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         // 16V1EMS1 is msi-ec CONF_G1_3 (G1 board), not G2 — corrected to 0xF2/0xF4 (was wrongly 0xD2/0xD4).
+        // Backup WMI path (issue #258, a GS66 Stealth 10SF, BIOS E16V1IMS.112, Dragon Center 2.0.149):
+        // the firmware refuses MSI_ACPI, and the owner's block report shows the Dragon Center-era
+        // layout with all five fingerprint markers (System[7] = C1, System[9] = 0D at rest). Layout
+        // added so the path test can run; the recipes stay msi-ec's CONF_G1_3 values (C1/C4/C2,
+        // 0D/1D). Switching Dragon Center scenarios moved neither slot in his capture, so the values
+        // are unconfirmed on this board until a path test passes. No curve on this path yet.
         new() { Name = "MSI GS66 Stealth", FirmwarePrefixes = new[] { "16V1EMS1" }, Tier = Tier.Experimental,
-                ShiftMode = 0xF2, FanMode = 0xF4, ChargeCtrl = 0xEF, Recipes = StdRecipes(0xF2, 0xF4, null) },
+                ShiftMode = 0xF2, FanMode = 0xF4, ChargeCtrl = 0xEF, Recipes = StdRecipes(0xF2, 0xF4, null),
+                BlockPath = DragonEraBlocks },   // block report in issue #258
         new() { Name = "MSI Katana GF66",                FirmwarePrefixes = new[] { "1582EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         new() { Name = "MSI Katana GF76",                FirmwarePrefixes = new[] { "17L1EMS1" }, Tier = Tier.Experimental, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB) },
         // GE66 Raider / GP66 Leopard (1543EMS1) — owner dump from a GP66 Leopard 11UG (issue #52)
@@ -1537,9 +1544,12 @@ public static class Devices
         //   observation); 0x34 = 00 throughout, left alone. Curve tables hold the family layout
         //   at the shipped addresses, no test curve run yet - curve stays unverified.
         new() { Name = "MSI Titan 18 HX A14V / Raider 18 HX A14V", FirmwarePrefixes = new[] { "1822EMS1" }, Tier = Tier.Tested,
-                CpuRpmAddr16 = 0xC8, GpuRpmAddr16 = 0xCA, FanCurve = ModernCurve, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
+                // Fan curve VERIFIED (issue #260, same owner, firmware .312, MSI Center 2.0.74): the test
+                // curve sits byte-for-byte at 0x72 / 0x8A on both fans; the GPU pair read 01:32 (high byte
+                // set), the 16-bit format once more.
+                CpuRpmAddr16 = 0xC8, GpuRpmAddr16 = 0xCA, FanCurve = ModernCurveVerified, Recipes = StdRecipes(0xD2, 0xD4, 0xEB),
                 Credit = "se-240717038", CreditUrl = "https://github.com/wygodad/ghostdeck/issues/239",
-                CreditIssues = Issues("se-240717038:239") },
+                CreditIssues = Issues("se-240717038:239,260") },
         // Raider A18 HX A7VIG (182KIMS1) — owner per-scenario dump (issue #50) matches StdRecipes on
         // shift 0xD2 C1/C1/C4/C2 and fan 0xD4 1D/0D/0D/0D, and all three hardware checks passed, so
         // Tested. Super battery: upstream msi-ec maps 0xEB for CONF_G2_10, but MSI Center on this AMD

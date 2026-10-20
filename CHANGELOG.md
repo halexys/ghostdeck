@@ -50,6 +50,7 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   "Already up to date", "Updated"), so the card no longer grows into the one below it.
 - Model database 20261022: Vector 16 HX AI / Raider 16 HX AI (`15M3EMS1`) - seventh owner credit after a clean power test on 1.40.0 ([#254](../../issues/254), thanks @onrchnn).
 - Model database 20261025: Bravo 17 (`17LNIMS1`) gains the D7VF name and a second owner credit after the fan curve was confirmed again on firmware .10E ([#256](../../issues/256), thanks @andreyminayevdev).
+- Model database 20261026: Titan 18 HX A14V / Raider 18 HX A14V (`1822EMS1`) - fan curve verified ([#260](../../issues/260), thanks @se-240717038). GS66 Stealth (`16V1EMS1`) gets the backup-path block layout, so the path test is offered on these laptops ([#258](../../issues/258), thanks @SFIsaksen).
 
 ## [1.40.0] - 2026-10-18
 ### Added
