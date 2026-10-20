@@ -7,8 +7,10 @@ namespace GhostDeck;
 /// Too much for a bubble: what the card changes (Windows, not the EC), the switch and the two
 /// lists, every turbo mode this Windows offers in a table (value, Windows' own name, what it
 /// does, whether it lowers power), the power mode and Auto, By profile, Restore and the
-/// Power Options link. Four pages behind tabs keep the card short enough for a 1080p screen at
-/// 125 %; the card takes the height of its tallest page, so switching pages never makes it jump.
+/// Power Options link. Five pages behind tabs (the icon legend has its own) keep the card short
+/// enough for a 1080p screen at 125 % with text as large as on the Settings cards; the card takes
+/// the height of its tallest page, so switching pages never moves the buttons. No text is ever
+/// cut or ends in "...": tabs, cells and paragraphs wrap and their rows grow.
 /// The mode names are read live (<see cref="PowerPlan.BoostModes"/>), and the sentence about
 /// autonomous mode appears only when the active plan has it on for both power sources.
 /// The left button opens the full guide (docs/WINDOWS-POWER.md) on GitHub.
@@ -16,7 +18,7 @@ namespace GhostDeck;
 public sealed class WinPowerHelpForm : GhostCardForm
 {
     private const string GuideUrl = "https://github.com/wygodad/ghostdeck/blob/main/docs/WINDOWS-POWER.md";
-    private static readonly string[] TabKeys = { "pw_help_tab_turbo", "pw_help_tab_modes", "pw_help_tab_profile", "pw_help_tab_restore" };
+    private static readonly string[] TabKeys = { "pw_help_tab_turbo", "pw_help_tab_modes", "pw_lg_title", "pw_help_tab_profile", "pw_help_tab_restore" };
 
     private readonly List<PowerPlan.BoostMode> _modes = PowerPlan.BoostModes();
     private readonly bool _autonomous = PowerPlan.AutonomousOn();
@@ -31,6 +33,7 @@ public sealed class WinPowerHelpForm : GhostCardForm
     protected override int CardWidth => 960;
     protected override string AuxLabel => Lang.T("pw_help_guide");
     protected override Color AuxColor => Fill;
+    protected override float ButtonFontPx => 14.5f;
     protected override void AuxClick() => ModelsPage.OpenUrl(GuideUrl);
 
     // ---------------- one layout routine for measure and paint ----------------
@@ -43,21 +46,31 @@ public sealed class WinPowerHelpForm : GhostCardForm
         public readonly Font Tab, Head, Para, Cap, Cell;
         public Fonts(float k)
         {
-            Tab = new Font("Segoe UI", 13f * k, FontStyle.Bold, GraphicsUnit.Pixel);
-            Head = new Font("Segoe UI Semibold", 14.5f * k, FontStyle.Regular, GraphicsUnit.Pixel);
-            Para = new Font("Segoe UI", 13f * k, FontStyle.Regular, GraphicsUnit.Pixel);
-            Cap = new Font("Segoe UI", 10.5f * k, FontStyle.Bold, GraphicsUnit.Pixel);
-            Cell = new Font("Segoe UI", 12.5f * k, FontStyle.Regular, GraphicsUnit.Pixel);
+            // the size of the text on the Settings cards (10 pt body = 13.3 px) and a step above
+            Tab = new Font("Segoe UI", 14.5f * k, FontStyle.Bold, GraphicsUnit.Pixel);
+            Head = new Font("Segoe UI Semibold", 16.5f * k, FontStyle.Regular, GraphicsUnit.Pixel);
+            Para = new Font("Segoe UI", 14.5f * k, FontStyle.Regular, GraphicsUnit.Pixel);
+            Cap = new Font("Segoe UI", 11.5f * k, FontStyle.Bold, GraphicsUnit.Pixel);
+            Cell = new Font("Segoe UI", 14f * k, FontStyle.Regular, GraphicsUnit.Pixel);
         }
         public void Dispose() { Tab.Dispose(); Head.Dispose(); Para.Dispose(); Cap.Dispose(); Cell.Dispose(); }
     }
 
-    private int TabsHeight(float k) => (int)Math.Ceiling(40 * k) + (int)Math.Ceiling(16 * k);
+    /// <summary>Tab row height: one line, or two when a tab name has to wrap in a long language.</summary>
+    private static int TabH(Graphics g, float k, int width, Fonts f)
+    {
+        int tabW = width / TabKeys.Length, h = (int)Math.Ceiling(42 * k);
+        foreach (var key in TabKeys)
+            h = Math.Max(h, (int)Math.Ceiling(g.MeasureString(Lang.T(key), f.Tab, Math.Max(10, tabW - (int)Math.Ceiling(14 * k))).Height + 14 * k));
+        return h;
+    }
 
-    private List<Item> Tabs(float k, int width)
+    private int TabsHeight(Graphics g, float k, int width, Fonts f) => TabH(g, k, width, f) + (int)Math.Ceiling(16 * k);
+
+    private List<Item> Tabs(Graphics g, float k, int width, Fonts f)
     {
         var items = new List<Item>();
-        int tabH = (int)Math.Ceiling(40 * k), tabW = width / TabKeys.Length;
+        int tabH = TabH(g, k, width, f), tabW = width / TabKeys.Length;
         for (int i = 0; i < TabKeys.Length; i++)
             items.Add(new Item(new Rectangle(i * tabW, 0, i == TabKeys.Length - 1 ? width - i * tabW : tabW, tabH), Kind.Tab, Lang.T(TabKeys[i]), i, i == _page));
         return items;
@@ -77,7 +90,7 @@ public sealed class WinPowerHelpForm : GhostCardForm
             items.Add(new Item(new Rectangle(0, y, width, h), Kind.Callout, s));
             y += h + Ce(14 * k);
         }
-        string off = PowerPlan.BoostName(0), on = PowerPlan.BoostName(1);
+        string off = PowerPlan.BoostLabel(0), on = PowerPlan.BoostLabel(1);
 
         switch (page)
         {
@@ -117,12 +130,14 @@ public sealed class WinPowerHelpForm : GhostCardForm
                     y = top + rh + Ce(5 * k);
                     items.Add(new Item(new Rectangle(0, y, width, 1), Kind.Line, ""));
                 }
-                y += Ce(14 * k);
-
-                // legend: what each icon means and which modes it covers, three columns (two rows keep the page short)
-                int capH = TextH(Lang.T("pw_lg_title").ToUpperInvariant(), f.Cap, width);
-                items.Add(new Item(new Rectangle(0, y, width, capH), Kind.Th, Lang.T("pw_lg_title").ToUpperInvariant()));
-                y += capH + Ce(8 * k);
+                y += Ce(12 * k);
+                Para(Lang.T("pw_help_number"));   // the [2] in front of a name elsewhere on the card
+                break;
+            }
+            case 2:
+            {
+                // the legend: what each icon means and which modes it covers, two columns
+                int ic = Ce(22 * k), icGap = Ce(10 * k);
                 var legend = new (PowerPlan.BoostGroup G, string Modes, string Key)[]
                 {
                     (PowerPlan.BoostGroup.Less, "0", "pw_lg_less"),
@@ -131,7 +146,7 @@ public sealed class WinPowerHelpForm : GhostCardForm
                     (PowerPlan.BoostGroup.AskMore, "5, 6", "pw_lg_more"),
                     (PowerPlan.BoostGroup.Unknown, Lang.T("pw_lg_other"), "pw_lg_unknown"),
                 };
-                int cols = 3, colGap = Ce(20 * k), colW = (width - colGap * (cols - 1)) / cols, textX = ic + icGap, textW = colW - textX;
+                int cols = 2, colGap = Ce(28 * k), colW = (width - colGap * (cols - 1)) / cols, textX = ic + icGap, textW = colW - textX;
                 for (int i = 0; i < legend.Length; i += cols)
                 {
                     int rowH = 0;
@@ -146,13 +161,13 @@ public sealed class WinPowerHelpForm : GhostCardForm
                         items.Add(new Item(new Rectangle(lx + textX, y + hh, textW, mh), Kind.Cell, Lang.T(key), Tint: Muted));
                         rowH = Math.Max(rowH, Math.Max(ic, hh + mh));
                     }
-                    y += rowH + Ce(10 * k);
+                    y += rowH + Ce(16 * k);
                 }
                 if (_autonomous) Callout(string.Format(Lang.T("pw_help_autonomous"), on, off));
                 else Para(Lang.T("pw_lg_note"));
                 break;
             }
-            case 2:
+            case 3:
                 Head(Lang.T("pw_grp_mode"));
                 Para(string.Format(Lang.T("pw_help_mode"), Lang.T("pw_auto_seg")));
                 Head(Lang.T("pw_grp_profile"));
@@ -174,16 +189,16 @@ public sealed class WinPowerHelpForm : GhostCardForm
         using var f = new Fonts(k);
         int max = 0;
         for (int p = 0; p < TabKeys.Length; p++) max = Math.Max(max, Page(g, k, width, f, p, 0, new List<Item>()));
-        return TabsHeight(k) + max;
+        return TabsHeight(g, k, width, f) + max;
     }
 
     protected override void PaintContent(Graphics g, float k, Rectangle area, Point origin)
     {
         int Ce(float v) => (int)Math.Ceiling(v);
         using var f = new Fonts(k);
-        var items = Tabs(k, area.Width);
-        Page(g, k, area.Width, f, _page, TabsHeight(k), items);
-        using var center = new StringFormat(StringFormatFlags.NoWrap) { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center, Trimming = StringTrimming.EllipsisCharacter };
+        var items = Tabs(g, k, area.Width, f);
+        Page(g, k, area.Width, f, _page, TabsHeight(g, k, area.Width, f), items);
+        using var center = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center, Trimming = StringTrimming.None };
         using var whiteB = new SolidBrush(White);
         using var inkB = new SolidBrush(Ink);
         using var mutedB = new SolidBrush(Muted);
@@ -207,7 +222,7 @@ public sealed class WinPowerHelpForm : GhostCardForm
                         g.FillPath(hb, hp);
                     }
                     if (it.On) { using var ub = new SolidBrush(Cyan); g.FillRectangle(ub, r.X + Ce(12 * k), r.Bottom - Ce(3 * k), r.Width - Ce(24 * k), Ce(3 * k)); }
-                    g.DrawString(it.Text, f.Tab, it.On || hot ? whiteB : inkB, Rectangle.Inflate(r, -Ce(6 * k), 0), center);
+                    g.DrawString(it.Text, f.Tab, it.On || hot ? whiteB : inkB, Rectangle.Inflate(r, -Ce(7 * k), 0), center);
                     break;
                 }
                 case Kind.Head: g.DrawString(it.Text, f.Head, whiteB, r); break;

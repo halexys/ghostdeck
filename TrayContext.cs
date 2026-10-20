@@ -1324,7 +1324,7 @@ public sealed class TrayContext : ApplicationContext
         // (#117) the profile's turbo modes, only for sources it sets ("no change" = untouched);
         // the same one-shot rule: a later pick on the card stands until the next switch
         if (PowerPlan.ApplyProfileTurbo(_settings, id) is { } terr)
-            ChangeLog.Add(source, "CPU turbo boost: " + (terr.Length == 0 ? PowerPlan.TurboStatus() : terr));
+            ChangeLog.Add(source, "CPU turbo boost: " + (terr.Length == 0 ? PowerPlan.TurboLabels() : terr));
         if (!_settings.PowerModeSync) return;
         var mode = PowerPlan.ModeForProfile(_settings, id);
         if (PowerPlan.TrySetPowerMode(mode))

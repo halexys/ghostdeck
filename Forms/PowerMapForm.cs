@@ -86,8 +86,11 @@ public sealed class PowerMapForm : GhostCardForm
         var items = new List<Item>();
         int y = 0;
 
-        // profile tabs: equal widths across the card, icon + name
-        int tabH = Ce(40 * k), tabW = width / Rows.Length;
+        // profile tabs: equal widths across the card, icon + name; a name too long for its tab
+        // wraps and every tab grows with it (no "..." anywhere in this card)
+        int tabW = width / Rows.Length, tabTextW = tabW - Ce(18 * k) - Ce(8 * k) - Ce(12 * k);
+        int tabH = Ce(40 * k);
+        foreach (var r in Rows) tabH = Math.Max(tabH, Ce(g.MeasureString(r.Name, tabF, Math.Max(10, tabTextW)).Height) + Ce(14 * k));
         for (int i = 0; i < Rows.Length; i++)
             items.Add(new Item(new Rectangle(i * tabW, y, i == Rows.Length - 1 ? width - i * tabW : tabW, tabH), i, Rows[i].Name, i == _p, 0));
         y += tabH + Ce(16 * k);
@@ -95,23 +98,28 @@ public sealed class PowerMapForm : GhostCardForm
         int chipH = Ce(30 * k), gap = Ce(6 * k), padX = Ce(12 * k);
         void Label(string text)
         {
-            int h = Ce(labF.GetHeight(g)) + Ce(2 * k);
+            int h = Ce(g.MeasureString(text.ToUpperInvariant(), labF, width).Height) + Ce(2 * k);
             items.Add(new Item(new Rectangle(0, y, width, h), -1, text.ToUpperInvariant(), false, 2));
             y += h + Ce(6 * k);
         }
         void Chips(IEnumerable<(string Text, int Zone, bool On)> chips)
         {
-            int x = 0;
+            int x = 0, rowH = chipH;
             foreach (var (text, zone, on) in chips)
             {
-                // a turbo-mode chip carries the icon of its group in front of the name
+                // a turbo-mode chip carries the icon of its group in front of the name; a name
+                // wider than the card wraps inside a full-width chip that grows, never "..."
                 int iconW = ModeOfZone(zone) >= 0 ? ChipIcon(k) + Ce(7 * k) : 0;
-                int w = Math.Min(width, Ce(g.MeasureString(text, chipF).Width) + padX * 2 + iconW);
-                if (x > 0 && x + w > width) { x = 0; y += chipH + gap; }
-                items.Add(new Item(new Rectangle(x, y, w, chipH), zone, text, on, 1));
+                int avail = width - padX * 2 - iconW;
+                int tw = Ce(g.MeasureString(text, chipF).Width);
+                int w = tw <= avail ? tw + padX * 2 + iconW : width;
+                int h = tw <= avail ? chipH : Math.Max(chipH, Ce(g.MeasureString(text, chipF, avail).Height) + Ce(12 * k));
+                if (x > 0 && x + w > width) { x = 0; y += rowH + gap; rowH = chipH; }
+                items.Add(new Item(new Rectangle(x, y, w, h), zone, text, on, 1));
+                rowH = Math.Max(rowH, h);
                 x += w + gap;
             }
-            y += chipH + Ce(8 * k);
+            y += rowH + Ce(8 * k);
         }
         void Desc(int value)
         {
@@ -129,7 +137,7 @@ public sealed class PowerMapForm : GhostCardForm
         {
             Label(title);
             var chips = new List<(string, int, bool)> { (Lang.T("pw_unchanged"), zbase, sel < 0) };
-            for (int j = 0; j < _modes.Count; j++) chips.Add((_modes[j].Name, zbase + 1 + j, sel == (int)_modes[j].Value));
+            for (int j = 0; j < _modes.Count; j++) chips.Add((PowerPlan.BoostLabel(_modes[j].Value), zbase + 1 + j, sel == (int)_modes[j].Value));
             Chips(chips);
             Desc(sel);
         }
@@ -151,8 +159,9 @@ public sealed class PowerMapForm : GhostCardForm
         using var chipF = new Font("Segoe UI", 12.5f * k, FontStyle.Bold, GraphicsUnit.Pixel);
         using var labF = new Font("Segoe UI", 11f * k, FontStyle.Bold, GraphicsUnit.Pixel);
         using var descF = new Font("Segoe UI", 12.5f * k, GraphicsUnit.Pixel);
-        using var center = new StringFormat(StringFormatFlags.NoWrap) { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center, Trimming = StringTrimming.EllipsisCharacter };
-        using var left = new StringFormat(StringFormatFlags.NoWrap) { LineAlignment = StringAlignment.Center, Trimming = StringTrimming.EllipsisCharacter };
+        // wrapping formats without trimming: a text that does not fit on one line takes the next
+        using var center = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center, Trimming = StringTrimming.None };
+        using var left = new StringFormat { LineAlignment = StringAlignment.Center, Trimming = StringTrimming.None };
         using var whiteB = new SolidBrush(White);
         using var inkB = new SolidBrush(Ink);
         using var mutedB = new SolidBrush(Muted);
@@ -177,7 +186,7 @@ public sealed class PowerMapForm : GhostCardForm
                     }
                     if (it.On) { using var ub = new SolidBrush(_colorOf(id)); g.FillRectangle(ub, r.X + Ce(10 * k), r.Bottom - Ce(3 * k), r.Width - Ce(20 * k), Ce(3 * k)); }
                     int icon = Ce(18 * k);
-                    float tw = g.MeasureString(it.Text, tabF).Width;
+                    float tw = Math.Min(g.MeasureString(it.Text, tabF).Width, r.Width - icon - Ce(8 * k) - Ce(12 * k));
                     float total = Math.Min(r.Width - Ce(8 * k), icon + Ce(8 * k) + tw);
                     float x0 = r.X + (r.Width - total) / 2f;
                     IconPainter.Scenario(g, id, new RectangleF(x0, r.Y + (r.Height - icon) / 2f, icon, icon), _colorOf(id), 1.6f * k);
@@ -192,16 +201,15 @@ public sealed class PowerMapForm : GhostCardForm
                     if (!it.On) { using var pen = new Pen(Color.FromArgb(40, 243, 247, 255), 1f); g.DrawPath(pen, cp); }
                     int mode = ModeOfZone(it.Zone);
                     if (mode < 0) { g.DrawString(it.Text, chipF, it.On || hot ? whiteB : inkB, r, center); break; }
-                    int ic = ChipIcon(k), gapI = Ce(7 * k);
-                    float tw = g.MeasureString(it.Text, chipF).Width;
-                    float x0 = r.X + Math.Max(Ce(8 * k), (r.Width - (ic + gapI + tw)) / 2f);
+                    int ic = ChipIcon(k), gapI = Ce(7 * k), padC = Ce(12 * k);
+                    float tw = Math.Min(g.MeasureString(it.Text, chipF).Width, r.Width - padC * 2 - ic - gapI);
+                    float x0 = r.X + Math.Max(padC, (r.Width - (ic + gapI + tw)) / 2f);
                     var grp = PowerPlan.GroupOf((uint)mode, _autonomous);
                     IconPainter.BoostGroup(g, grp, new RectangleF(x0, r.Y + (r.Height - ic) / 2f, ic, ic), PowerPlan.GroupColor(grp, onDarkCard: true), it.On ? White : null);
-                    using (var lf = new StringFormat(StringFormatFlags.NoWrap) { LineAlignment = StringAlignment.Center, Trimming = StringTrimming.EllipsisCharacter })
-                        g.DrawString(it.Text, chipF, it.On || hot ? whiteB : inkB, new RectangleF(x0 + ic + gapI, r.Y, Math.Max(10, r.Right - (x0 + ic + gapI) - Ce(6 * k)), r.Height), lf);
+                    g.DrawString(it.Text, chipF, it.On || hot ? whiteB : inkB, new RectangleF(x0 + ic + gapI, r.Y, Math.Max(10, r.Right - (x0 + ic + gapI) - padC + 2), r.Height), left);
                     break;
                 }
-                case 2: g.DrawString(it.Text, labF, mutedB, r, left); break;
+                case 2: g.DrawString(it.Text, labF, mutedB, new RectangleF(r.X, r.Y, r.Width + 2, r.Height), left); break;
                 case 3: g.DrawString(it.Text, descF, mutedB, r); break;
             }
         }

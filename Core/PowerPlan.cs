@@ -206,10 +206,10 @@ public static class PowerPlan
     {
         0 => Lang.T("pw_bmshort_less"),
         1 => Lang.T("pw_bmshort_on"),
-        2 or 3 or 4 when autonomous => string.Format(Lang.T("pw_bmshort_like"), BoostName(1)),
+        2 or 3 or 4 when autonomous => string.Format(Lang.T("pw_bmshort_like"), BoostLabel(1)),
         2 => Lang.T("pw_bmshort_max"),
-        3 => string.Format(Lang.T("pw_bmshort_like_ms"), BoostName(1)),
-        4 => string.Format(Lang.T("pw_bmshort_like_ms"), BoostName(2)),
+        3 => string.Format(Lang.T("pw_bmshort_like_ms"), BoostLabel(1)),
+        4 => string.Format(Lang.T("pw_bmshort_like_ms"), BoostLabel(2)),
         5 or 6 => Lang.T("pw_bmshort_more"),
         _ => Lang.T("pw_bm_unknown"),
     };
@@ -269,6 +269,13 @@ public static class PowerPlan
         catch { }
         return list;
     }
+
+    /// <summary>
+    /// A mode as the UI shows it (#117, owner's decision 20.10): the number Windows stores in the
+    /// plan, in square brackets, before the Windows name - "[2] Aggressive". One place for the
+    /// format; the CLI and the test reports keep their own "2 (Aggressive)".
+    /// </summary>
+    public static string BoostLabel(uint value) => $"[{value}]\u00A0{BoostName(value)}";   // no-break space: the number never ends a line on its own
 
     public static string BoostName(uint value) =>
         BoostModes().FirstOrDefault(m => m.Value == value)?.Name ?? value.ToString();
@@ -412,13 +419,18 @@ public static class PowerPlan
     {
         0 => Lang.T("pw_bm_0"),
         1 => Lang.T("pw_bm_1"),
-        2 => string.Format(Lang.T("pw_bm_2"), BoostName(1)),
-        3 => string.Format(Lang.T("pw_bm_3"), BoostName(1)),
-        4 => string.Format(Lang.T("pw_bm_4"), BoostName(2)),
+        2 => string.Format(Lang.T("pw_bm_2"), BoostLabel(1)),
+        3 => string.Format(Lang.T("pw_bm_3"), BoostLabel(1)),
+        4 => string.Format(Lang.T("pw_bm_4"), BoostLabel(2)),
         5 => Lang.T("pw_bm_5"),
         6 => Lang.T("pw_bm_6"),
         _ => Lang.T("pw_bm_unknown"),
     };
+
+    /// <summary>The active plan's modes as the UI writes them, for the change log: "[2] Aggressive / [3] Efficient Enabled".</summary>
+    public static string TurboLabels() =>
+        TryGetActiveScheme(out var scheme) && TryReadBoost(scheme, out uint ac, out uint dc)
+            ? $"{BoostLabel(ac)} / {BoostLabel(dc)}" : "boost state unavailable";
 
     public static string TurboStatus()
     {
