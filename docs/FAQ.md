@@ -176,14 +176,19 @@ base clock: noticeably cooler and quieter under load, slower at peak. Two things
   forgets on a cold boot), it survives a reboot and stays in effect when the app is closed.
 - **Nothing is lost.** Before writing "off" the app saves the plan's previous plugged-in and battery
   values, shows them in the card under *Saved*, and turning the switch back on writes exactly those
-  values. The two power sources can also be switched separately - turbo off on battery only, full speed
-  when plugged in. *Restore Windows settings* (it appears only while the app holds something to restore)
-  puts back every saved plan value and the power mode at once, and lists what comes back before it does.
+  values. *Restore Windows settings* (it appears only while the app holds something to restore) puts
+  back every plan's original values and the power mode at once, and lists what comes back before it does.
+
+**Choosing the turbo mode.** Two lists pick the exact mode Windows uses, plugged in and on battery
+separately (for example Efficient Enabled on battery, Aggressive plugged in), each with a plain
+description of what the mode does. *Disabled* in one list turns turbo off for that source only. The
+**By profile** table can set these modes per GhostDeck profile; "no change" is the default. The full
+guide, with every mode explained: [WINDOWS-POWER.md](WINDOWS-POWER.md).
 
 **Windows power mode.** The same choice as Windows 11's *Settings → System → Power → Power mode*: best
 power efficiency, balanced, best performance. Pick one directly, or pick **Auto: profile** and the mode
 follows the GhostDeck profile (Silent and Super Battery → efficiency, Balanced → balanced, Extreme →
-performance; the pencil next to *Profile mapping* changes that). Windows may override the mode for a
+performance; the pencil next to *By profile* changes that). Windows may override the mode for a
 while on its own (battery saver, for instance) - the card then says which mode Windows is applying.
 
 **I removed GhostDeck while turbo was off.** The setting stays off, because it belongs to the Windows

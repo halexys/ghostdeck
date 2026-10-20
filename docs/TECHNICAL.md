@@ -2944,6 +2944,31 @@ MIXED state is named in the status line rather than shown as a plain ON. Boost m
 names are enumerated live (`PowerReadPossibleValue` / `PowerReadPossibleFriendlyName`) - no
 hardcoded 0..6, and the names arrive already localized by Windows itself.
 
+**Turbo mode per source and per profile (#117, issue #221, discussion #141).** Two
+`ThemedComboBox` lists under the switch hold `PowerPlan.BoostModes()` (the live enumeration) and
+write one source each through `PowerPlan.TurboSetModes(settings, ac, dc)` (a negative value =
+leave that source). Under each list `PowerPlan.BoostDescription` gives a plain description of the
+selected value: 0-4 follow Microsoft's PERFBOOSTMODE table (on ACPI P-state and autonomous CPPC,
+Aggressive behaves as Enabled; the Efficient variants as their plain counterparts), and the texts
+take the Windows names of modes 1 and 2 as arguments so they match the user's Windows language;
+5 and 6 are undocumented by Microsoft and say so; any other value is "unknown". The main switch
+keeps its meaning and its callers (scenes, hotkey, CLI, `ghostdeck://turbo`): off = 0/0 with the
+snapshot, on = the snapshot back. The snapshot now follows the lists: while one exists, a pick on a
+source updates that side, and `TurboOff` keeps a side that is already 0 from the earlier snapshot,
+so "on" returns to what was chosen last. Because a list can replace one non-zero mode with
+another, which no snapshot records, a second memory exists: `AppSettings.TurboOriginals`, the pair
+a plan had before GhostDeck's FIRST boost write of any kind; it is dropped as soon as the plan is
+back to exactly that pair with no snapshot held, and *Restore Windows settings* writes it
+(falling back to the snapshot for plans changed only by an older version;
+`PowerPlan.RestoreTargets` feeds the restore list). The per-source switches ("Control
+separately") are gone: *Disabled* in one list does the same. `AppSettings.TurboMap` holds, per
+profile key, `[plugged in, battery]` with -1 = "no change"; only profiles that set something are
+stored, so the default is an empty map and nothing happens. `PowerPlan.ApplyProfileTurbo` runs in
+`TrayContext.ApplyPowerModeSync` on every profile switch (independent of Auto, which governs the
+power mode only), skips a value this Windows does not list (a settings file from another machine)
+and writes nothing when the plan already matches; like the mode, it is never enforced in the
+background. Imported settings carry `TurboMap` but not `TurboOriginals` (machine state).
+
 **The Windows power mode row.** A FOUR-segment control: the three modes of the Windows power
 slider, set directly for both power sources through the official Windows 11 API
 (`PowerSetUserConfiguredAC/DCPowerMode`, resolved dynamically; the long-lived but
@@ -2951,8 +2976,10 @@ undocumented `PowerSetActiveOverlayScheme` stays as a fallback for builds withou
 export), plus **"Auto: profile"** as the fourth segment, so exactly one segment is ever lit.
 Auto fires only inside `SetProfile`, never enforced in the background. The profile → mode
 mapping is editable (`PowerMapForm`, a GhostDeck card opened from the pencil hotspot on the
-mapping caption - one row per profile with a painted three-way picker, see RENDERING.md §11;
-the second hotspot restores the defaults behind a confirmation card):
+BY PROFILE caption - since #117 a profile picker on top and, for the picked profile, painted chip
+rows for the power mode and the turbo mode of each source, "no change" first; the chips wrap
+instead of cutting long Windows names; see RENDERING.md §11; the second hotspot restores the
+defaults of both maps behind a confirmation card):
 `AppSettings.PowerModeMap` stores only the rows that differ from the defaults (Silent and
 Super Battery → best power efficiency, Balanced → balanced, Extreme → best performance), and
 `PowerPlan.ModeForProfile(settings, id)` is the single resolver for the card and the tray.
@@ -2983,23 +3010,28 @@ therefore sets SHOW_AOAC there, and the card counts the setting as hidden when H
 on Modern Standby, when SHOW_AOAC is missing (measured on the owner's GE78HX, 2026-10-20:
 original 1, after the old reveal 0 and still hidden, 2 shown).
 
-**Card layout (final, owner-approved 2026-10-04).** A flat card, nothing collapsible, two
-groups set apart by extra space, each under a caption with a coloured marker. Group one, CPU
-TURBO BOOST: the main switch with its help dot; one status sentence (plain when on, an amber
-strip when it is off, with or without a snapshot, or when the two sources differ); an open table "Technical details" - a header row naming the active plan
-and the two sources, then *Now*, *Saved* (amber when a snapshot exists, "none" otherwise) and
-*Control separately* with one switch per source. Group two, WINDOWS POWER MODE: the
-four-segment control; under it the Auto sentence and, only on a real override, the amber
-note; then PROFILE MAPPING - caption with two glyph hotspots on the right (edit, restore
-defaults) and four rows of scenario icon in the profile colour, profile name and mode. Below
+**Card layout (owner-approved 2026-10-04, turbo lists and BY PROFILE added 2026-10-20 for
+#117).** A flat card, nothing collapsible, three groups set apart by extra space, each under a
+caption with a coloured marker. Group one, CPU TURBO BOOST: the main switch with its help dot;
+one status sentence (plain when on, an amber strip when it is off, with or without a snapshot,
+or when the two sources differ); a faint sentence on what the switch does; TURBO MODE - the two
+lists under a plugged-in / battery header with the description of each pick below it; an open
+table "Technical details" - a header row naming the active plan and the two sources, then
+*Value in Windows* (the raw numbers) and *Saved* (amber when a snapshot exists, "none"
+otherwise). Group two, WINDOWS POWER MODE: the four-segment control; under it the Auto sentence
+and, only on a real override, the amber note. Group three, BY PROFILE (violet marker): the
+caption with two glyph hotspots on the right (edit, restore defaults), a table of profile
+(scenario icon in the profile colour + name), power mode, turbo plugged in and turbo on battery
+("no change" faint; long Windows names wrap to a second line, the row grows), and a faint note
+on when each column applies. Below
 both groups: the restore block (only while something is held) and the footer sentence with
 its *Show it there* / *Hide it again* link. Every decision the card asks for is a GhostDeck
 card (RENDERING.md §11): restore, reveal, hide, the default mapping, and the mapping editor.
 
 **Outside the card.** The Start tile of the Power group shows the lit mode and a
 switched-off turbo (§34.1). `--turbo on|off|status` goes through the same `PowerPlan`
-functions, so a CLI change and the card can never disagree (docs/CLI.md). Scenes do not
-carry a turbo field yet.
+functions, so a CLI change and the card can never disagree (docs/CLI.md). The scene field
+*Turbo* (on / off) calls the same `TurboOn` / `TurboOff`. User guide: docs/WINDOWS-POWER.md.
 
 **Rendering: one owner-drawn control.** The card body is `UI/Controls/WinPowerBody.cs`, a
 single double-buffered control. Its first builds were composed from ~35 nested AutoSize
@@ -3008,7 +3040,7 @@ another and repaint one by one, and the Power tab visibly drew itself element by
 about a second (the powrprof reads were measured at ~5 ms per enumeration and are not the
 cause; the boost-mode list is cached anyway). In `WinPowerBody` one `Flow` routine owns the
 geometry - it measures when called without a Graphics (and positions the few real children:
-three ToggleSwitches, the SegControl, the HelpDot) and paints when called with one, so
+the ToggleSwitch, the two turbo-mode lists, the SegControl, the HelpDot) and paints when called with one, so
 layout and paint cannot drift apart. Hotspots (mapping edit/reset, restore, the reveal link)
 are painted and hit-tested. The host card gives the control its width and reads the height
 back (`CardSection.Relayout`, the "wp-wide" rule); a height change caused by STATE (not by
