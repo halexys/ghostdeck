@@ -261,7 +261,9 @@ public static class PowerPlan
                 {
                     var nBuf = new byte[nSize];
                     if (PowerReadPossibleFriendlyName(IntPtr.Zero, ref _subProcessor, ref _perfBoost, i, nBuf, ref nSize) == 0)
-                        name = Encoding.Unicode.GetString(nBuf).TrimEnd('\0');
+                        // Windows names some modes with an em or en dash ("Agresywnie — gwarantowane");
+                        // the app's own text uses a short hyphen, so the names follow it.
+                        name = Encoding.Unicode.GetString(nBuf).TrimEnd('\0').Replace('—', '-').Replace('–', '-');
                 }
                 list.Add(new BoostMode(val, name));
             }
