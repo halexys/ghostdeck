@@ -22,6 +22,7 @@ public static class PowerPlan
     // ---------------- GUIDs ----------------
     private static Guid _subProcessor = new("54533251-82be-4824-96c1-47b60b740d00");   // SUB_PROCESSOR
     private static Guid _perfBoost = new("be337238-0d82-4146-a960-4f3749d470c7");      // PERFBOOSTMODE
+    private static Guid _perfAutonomous = new("8baa4a8a-14c6-4451-8e8b-14bdbd197537"); // PERFAUTONOMOUS (read only)
 
     // The three documented user-configured power modes (PowerSetUserConfiguredACPowerMode).
     public static readonly Guid ModeBestEfficiency = new("961cc777-2547-4f9d-8174-7d86181b8a7a");
@@ -120,6 +121,27 @@ public static class PowerPlan
         }
         catch { return false; }
     }
+
+    /// <summary>
+    /// "Processor performance autonomous mode" of a plan, read only (#117 help card and the test
+    /// reports): 1 = Windows lets the processor pick its own clock, which is where Microsoft says
+    /// the boost modes 1-4 all behave as Enabled. Microsoft notes that the platform may ignore the
+    /// setting, so it describes what Windows asks for, not what the processor does.
+    /// </summary>
+    public static bool TryReadAutonomous(Guid scheme, out uint ac, out uint dc)
+    {
+        ac = dc = 0;
+        try
+        {
+            return PowerReadACValueIndex(IntPtr.Zero, ref scheme, ref _subProcessor, ref _perfAutonomous, out ac) == 0
+                && PowerReadDCValueIndex(IntPtr.Zero, ref scheme, ref _subProcessor, ref _perfAutonomous, out dc) == 0;
+        }
+        catch { return false; }
+    }
+
+    /// <summary>Autonomous mode is on for both power sources of the active plan.</summary>
+    public static bool AutonomousOn() =>
+        TryGetActiveScheme(out var scheme) && TryReadAutonomous(scheme, out uint ac, out uint dc) && ac == 1 && dc == 1;
 
     /// <summary>Writes both values to the given plan; refreshes only when that plan is active.</summary>
     public static bool WriteBoost(Guid scheme, uint ac, uint dc)
@@ -386,6 +408,9 @@ public static class PowerPlan
             parts.Add(TryReadBoost(scheme, out uint ac, out uint dc)
                 ? $"CPU turbo boost AC {ac} ({BoostName(ac)}), battery {dc} ({BoostName(dc)})"
                 : "CPU turbo boost unreadable");
+            parts.Add(TryReadAutonomous(scheme, out uint pa, out uint pd)
+                ? $"autonomous mode AC {pa}, battery {pd}"
+                : "autonomous mode unreadable");
         }
         else parts.Add("active plan unreadable");
         if (TryGetUserPowerMode(out var mAc, out var mDc))

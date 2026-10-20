@@ -51,6 +51,7 @@ public sealed class WinPowerBody : Control
     private int _hot = -1;                 // 0 edit, 1 reset, 2 restore, 3 link
     private bool _inLayout;
     private PowerMapForm? _mapDlg;
+    private WinPowerHelpForm? _helpDlg;
 
     private static readonly (ProfileId Id, string Name)[] MapRows =
     {
@@ -76,7 +77,7 @@ public sealed class WinPowerBody : Control
         SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.UserPaint | ControlStyles.ResizeRedraw, true);
         BackColor = Theme.Card;
 
-        _help = new HelpDot { TextProvider = () => Lang.T("pw_turbo_help") };
+        _help = new HelpDot { OpenCard = OpenHelp };   // the whole card explained: a GhostDeck card, not a bubble
         _seg = new SegControl(new[] { Lang.T("pw_seg_eff"), Lang.T("pw_seg_bal"), Lang.T("pw_seg_perf"), Lang.T("pw_auto_seg") }, 1);
         _seg.MinimumSize = Size.Empty;   // the body sizes it; SegControl ellipsizes if a language outgrows a cell
         // the list Windows offers on THIS machine, names in its own language (read once, cached)
@@ -153,6 +154,13 @@ public sealed class WinPowerBody : Control
             Apply(PowerPlan.TrySetPowerMode(PowerPlan.GroupMode(i)) ? "" : "Windows refused the power-mode write",
                   "Windows power mode: " + (i == 0 ? "best efficiency" : i == 2 ? "best performance" : "balanced"));
         }
+    }
+
+    private void OpenHelp()
+    {
+        if (_helpDlg is { IsDisposed: false }) { _helpDlg.Activate(); return; }   // one help card at a time
+        _helpDlg = new WinPowerHelpForm();
+        _helpDlg.Show(); _helpDlg.Activate();
     }
 
     private void EditMapping()
@@ -305,6 +313,9 @@ public sealed class WinPowerBody : Control
         Flow(e.Graphics);
     }
 
+    /// <summary>"Aggressive (2)": the Windows name with the number Windows stores, for the details table.</summary>
+    private static string NameAndValue(uint v) => $"{PowerPlan.BoostName(v)} ({v})";
+
     private static int TextH(string text, Font f, int width) =>
         TextRenderer.MeasureText(text, f, new Size(Math.Max(10, width), 0), FmtWrap).Height;
 
@@ -376,8 +387,8 @@ public sealed class WinPowerBody : Control
         string none = Lang.T("pw_none");
         var rows = new (string Label, string A, string B, Color Col)[]
         {
-            (Lang.T("pw_value"), _haveBoost ? _ac.ToString() : "—", _haveBoost ? _dc.ToString() : "—", Theme.Text),
-            (Lang.T("pw_saved"), _snap != null ? PowerPlan.BoostName((uint)_snap[0]) : none, _snap != null ? PowerPlan.BoostName((uint)_snap[1]) : none, _snap != null ? Theme.Amber : Theme.Faint),
+            (Lang.T("pw_now"), _haveBoost ? NameAndValue(_ac) : "—", _haveBoost ? NameAndValue(_dc) : "—", Theme.Text),
+            (Lang.T("pw_saved"), _snap != null ? NameAndValue((uint)_snap[0]) : none, _snap != null ? NameAndValue((uint)_snap[1]) : none, _snap != null ? Theme.Amber : Theme.Faint),
         };
         for (int i = 0; i < rows.Length; i++)
         {
