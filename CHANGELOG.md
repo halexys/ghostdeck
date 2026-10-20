@@ -17,7 +17,9 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   it lowers power), and says when Windows has autonomous mode on, where Microsoft gives most modes
   the same behaviour. Every mode carries an icon and colour for what it really does (less
   power, turbo, max turbo, asks for more), in the lists, the By profile table, the editor and the
-  help card, which explains them in a legend. Guide: [docs/WINDOWS-POWER.md](docs/WINDOWS-POWER.md).
+  help card, which explains them in a legend. Each mode shows the number Windows stores for it,
+  as in **[2] Aggressive**, and long names wrap instead of being cut. Guide:
+  [docs/WINDOWS-POWER.md](docs/WINDOWS-POWER.md).
 - **Models tab in five sub-tabs** - **Start** (your laptop and what works on it, or a "not in the
   database yet" card with *Report my model*; the database in numbers; a growth chart of recognised
   and tested models; the experimental models closest to tested; the latest changes), **List** (the
