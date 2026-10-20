@@ -11,7 +11,7 @@
   what was there before and **Restore Windows settings** puts it back.
 - Every turbo mode carries an **icon for what it really does**. Seven names, a few behaviours.
 - **Only the GhostDeck profile changes the watt limit.** The sure ways to less power are the
-  Silent profile or turbo set to **[0] Disabled**.
+  Silent profile or turbo set to **Disabled**.
 
 ![The Windows power card](images/windows_power.png)
 
@@ -32,10 +32,9 @@
 | Footer link | Shows or hides the turbo setting in the Windows power options. |
 | **?** next to CPU turbo boost | Opens the help card: everything on this page in short, with a table of the modes your Windows offers. |
 
-**The number in square brackets.** A mode is written as **[2] Aggressive** everywhere on the
-card, in the lists, in *By profile* and in the editor. The number is the one under which Windows
-stores the mode in the power plan; the name comes from Windows, in your Windows language.
-Long names wrap onto a second line instead of being cut.
+**Mode names.** The card shows each mode by the name Windows gives it, in your Windows
+language. Long names wrap onto a second line instead of being cut. The number under which
+Windows stores a mode in the power plan is in the *Value* column of the help card's table.
 
 ## The turbo switch
 
@@ -43,7 +42,7 @@ With turbo **off**, the processor stays at its base clock. The laptop runs notic
 and quieter under load, and is slower at peak. Together with the Silent profile, it is the one
 setting that reliably lowers power draw.
 
-- **Off** writes **[0] Disabled** for both power sources. Before that, GhostDeck saves the modes
+- **Off** writes **Disabled** for both power sources. Before that, GhostDeck saves the modes
   the plan had, and shows them under *Technical details → Saved*.
 - **On** writes the saved modes back. If nothing was saved (turbo was switched off outside
   GhostDeck), it uses an enabled mode Windows offers.
@@ -67,7 +66,7 @@ covers both ("Both sources: ...").
 ![The turbo mode list, open](images/windows_power_list.png)
 
 **Picking a mode while turbo is off** turns turbo on for that power source. Picking
-**[0] Disabled** in one list switches turbo off for that source only (for example: off on
+**Disabled** in one list switches turbo off for that source only (for example: off on
 battery, full speed plugged in). The switch then stays on, and the line under it says exactly
 which mode each source uses.
 
@@ -77,9 +76,9 @@ On a typical Windows 11 laptop:
 |---|---|---|
 | 0 | Disabled | The processor stays at its base clock. Cooler and quieter, clearly slower. Besides Silent, the only mode that surely lowers power. |
 | 1 | Enabled | The processor speeds up when it has work. Windows decides how much. |
-| 2 | Aggressive | Speeds up whenever it can. On processors that manage their own clock, Microsoft says it works like *[1] Enabled*. |
-| 3 | Efficient Enabled | Microsoft says it works like *[1] Enabled*. The name suggests saving energy, but the documentation does not confirm it. |
-| 4 | Efficient Aggressive | Microsoft says it works like *[2] Aggressive*. |
+| 2 | Aggressive | Speeds up whenever it can. On processors that manage their own clock, Microsoft says it works like *Enabled*. |
+| 3 | Efficient Enabled | Microsoft says it works like *Enabled*. The name suggests saving energy, but the documentation does not confirm it. |
+| 4 | Efficient Aggressive | Microsoft says it works like *Aggressive*. |
 | 5 | Aggressive At Guaranteed | Windows works out how much extra speed above the processor's guaranteed level is needed and asks for exactly that. |
 | 6 | Efficient Aggressive At Guaranteed | Windows always asks for the highest speed above the processor's guaranteed level. |
 
@@ -92,8 +91,8 @@ for more than it. A mode Windows lists that GhostDeck does not know is shown as 
 
 **Autonomous mode.** Windows has a second hidden setting, *Processor performance autonomous mode*
 (PERFAUTONOMOUS). When it is on, Windows lets the processor pick its own clock, and Microsoft's
-table then gives modes 1 to 4 the same behaviour as *[1] Enabled*: the real difference comes
-from *[0] Disabled*. GhostDeck only reads this setting. When the active plan has it on for both
+table then gives modes 1 to 4 the same behaviour as *Enabled*: the real difference comes
+from *Disabled*. GhostDeck only reads this setting. When the active plan has it on for both
 power sources, the icons and the help card say so, and the test reports record it. Microsoft
 notes that the platform may ignore the setting, so GhostDeck reports what Windows has switched
 on, not what the processor does.

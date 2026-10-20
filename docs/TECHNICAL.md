@@ -3012,7 +3012,7 @@ time with the same 529 system windows; a card Sync costs about 1 ms on both once
 remembers its text heights (without that it was 3 ms); a click in the By profile editor repaints once
 in about 15 ms against 9 ms on main, because the card is taller and carries more chips.
 
-**No text cut, the number in brackets (#117, fourth round, owner test on 1.40.99).** Nothing in
+**No text cut (#117, fourth and fifth rounds, owner test on 1.40.99).** Nothing in
 this feature ends in "..." any more. `WinPowerBody` lost its one-line ellipsis format: every label,
 table header, details cell and By profile cell wraps through one `Cell` helper and its row grows
 (header rows measure their longest caption, `ThH`). `ThemedComboBox` has a new opt-in
@@ -3021,12 +3021,10 @@ wraps and the field grows (`FieldHeightFor(width)`, remembered per text, width a
 card's turbo lists use it, and the open list stays one line per row because `DropDownWidth` is
 measured to the longest label. `PowerMapForm` wraps its labels, its profile tabs and any chip
 wider than the card (a full-width chip that grows), and `WinPowerHelpForm` wraps its tabs.
-A mode is written everywhere in the UI as `PowerPlan.BoostLabel(value)`: "[2] Aggressive", the
-number Windows stores in the plan in square brackets before the Windows name, joined by a no-break
-space so the number never ends a line alone; the number has the colour of the name (one text, so
-it wraps like one). The card's change-log lines use the same format (`TurboLabels`); the CLI and
-the test reports keep "2 (Aggressive)". The help card says what the number is under its table of
-modes. Its text is now a step above the Settings cards (14.5 px body, 14 px table, 16.5 px
+The UI shows a mode by its Windows name alone (`BoostName`): the card, the lists, By profile, the editor, the restore card and the
+change log (`TurboLabels`, "Aggressive / Efficient Enabled"). The number Windows stores appears
+only in the *Value* column of the help card's table, with one sentence under it saying what it
+is; the CLI and the test reports keep "2 (Aggressive)". Its text is now a step above the Settings cards (14.5 px body, 14 px table, 16.5 px
 headings, 14.5 px tabs and buttons through the new `GhostCardForm.ButtonFontPx`), and the icon
 legend moved to a page of its own, so the tallest page (the table) still fits a 1080p screen at
 125 % (about 890 px). The harness stress set `BOOSTNAMES=long` (very long names, `FAKEMODES` for

@@ -61,5 +61,5 @@
     <text x="788" y="382" font-size="13" font-weight="700" fill="#A4ADBD" text-anchor="middle">Does not change the watt limit</text>
   </g>
 
-  <text x="32" y="418" font-size="13" fill="#C9D4E8">Only the profile changes the watt limit. The sure ways to less power: the Silent profile, or turbo set to "[0] Disabled".</text>
+  <text x="32" y="418" font-size="13" fill="#C9D4E8">Only the profile changes the watt limit. The sure ways to less power: the Silent profile, or turbo set to "Disabled".</text>
 </svg>
