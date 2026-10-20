@@ -220,7 +220,7 @@ External monitors and HDR were not tested (the message carries no monitor parame
 | ![Settings Automation](docs/images/settings_automation.png) | ![Travel mode](docs/images/travel_mode.png) |
 | **Settings → Automation** - the scene schedule, CPU/GPU and SSD temperature alerts with their own thresholds, OSD display time and one-click restore defaults | **Travel mode** - charge to 100 % for a trip; the previous limit returns on its own after the chosen number of days |
 | ![Windows power](docs/images/windows_power.png) | ![Profile mapping](docs/images/windows_power_mapping.png) |
-| **Windows power** - the CPU turbo boost switch with the saved values in plain view, the Windows power mode as four segments, and *Restore Windows settings* naming what comes back | **Profile mapping** - which Windows power mode each profile selects while *Auto: profile* is on |
+| **Windows power** - the CPU turbo boost switch, the exact turbo mode plugged in and on battery with a plain description, the saved values in plain view, the Windows power mode as four segments, and *By profile* | **By profile editor** - the power mode and the turbo mode for each power source a profile sets when it switches on |
 | ![Apex switch](docs/images/apex_scenario.png) | ![Apex, first enable](docs/images/apex_modal.png) |
 | **Apex switch** - on boards with a fourth performance value the Extreme tile carries its own toggle | **Apex, first enable** - one card explains what Apex is and what the switch does before it is turned on for the first time |
 | ![Restore Windows settings](docs/images/windows_power_restore.png) | ![Name prompt](docs/images/preset_name_prompt.png) |

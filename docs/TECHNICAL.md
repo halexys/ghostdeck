@@ -2972,6 +2972,21 @@ power mode only), skips a value this Windows does not list (a settings file from
 and writes nothing when the plan already matches; like the mode, it is never enforced in the
 background. Imported settings carry `TurboMap` but not `TurboOriginals` (machine state).
 
+**The help card and autonomous mode (#117, second round).** The "?" next to CPU turbo boost
+opens `WinPowerHelpForm` (a GhostCardForm with a painted content block, RENDERING.md §11) instead
+of a bubble (`HelpDot.OpenCard`): four pages behind tabs (switch and lists with the "sure ways to
+less power" callout; a table of `BoostModes()` with value, Windows name, `BoostDescription` and
+"lowers power?" - 0 yes, 1-6 no, anything else unknown; power mode, Auto and By profile; Restore
+and the reveal link with the Microsoft sources named), sized to its tallest page so switching
+pages never moves the buttons, and an aux button opening docs/WINDOWS-POWER.md on GitHub.
+`PowerPlan.TryReadAutonomous` reads PERFAUTONOMOUS (`8baa4a8a-14c6-4451-8e8b-14bdbd197537`,
+processor subgroup) of the active plan, read only, with the same AC/DC value-index calls; when both
+sources are 1 the modes page adds the sentence that Windows has autonomous mode on and that
+Microsoft then gives modes 1-4 the behaviour of Enabled. Microsoft notes the platform may ignore
+the setting, so the text says what Windows has switched on, never what the processor does.
+`ReportLine()` adds `autonomous mode AC n, battery n` to both test reports. The details table
+shows each value as the Windows name with its number ("Aggressive (2)") in *Now* and *Saved*.
+
 **The Windows power mode row.** A FOUR-segment control: the three modes of the Windows power
 slider, set directly for both power sources through the official Windows 11 API
 (`PowerSetUserConfiguredAC/DCPowerMode`, resolved dynamically; the long-lived but
@@ -3020,8 +3035,7 @@ one status sentence (plain when on, an amber strip when it is off, with or witho
 or when the two sources differ); a faint sentence on what the switch does; TURBO MODE - the two
 lists under a plugged-in / battery header with the description of each pick below it; an open
 table "Technical details" - a header row naming the active plan and the two sources, then
-*Value in Windows* (the raw numbers) and *Saved* (amber when a snapshot exists, "none"
-otherwise). Group two, WINDOWS POWER MODE: the four-segment control; under it the Auto sentence
+*Now* and *Saved* as "name (number)" (Saved amber when a snapshot exists, "none" otherwise). Group two, WINDOWS POWER MODE: the four-segment control; under it the Auto sentence
 and, only on a real override, the amber note. Group three, BY PROFILE (violet marker): the
 caption with two glyph hotspots on the right (edit, restore defaults), a table of profile
 (scenario icon in the profile colour + name), power mode, turbo plugged in and turbo on battery

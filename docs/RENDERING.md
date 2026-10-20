@@ -585,7 +585,9 @@ caret in the first field when the card opens), the painters (`PaintSwitch`, `Pai
 
 Carriers: `PowerMapForm` (profile → Windows power mode and turbo modes, `//WIN-POWER`; four
 profile tabs with scenario icon and name, then chip rows for the picked profile that wrap
-instead of cutting long Windows names; one `Arrange` routine serves measure and paint), `SceneEditForm` (`//SCENE`; name and
+instead of cutting long Windows names; one `Arrange` routine serves measure and paint),
+`WinPowerHelpForm` (`//WIN-POWER`; the help card of the Windows power card: four pages behind
+tabs, a painted table of the turbo modes, a callout, sized to its tallest page), `SceneEditForm` (`//SCENE`; name and
 icon fields, then one row per setting with a painted switch and a picker), `ScheduleRuleForm`
 (`//SCHEDULE`; scene select, seven weekday cells of which any number can be lit, two time
 selects; a rule with no day keeps the card open with the day row marked), `ProfileOrderForm`

@@ -10,17 +10,20 @@ Nothing on this card touches the laptop's embedded controller (EC). Everything g
 documented Windows power APIs, so the card works on **any** Windows laptop, including the ones
 GhostDeck cannot otherwise control.
 
+![The Windows power card](images/windows_power.png)
+
 ## What is on the card
 
 | Part | What it does |
 |---|---|
 | **CPU turbo boost** switch | Turns the processor's turbo boost off or back on in the active power plan. |
 | **Turbo mode** (two lists) | Picks the exact turbo mode Windows uses, separately **plugged in** and **on battery**. |
-| **Technical details** | The numbers Windows stores for the active plan, and the modes the switch brings back. |
+| **Technical details** | The active plan's turbo mode for each source, as its Windows name with the number Windows stores ("Aggressive (2)"), and the modes the switch brings back. |
 | **Windows power mode** | Best power efficiency / balanced / best performance, or **Auto: profile**. |
 | **By profile** | What GhostDeck sets in Windows when a profile switches on: the power mode, and the turbo mode for each power source. |
 | **Restore Windows settings** | Appears only while GhostDeck has changed something; puts it all back. |
 | Footer link | Shows or hides the turbo setting in the Windows power options. |
+| **?** next to CPU turbo boost | Opens the help card: everything on this page in short, with a table of the modes your Windows offers. |
 
 ## The turbo switch
 
@@ -63,6 +66,14 @@ modes 5 and 6 in the [ProcessorPerformanceBoostMode reference](https://learn.mic
 "Guaranteed" is a level the processor reports about itself, not a cap: both of those modes ask
 for more than it. A mode Windows lists that GhostDeck does not know is shown as such.
 
+**Autonomous mode.** Windows has a second hidden setting, *Processor performance autonomous mode*
+(PERFAUTONOMOUS). When it is on, Windows lets the processor pick its own clock, and Microsoft's
+table then gives modes 1 to 4 the same behaviour as *Enabled*: the real difference comes from
+*Disabled*. GhostDeck only reads this setting. When the active plan has it on for both power
+sources, the help card says so under its table of modes, and the test reports record it.
+Microsoft notes that the platform may ignore the setting, so GhostDeck reports what Windows has
+switched on, not what the processor does.
+
 **Picking a mode while turbo is off** turns turbo on for that power source. Picking *Disabled*
 in one list switches turbo off for that source only (for example: off on battery, full speed
 plugged in). The switch then stays on, and the line under it says exactly which mode each
@@ -81,6 +92,8 @@ profile switches on:
 
 The pencil opens the editor: pick a profile at the top, then the power mode and the turbo mode
 for each power source. The arrow next to it restores the defaults.
+
+![The By profile editor](images/windows_power_mapping.png)
 
 Profiles apply these settings **once, at the switch**. A change you make on the card or in
 Windows afterwards stands until the next profile switch; GhostDeck does not fight it.
@@ -122,15 +135,28 @@ also marked to be shown on such machines. GhostDeck sets that mark. This is why
 `powercfg -attributes SUB_PROCESSOR be337238-0d82-4146-a960-4f3749d470c7 -ATTRIB_HIDE` alone does
 not make it appear on those laptops.
 
+## The help card
+
+The **?** next to *CPU turbo boost* opens a GhostDeck card with four pages: the switch and the
+two lists (and the sure ways to less power), a table of every turbo mode your Windows offers
+(value, Windows name, what it does, whether it lowers power), the power mode and *By profile*,
+and *Restore* with the Power Options link. Its *Guide on GitHub* button opens this page.
+
+![The help card, turbo modes](images/windows_power_help.png)
+
+![The help card, the switch](images/windows_power_help_turbo.png)
+
 ## Test reports
 
 The power test and the backup path test write the Windows power state into their report header:
-the active plan, the turbo mode for each power source (number and Windows name) and the power
-mode. A run with turbo off measures a different machine, and the report says so.
+the active plan, the turbo mode for each power source (number and Windows name), autonomous mode
+for each power source, and the power mode. A run with turbo off measures a different machine,
+and the report says so.
 
 ## More
 
 - [FAQ: Can GhostDeck turn CPU turbo boost off?](FAQ.md#can-ghostdeck-turn-cpu-turbo-boost-off-what-is-the-windows-power-card)
 - [CLI reference](CLI.md) (`--turbo`)
 - [TECHNICAL.md §71](TECHNICAL.md#71-the-windows-power-card-turbo-boost-and-the-windows-power-mode-v137-discussion-141) - how the card works inside
+- Microsoft: [Processor performance autonomous mode](https://learn.microsoft.com/en-us/windows-hardware/customize/power-settings/options-for-perf-state-engine-perfautonomousmode)
 - Microsoft: [Processor performance boost mode](https://learn.microsoft.com/en-us/windows-hardware/customize/power-settings/options-for-perf-state-engine-perfboostmode)
