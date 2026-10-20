@@ -25,6 +25,13 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   the Thin 15 B12UCX / B12VE).
 
 ### Fixed
+- **Start with Windows works on battery** ([#172](../../issues/172), thanks @UzaydaGezen) - the startup task was created
+  with Windows' default conditions: start only on mains power, stop when the laptop switches to battery,
+  and stop after 72 hours. The task is now written with none of them, and a task made by an earlier
+  version is corrected at the next start.
+- **Fan Boost auto-off also covers Fan Boost turned on outside the app** ([#172](../../issues/172)) - with
+  the laptop's own fan key, MSI's app, or already on when GhostDeck starts. Before, the countdown ran only
+  when GhostDeck itself switched Fan Boost on.
 - When Windows stops answering the hardware readings for more than 10 seconds (it can happen
   after sleep or when a Windows service restarts), the tray temperatures, the overlay and the
   Status rings show a dash instead of freezing on the last numbers, Status says why in one line,

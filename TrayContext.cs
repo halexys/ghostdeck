@@ -162,6 +162,7 @@ public sealed class TrayContext : ApplicationContext
 
         DetectFirmwareChange();
         if (Known && !_simulate) { try { _coolerBoost = Ec.GetCoolerBoost(_device!); } catch { } }
+        if (_coolerBoost) ArmBoostTimer(true);   // (#172) already on at start: the auto-off applies to it too
 
         // A trip that ended while the app was off reverts before the first apply. The card
         // comes up with the rest of the start-up state, below.
@@ -832,6 +833,7 @@ public sealed class TrayContext : ApplicationContext
         {
             try { _current = Ec.GetCurrent(_device!); } catch { }
             try { _coolerBoost = Ec.GetCoolerBoost(_device!); } catch { }
+            ArmBoostTimer(_coolerBoost);   // (#172) the auto-off follows the state found here
             if (_webcamSupported) { try { _webcamOn = Ec.GetWebcam(); } catch { } }
         }
         BuildMenu();
@@ -3161,7 +3163,9 @@ public sealed class TrayContext : ApplicationContext
         {
             // Cooler Boost may be toggled elsewhere (or cleared by the firmware) — keep the menu in sync.
             bool cb = Ec.GetCoolerBoost(_device!);
-            if (cb != _coolerBoost) { _coolerBoost = cb; UpdateCoolerBoostMenu(); }
+            // (#172) Turned on by the laptop's own fan key or by MSI's app: the auto-off timer is the
+            // user's rule for Fan Boost as such, so it starts here too (and stops when it goes off).
+            if (cb != _coolerBoost) { _coolerBoost = cb; ArmBoostTimer(cb); UpdateCoolerBoostMenu(); }
 
             // (#27) The Fn camera key flips the same EC bit — keep the Scenarios brick in sync.
             if (_webcamSupported)

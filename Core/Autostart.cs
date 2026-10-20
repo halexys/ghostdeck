@@ -72,6 +72,8 @@ public static class Autostart
             var m = System.Text.RegularExpressions.Regex.Match(xml, @"<Command>\s*""?([^""<]+?)""?\s*</Command>");
             if (m.Success && !string.Equals(m.Groups[1].Value.Trim(), ExePath, StringComparison.OrdinalIgnoreCase))
                 Set(true);
+            else if (NeedsConditionFix(xml))
+                Set(true);   // (#172) a task from an older version still carries the battery conditions
         }
         catch { }
     }
@@ -97,9 +99,69 @@ public static class Autostart
     public static void Set(bool enabled)
     {
         if (enabled)
-            Run($"/Create /TN \"{TaskName}\" /TR \"\\\"{ExePath}\\\"\" /SC ONLOGON /RL HIGHEST /F");
+        {
+            // (#172) Registered from our own XML so the task starts on battery too. The plain
+            // schtasks line stays as the fallback for a scheduler that refuses the XML.
+            if (!CreateFromXml())
+                Run($"/Create /TN \"{TaskName}\" /TR \"\\\"{ExePath}\\\"\" /SC ONLOGON /RL HIGHEST /F");
+        }
         else
             Run($"/Delete /TN \"{TaskName}\" /F");
         IsEnabled();   // remember what the scheduler really holds now
+    }
+
+    // (#172) schtasks /Create gives a task Windows' default conditions: start only on mains power,
+    // stop when the laptop switches to battery, and - with no ExecutionTimeLimit element - stop
+    // after 72 hours. None of that fits a tray app. The task is therefore written from the XML
+    // below: the same logon trigger, the same principal (this user, interactive, highest
+    // available) and the same action as the schtasks line produced, with both battery conditions
+    // off and no time limit. The path and the user's SID come straight from the process, so a
+    // non-ASCII path never passes through a console code page.
+    private static bool NeedsConditionFix(string xml) =>
+        xml.Contains("<DisallowStartIfOnBatteries>true", StringComparison.OrdinalIgnoreCase)
+        || xml.Contains("<StopIfGoingOnBatteries>true", StringComparison.OrdinalIgnoreCase)
+        || !xml.Contains("<ExecutionTimeLimit>PT0S</ExecutionTimeLimit>", StringComparison.OrdinalIgnoreCase);
+
+    private static bool CreateFromXml()
+    {
+        string? sid = System.Security.Principal.WindowsIdentity.GetCurrent().User?.Value;
+        if (string.IsNullOrEmpty(sid)) return false;
+        string cmd = System.Security.SecurityElement.Escape(ExePath) ?? ExePath;
+        string xml = $$"""
+            <?xml version="1.0" encoding="UTF-16"?>
+            <Task version="1.2" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
+              <Principals>
+                <Principal id="Author">
+                  <UserId>{{sid}}</UserId>
+                  <LogonType>InteractiveToken</LogonType>
+                  <RunLevel>HighestAvailable</RunLevel>
+                </Principal>
+              </Principals>
+              <Settings>
+                <DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries>
+                <StopIfGoingOnBatteries>false</StopIfGoingOnBatteries>
+                <ExecutionTimeLimit>PT0S</ExecutionTimeLimit>
+                <MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy>
+              </Settings>
+              <Triggers>
+                <LogonTrigger>
+                  <Enabled>true</Enabled>
+                </LogonTrigger>
+              </Triggers>
+              <Actions Context="Author">
+                <Exec>
+                  <Command>{{cmd}}</Command>
+                </Exec>
+              </Actions>
+            </Task>
+            """;
+        string file = Path.Combine(Path.GetTempPath(), $"ghostdeck-task-{Environment.ProcessId}.xml");
+        try
+        {
+            File.WriteAllText(file, xml, System.Text.Encoding.Unicode);   // the declaration says UTF-16
+            return Run($"/Create /TN \"{TaskName}\" /XML \"{file}\" /F") == 0;
+        }
+        catch { return false; }
+        finally { try { File.Delete(file); } catch { } }
     }
 }
