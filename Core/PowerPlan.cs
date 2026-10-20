@@ -197,16 +197,45 @@ public static class PowerPlan
     // ---------------- turbo operations shared by the Settings card and the CLI ----------------
     // Return "" on success or an English machine-readable reason (CLI output stays English by
     // design; the card wraps failures in its own localized text).
+    //
+    // Two memories per plan GUID, both in AppSettings and both machine state:
+    // - TurboSnapshots: the modes the main switch brings back. Taken once, before a write that
+    //   turns a boosting source to 0; while turbo is off, a mode picked in the card's list for one
+    //   source updates that side, so "on" returns to what the user chose last.
+    // - TurboOriginals (#117): the pair the plan had before GhostDeck's FIRST boost write of any
+    //   kind. "Restore Windows settings" writes it back. Since modes can now be picked from a list,
+    //   a non-zero value can be replaced by another non-zero one, which a snapshot never records.
+    //   Dropped as soon as the plan is back to exactly that pair with nothing else held.
 
     private static string Key(Guid scheme) => scheme.ToString("D").ToLowerInvariant();
+
+    private static void KeepOriginal(AppSettings s, string key, uint ac, uint dc)
+    {
+        if (!s.TurboOriginals.ContainsKey(key)) s.TurboOriginals[key] = new[] { (int)ac, (int)dc };
+    }
+
+    private static void Tidy(AppSettings s, string key, uint ac, uint dc)
+    {
+        if (s.TurboSnapshots.TryGetValue(key, out var snap) && snap is { Length: 2 } && snap[0] == (int)ac && snap[1] == (int)dc)
+            s.TurboSnapshots.Remove(key);   // fully back to what the switch would restore
+        if (!s.TurboSnapshots.ContainsKey(key) && s.TurboOriginals.TryGetValue(key, out var o)
+            && o is { Length: 2 } && o[0] == (int)ac && o[1] == (int)dc)
+            s.TurboOriginals.Remove(key);   // nothing GhostDeck changed is left in this plan
+    }
 
     public static string TurboOff(AppSettings s)
     {
         if (!TryGetActiveScheme(out var scheme)) return "cannot read the active power plan";
         if (!TryReadBoost(scheme, out uint ac, out uint dc)) return "cannot read the boost setting";
         if (ac == 0 && dc == 0) return "";   // already off; nothing to snapshot (never snapshot zeros)
-        // Snapshot BEFORE the write, per plan GUID, only on a non-zero -> 0 transition.
-        s.TurboSnapshots[Key(scheme)] = new[] { (int)ac, (int)dc };
+        string key = Key(scheme);
+        // Snapshot BEFORE the write, per plan GUID, only on a non-zero -> 0 transition. A source
+        // that is already 0 keeps what an earlier snapshot holds for it (one side switched off
+        // from the list, then the whole switch), so nothing chosen is lost.
+        s.TurboSnapshots[key] = s.TurboSnapshots.TryGetValue(key, out var old) && old is { Length: 2 }
+            ? new[] { ac != 0 ? (int)ac : old[0], dc != 0 ? (int)dc : old[1] }
+            : new[] { (int)ac, (int)dc };
+        KeepOriginal(s, key, ac, dc);
         s.Save();
         return WriteBoost(scheme, 0, 0) ? "" : "Windows refused the boost write";
     }
@@ -214,50 +243,88 @@ public static class PowerPlan
     public static string TurboOn(AppSettings s)
     {
         if (!TryGetActiveScheme(out var scheme)) return "cannot read the active power plan";
+        if (!TryReadBoost(scheme, out uint a0, out uint d0)) return "cannot read the boost setting";
+        string key = Key(scheme);
         uint ac, dc;
-        if (s.TurboSnapshots.TryGetValue(Key(scheme), out var snap) && snap is { Length: 2 })
+        if (s.TurboSnapshots.TryGetValue(key, out var snap) && snap is { Length: 2 })
         {
             ac = (uint)snap[0]; dc = (uint)snap[1];
         }
         else if (FallbackBoost() is { } fb) { ac = dc = fb.Value; }
         else return "this Windows enumerates no usable boost mode";
-        if (!WriteBoost(scheme, ac, dc)) return "Windows refused the boost write";
-        s.TurboSnapshots.Remove(Key(scheme));   // consumed only after a successful write
+        KeepOriginal(s, key, a0, d0);
+        if (!WriteBoost(scheme, ac, dc)) { s.Save(); return "Windows refused the boost write"; }
+        s.TurboSnapshots.Remove(key);   // consumed only after a successful write
+        Tidy(s, key, ac, dc);
         s.Save();
         return "";
     }
 
     /// <summary>
-    /// Per-source turbo switch (the "control separately" rows inside the card's details).
-    /// Same snapshot rules as the main switch: the pre-change pair is captured once, before
-    /// the first write that destroys a non-zero value, and the snapshot is dropped only when
-    /// a write makes the live pair match it again (fully restored).
+    /// Sets the turbo mode of one or both sources in the active plan (#117): the card's two lists
+    /// and the per-profile mapping. A negative value leaves that source as it is. Same snapshot
+    /// rules as the main switch: the pair is captured once before a boosting source goes to 0,
+    /// and while a snapshot exists a non-zero pick replaces that side of it, so the switch later
+    /// brings back what was chosen. <paramref name="changed"/> is false when nothing was written.
     /// </summary>
-    public static string TurboSetSource(AppSettings s, bool acSide, bool on)
+    public static string TurboSetModes(AppSettings s, int acMode, int dcMode, out bool changed)
     {
+        changed = false;
         if (!TryGetActiveScheme(out var scheme)) return "cannot read the active power plan";
         if (!TryReadBoost(scheme, out uint ac, out uint dc)) return "cannot read the boost setting";
+        uint nAc = acMode >= 0 ? (uint)acMode : ac, nDc = dcMode >= 0 ? (uint)dcMode : dc;
+        if (nAc == ac && nDc == dc) return "";
         string key = Key(scheme);
         bool haveSnap = s.TurboSnapshots.TryGetValue(key, out var snap) && snap is { Length: 2 };
-        uint next = 0;
-        if (on)
+        if (!haveSnap && ((ac != 0 && nAc == 0) || (dc != 0 && nDc == 0)))
+            s.TurboSnapshots[key] = new[] { (int)(nAc != 0 ? nAc : ac), (int)(nDc != 0 ? nDc : dc) };
+        else if (haveSnap)
         {
-            int sv = haveSnap ? (acSide ? snap![0] : snap![1]) : 0;
-            if (sv != 0) next = (uint)sv;
-            else if (FallbackBoost() is { } fb) next = fb.Value;
-            else return "this Windows enumerates no usable boost mode";
+            if (nAc != ac) snap![0] = (int)(nAc != 0 ? nAc : ac);   // a pick, or the mode being switched off
+            if (nDc != dc) snap![1] = (int)(nDc != 0 ? nDc : dc);
         }
-        else if ((acSide ? ac : dc) != 0 && !haveSnap)
-        {
-            s.TurboSnapshots[key] = new[] { (int)ac, (int)dc };
-            haveSnap = true; snap = s.TurboSnapshots[key];
-        }
-        uint nAc = acSide ? next : ac, nDc = acSide ? dc : next;
-        if (!WriteBoost(scheme, nAc, nDc)) return "Windows refused the boost write";
-        if (haveSnap && snap![0] == (int)nAc && snap[1] == (int)nDc) s.TurboSnapshots.Remove(key);
+        KeepOriginal(s, key, ac, dc);
+        if (!WriteBoost(scheme, nAc, nDc)) { s.Save(); return "Windows refused the boost write"; }
+        changed = true;
+        Tidy(s, key, nAc, nDc);
         s.Save();
         return "";
     }
+
+    // ---------------- turbo per profile (#117) ----------------
+    // AppSettings.TurboMap: profile key -> [plugged in, battery]; -1 = "no change". Only profiles
+    // with at least one source set are stored, so an empty map is the default: nothing happens.
+
+    public static (int Ac, int Dc) TurboFor(AppSettings s, ProfileId id) =>
+        s.TurboMap.TryGetValue(id.ToString(), out var v) && v is { Length: 2 } ? (v[0], v[1]) : (-1, -1);
+
+    /// <summary>
+    /// Applied on a profile switch, like the power-mode sync and never enforced in the background:
+    /// a later change on the card stands until the next switch. A mode this Windows does not list
+    /// (a settings file from another machine) is skipped. Returns null when nothing was due.
+    /// </summary>
+    public static string? ApplyProfileTurbo(AppSettings s, ProfileId id)
+    {
+        var (a, d) = TurboFor(s, id);
+        var modes = BoostModes();
+        if (a >= 0 && !modes.Any(m => m.Value == a)) a = -1;
+        if (d >= 0 && !modes.Any(m => m.Value == d)) d = -1;
+        if (a < 0 && d < 0) return null;
+        string err = TurboSetModes(s, a, d, out bool changed);
+        return err.Length > 0 ? err : changed ? "" : null;
+    }
+
+    /// <summary>Lang key of the plain description of a boost mode; formats take the Windows names of modes 1 and 2.</summary>
+    public static string BoostDescription(uint value) => value switch
+    {
+        0 => Lang.T("pw_bm_0"),
+        1 => Lang.T("pw_bm_1"),
+        2 => string.Format(Lang.T("pw_bm_2"), BoostName(1)),
+        3 => string.Format(Lang.T("pw_bm_3"), BoostName(1)),
+        4 => string.Format(Lang.T("pw_bm_4"), BoostName(2)),
+        5 or 6 => Lang.T("pw_bm_undoc"),
+        _ => Lang.T("pw_bm_unknown"),
+    };
 
     public static string TurboStatus()
     {
@@ -267,20 +334,37 @@ public static class PowerPlan
         return $"turbo boost: {state} (AC {BoostName(ac)}, battery {BoostName(dc)})";
     }
 
+    /// <summary>What "Restore Windows settings" would write per plan: the original pair, else the snapshot.</summary>
+    public static List<(Guid Scheme, int[] Pair)> RestoreTargets(AppSettings s)
+    {
+        var list = new List<(Guid, int[])>();
+        foreach (var key in s.TurboOriginals.Keys.Union(s.TurboSnapshots.Keys).ToArray())
+        {
+            int[]? pair = s.TurboOriginals.TryGetValue(key, out var o) && o is { Length: 2 } ? o
+                : s.TurboSnapshots.TryGetValue(key, out var sn) && sn is { Length: 2 } ? sn : null;
+            if (pair != null && Guid.TryParse(key, out var g)) list.Add((g, pair));
+        }
+        return list;
+    }
+
     /// <summary>
-    /// "Restore Windows settings": puts every snapshotted plan back and reports what happened.
+    /// "Restore Windows settings": puts every plan GhostDeck changed back to its original pair
+    /// (or, for a plan changed only by an older version, its snapshot) and reports what happened.
     /// Never activates another plan - values are written per GUID and the active plan is
-    /// refreshed once at the end. A deleted plan drops its stale snapshot; a failed write
-    /// keeps its snapshot so the user can retry.
+    /// refreshed once at the end. A deleted plan drops its stale memory; a failed write keeps it
+    /// so the user can retry.
     /// </summary>
     public static (int restored, int missing, int failed) RestoreAll(AppSettings s)
     {
         int restored = 0, missing = 0, failed = 0;
-        foreach (var (key, snap) in s.TurboSnapshots.ToArray())
+        foreach (var key in s.TurboOriginals.Keys.Union(s.TurboSnapshots.Keys).ToArray())
         {
-            if (snap is not { Length: 2 } || !Guid.TryParse(key, out var scheme)) { s.TurboSnapshots.Remove(key); continue; }
-            if (!SchemeExists(scheme)) { s.TurboSnapshots.Remove(key); missing++; continue; }
-            if (WriteBoost(scheme, (uint)snap[0], (uint)snap[1])) { s.TurboSnapshots.Remove(key); restored++; }
+            int[]? pair = s.TurboOriginals.TryGetValue(key, out var o) && o is { Length: 2 } ? o
+                : s.TurboSnapshots.TryGetValue(key, out var sn) && sn is { Length: 2 } ? sn : null;
+            void Drop() { s.TurboOriginals.Remove(key); s.TurboSnapshots.Remove(key); }
+            if (pair == null || !Guid.TryParse(key, out var scheme)) { Drop(); continue; }
+            if (!SchemeExists(scheme)) { Drop(); missing++; continue; }
+            if (WriteBoost(scheme, (uint)pair[0], (uint)pair[1])) { Drop(); restored++; }
             else failed++;
         }
         s.Save();

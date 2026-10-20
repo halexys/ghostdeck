@@ -240,6 +240,8 @@ public sealed class AppSettings
     public Dictionary<string, int[]> TurboSnapshots { get; set; } = new();   // GUID planu -> [AC, DC] sprzed wylaczenia turbo (zapis planu jest trwaly)
     public long BoostAttrOriginal { get; set; } = -1;                        // pelny DWORD atrybutow PERFBOOSTMODE sprzed odkrycia w Panelu; -1 = nietkniete
     public Dictionary<string, int> PowerModeMap { get; set; } = new();        // wlasne mapowanie profil -> tryb zasilania (0 efektywnosc, 1 zrownowazony, 2 wydajnosc); tylko wiersze ROZNE od domyslnych
+    public Dictionary<string, int[]> TurboOriginals { get; set; } = new();  // (#117) GUID planu -> [AC, DC] sprzed PIERWSZEGO zapisu turbo przez GhostDeck; Przywroc wpisuje to
+    public Dictionary<string, int[]> TurboMap { get; set; } = new();        // (#117) profil -> [AC, DC] tryb turbo przy przelaczeniu profilu; -1 = bez zmian; tylko profile z czyms ustawionym
     public string PowerModePrev { get; set; } = "";                         // GUID trybu zasilania SPRZED pierwszej zmiany przez GhostDeck ("" = nie zmienialismy); Przywroc go cofa
 
     // opt-in (#49): przywroc ostatnia AKTYWNA krzywa wentylatora po starcie/wznowieniu -
@@ -626,6 +628,7 @@ public sealed class AppSettings
         PowerModeSync = src.PowerModeSync;
         PowerModePrev = src.PowerModePrev;
         PowerModeMap = new Dictionary<string, int>(src.PowerModeMap);
+        TurboMap = src.TurboMap.Where(kv => kv.Value is { Length: 2 }).ToDictionary(kv => kv.Key, kv => (int[])kv.Value.Clone());
         ProfileOrder = new List<string>(src.ProfileOrder);
         Profiles.SetShown(ProfileOrder);
         // Turbo snapshots and the attribute original are MACHINE state (this Windows, its power
@@ -767,6 +770,8 @@ public sealed class AppSettings
         foreach (var r in Schedules) c.Schedules.Add(r.Clone());
         foreach (var (k, v) in TurboSnapshots) c.TurboSnapshots[k] = (int[])v.Clone();
         foreach (var (k, v) in PowerModeMap) c.PowerModeMap[k] = v;
+        foreach (var (k, v) in TurboOriginals) c.TurboOriginals[k] = (int[])v.Clone();
+        foreach (var (k, v) in TurboMap) c.TurboMap[k] = (int[])v.Clone();
         c.ProfileOrder = new List<string>(ProfileOrder);
         c.ScenHidden = new List<string>(ScenHidden);
         c.SettingsAlwaysStart = SettingsAlwaysStart;

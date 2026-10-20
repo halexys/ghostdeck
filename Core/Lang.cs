@@ -2821,7 +2821,6 @@ public static class Lang
         m["pw_mapping"] = new[] { "Profile mapping", "Mapowanie profili", "Profil-Zuordnung", "Correspondance des profils", "Asignación de perfiles", "模式对应", "Mapeamento de perfis", "Соответствие профилей", "プロファイル対応表", "프로필 매핑", "模式對應", "Profil eşlemesi", "Ánh xạ hồ sơ", "Pemetaan profil", "Mappatura dei profili" };
         m["pw_now"] = new[] { "Now", "Teraz", "Jetzt", "Actuellement", "Ahora", "当前", "Agora", "Сейчас", "現在", "현재", "目前", "Şu an", "Hiện tại", "Sekarang", "Ora" };
         m["pw_saved"] = new[] { "Saved", "Zapisane", "Gespeichert", "Enregistré", "Guardado", "已保存", "Salvo", "Сохранено", "保存済み", "저장됨", "已儲存", "Kaydedilen", "Đã lưu", "Tersimpan", "Salvato" };
-        m["pw_per_source"] = new[] { "Control separately", "Steruj osobno", "Getrennt steuern", "Régler séparément", "Controlar por separado", "分别控制", "Controlar separadamente", "Управлять по отдельности", "個別に制御", "개별 제어", "分別控制", "Ayrı ayrı kontrol et", "Điều khiển riêng", "Kontrol terpisah", "Controllo separato" };
         m["pw_ac"] = new[] { "Plugged in", "Zasilacz", "Netzbetrieb", "Sur secteur", "Enchufado", "交流电源", "Na tomada", "От сети", "電源接続", "전원 연결", "交流電源", "Prizde", "Cắm điện", "Listrik", "Alimentazione" };
         m["pw_dc"] = new[] { "Battery", "Bateria", "Akku", "Batterie", "Batería", "电池", "Bateria", "Батарея", "バッテリー", "배터리", "電池", "Pil", "Pin", "Baterai", "Batteria" };
         m["pw_auto_seg"] = new[] { "Auto: profile", "Auto: profil", "Auto: Profil", "Auto : profil", "Auto: perfil", "自动：按配置", "Auto: perfil", "Авто: профиль", "自動：プロファイル", "자동: 프로필", "自動：按設定檔", "Oto: profil", "Tự động: hồ sơ", "Auto: profil", "Auto: profilo" };
@@ -2872,24 +2871,6 @@ public static class Lang
             "Tắt và bật tiếng thiết bị ghi âm mặc định của Windows cho mọi ứng dụng cùng lúc. Hoạt động trên mọi laptop; công tắc cũng phản ánh việc tắt tiếng được thực hiện ở nơi khác.",
             "Membisukan dan mengaktifkan kembali perangkat perekam bawaan Windows untuk semua aplikasi sekaligus. Berfungsi di laptop mana pun; sakelar juga mengikuti pembisuan yang dilakukan di tempat lain.",
             "Disattiva e riattiva il dispositivo di registrazione predefinito di Windows, per tutte le app insieme. Funziona su qualsiasi portatile; l'interruttore riflette anche un silenziamento fatto altrove.",
-        };
-        m["pw_map_body"] = new[]
-        {
-            "Choose the Windows power mode for each profile. The mapping applies while \"{0}\" is selected.",
-            "Wybierz tryb zasilania Windows dla każdego profilu. Mapowanie działa, gdy wybrany jest „{0}”.",
-            "Wähle für jedes Profil den Windows-Energiemodus. Die Zuordnung gilt, solange „{0}“ ausgewählt ist.",
-            "Choisissez le mode d'alimentation Windows pour chaque profil. La correspondance s'applique tant que « {0} » est sélectionné.",
-            "Elige el modo de energía de Windows para cada perfil. La asignación se aplica mientras esté seleccionado «{0}».",
-            "为每个配置选择 Windows 电源模式。选中“{0}”时，此对应关系生效。",
-            "Escolha o modo de energia do Windows para cada perfil. O mapeamento vale enquanto \"{0}\" estiver selecionado.",
-            "Выберите режим питания Windows для каждого профиля. Соответствие действует, пока выбран «{0}».",
-            "プロファイルごとに Windows の電源モードを選択します。「{0}」が選択されている間、この対応が適用されます。",
-            "각 프로필에 사용할 Windows 전원 모드를 선택하세요. \"{0}\"이(가) 선택된 동안 매핑이 적용됩니다.",
-            "為每個設定檔選擇 Windows 電源模式。選取「{0}」時，此對應關係生效。",
-            "Her profil için Windows güç modunu seçin. Eşleme, \"{0}\" seçiliyken geçerlidir.",
-            "Chọn chế độ nguồn Windows cho từng hồ sơ. Ánh xạ có hiệu lực khi \"{0}\" đang được chọn.",
-            "Pilih mode daya Windows untuk setiap profil. Pemetaan berlaku selama \"{0}\" dipilih.",
-            "Scegli la modalità energetica di Windows per ogni profilo. La mappatura vale finché è selezionato \"{0}\".",
         };
         m["pw_map_reset_confirm"] = new[]
         {
@@ -3076,6 +3057,330 @@ public static class Lang
         m["pw_restore_result_fmt"] = new[] { "Restored plans: {0}. Plans that no longer exist: {1}. Failed writes: {2}.", "Przywrócone plany: {0}. Plany, które już nie istnieją: {1}. Nieudane zapisy: {2}.", "Wiederhergestellte Pläne: {0}. Nicht mehr vorhandene Pläne: {1}. Fehlgeschlagene Schreibvorgänge: {2}.", "Plans restaurés : {0}. Plans qui n'existent plus : {1}. Écritures échouées : {2}.", "Planes restaurados: {0}. Planes que ya no existen: {1}. Escrituras fallidas: {2}.", "已还原的计划：{0}。已不存在的计划：{1}。写入失败：{2}。", "Planos restaurados: {0}. Planos que não existem mais: {1}. Gravações com falha: {2}.", "Восстановлено планов: {0}. Планов больше нет: {1}. Неудачных записей: {2}.", "復元したプラン: {0}。存在しないプラン: {1}。書き込み失敗: {2}。", "복원된 옵션: {0}. 더 이상 없는 옵션: {1}. 실패한 쓰기: {2}.", "已還原的計畫：{0}。已不存在的計畫：{1}。寫入失敗：{2}。", "Geri yüklenen planlar: {0}. Artık olmayan planlar: {1}. Başarısız yazmalar: {2}.", "Kế hoạch đã khôi phục: {0}. Kế hoạch không còn: {1}. Ghi thất bại: {2}.", "Rencana dipulihkan: {0}. Rencana yang sudah tidak ada: {1}. Penulisan gagal: {2}.", "Piani ripristinati: {0}. Piani che non esistono più: {1}. Scritture fallite: {2}." };
         m["pw_err_write"] = new[] { "Windows refused the change.", "Windows odrzucił zmianę.", "Windows hat die Änderung abgelehnt.", "Windows a refusé la modification.", "Windows rechazó el cambio.", "Windows 拒绝了此更改。", "O Windows recusou a alteração.", "Windows отклонил изменение.", "Windows が変更を拒否しました。", "Windows가 변경을 거부했습니다.", "Windows 拒絕了此變更。", "Windows değişikliği reddetti.", "Windows từ chối thay đổi.", "Windows menolak perubahan.", "Windows ha rifiutato la modifica." };
         m["pw_unavailable"] = new[] { "The power-plan read-out is not available on this Windows.", "Odczyt planu zasilania jest niedostępny w tym Windows.", "Das Auslesen des Energieplans ist unter diesem Windows nicht verfügbar.", "La lecture du plan d'alimentation n'est pas disponible sur ce Windows.", "La lectura del plan de energía no está disponible en este Windows.", "此 Windows 上无法读取电源计划。", "A leitura do plano de energia não está disponível neste Windows.", "Чтение плана питания недоступно в этой Windows.", "この Windows では電源プランの読み取りを利用できません。", "이 Windows에서는 전원 관리 옵션을 읽을 수 없습니다.", "此 Windows 上無法讀取電源計畫。", "Bu Windows'ta güç planı okuması kullanılamıyor.", "Không đọc được kế hoạch nguồn trên Windows này.", "Pembacaan rencana daya tidak tersedia di Windows ini.", "La lettura del piano energetico non è disponibile su questo Windows." };
+        m["pw_bm_0"] = new[]
+        {
+            "The processor stays at its base clock. Cooler and quieter, clearly slower. Besides Silent, the only mode that surely lowers power.",
+            "Procesor nie wychodzi ponad zegar bazowy. Chłodniej i ciszej, wyraźnie wolniej. Obok Silenta to jedyny tryb, który na pewno obniża moc.",
+            "Der Prozessor bleibt beim Basistakt. Kühler und leiser, deutlich langsamer. Neben Silent der einzige Modus, der die Leistung sicher senkt.",
+            "Le processeur reste à sa fréquence de base. Plus frais et plus silencieux, nettement plus lent. Avec Silent, le seul mode qui réduit sûrement la puissance.",
+            "El procesador se queda en su frecuencia base. Más fresco y silencioso, claramente más lento. Junto con Silent, el único modo que seguro reduce la potencia.",
+            "处理器保持在基础频率。更凉、更安静，但明显更慢。除 Silent 外，唯一确定能降低功耗的模式。",
+            "O processador fica na frequência base. Mais fresco e silencioso, claramente mais lento. Junto com o Silent, o único modo que com certeza reduz a potência.",
+            "Процессор остаётся на базовой частоте. Холоднее и тише, заметно медленнее. Кроме Silent, единственный режим, который точно снижает мощность.",
+            "プロセッサーはベースクロックのままです。より涼しく静かになりますが、明らかに遅くなります。Silent 以外で確実に電力を下げる唯一のモードです。",
+            "프로세서가 기본 클럭에 머뭅니다. 더 시원하고 조용하지만 확실히 느려집니다. Silent 외에 전력을 확실히 낮추는 유일한 모드입니다.",
+            "處理器維持在基礎頻率。更涼、更安靜，但明顯較慢。除了 Silent 之外，唯一確定能降低功耗的模式。",
+            "İşlemci temel saat hızında kalır. Daha serin ve sessiz, belirgin şekilde daha yavaş. Silent dışında gücü kesin olarak düşüren tek mod.",
+            "Bộ xử lý giữ ở xung nhịp cơ bản. Mát và êm hơn, chậm hơn rõ rệt. Ngoài Silent, đây là chế độ duy nhất chắc chắn giảm công suất.",
+            "Prosesor tetap di clock dasar. Lebih dingin dan senyap, jelas lebih lambat. Selain Silent, satu-satunya mode yang pasti menurunkan daya.",
+            "Il processore resta alla frequenza base. Più fresco e silenzioso, nettamente più lento. Oltre a Silent, l'unica modalità che riduce di sicuro la potenza.",
+        };
+        m["pw_bm_1"] = new[]
+        {
+            "The processor speeds up when it has work. Windows decides how much.",
+            "Procesor przyspiesza, gdy ma pracę. Windows decyduje, jak bardzo.",
+            "Der Prozessor beschleunigt, wenn er Arbeit hat. Windows entscheidet, wie stark.",
+            "Le processeur accélère quand il a du travail. Windows décide de combien.",
+            "El procesador acelera cuando tiene trabajo. Windows decide cuánto.",
+            "处理器在有负载时加速，加速多少由 Windows 决定。",
+            "O processador acelera quando tem trabalho. O Windows decide quanto.",
+            "Процессор ускоряется, когда есть работа. Насколько, решает Windows.",
+            "処理があるときにプロセッサーが加速します。どれだけ加速するかは Windows が決めます。",
+            "작업이 있을 때 프로세서가 가속합니다. 얼마나 가속할지는 Windows가 정합니다.",
+            "處理器在有工作時加速，加速多少由 Windows 決定。",
+            "İşlemci iş olduğunda hızlanır. Ne kadar hızlanacağına Windows karar verir.",
+            "Bộ xử lý tăng tốc khi có việc. Windows quyết định tăng bao nhiêu.",
+            "Prosesor mempercepat saat ada pekerjaan. Windows yang menentukan seberapa besar.",
+            "Il processore accelera quando ha lavoro. Windows decide quanto.",
+        };
+        m["pw_bm_2"] = new[]
+        {
+            "Speeds up whenever it can. On processors that manage their own clock, Microsoft says it works like \"{0}\".",
+            "Przyspiesza, kiedy tylko może. Według Microsoftu na procesorach, które same sterują zegarem, działa jak „{0}”.",
+            "Beschleunigt, wann immer es geht. Laut Microsoft wirkt der Modus auf Prozessoren, die ihren Takt selbst steuern, wie „{0}“.",
+            "Accélère dès que possible. Selon Microsoft, sur les processeurs qui gèrent eux-mêmes leur fréquence, il agit comme « {0} ».",
+            "Acelera siempre que puede. Según Microsoft, en procesadores que controlan su propia frecuencia funciona como «{0}».",
+            "只要可以就加速。据 Microsoft 说明，在自行控制频率的处理器上，其效果与“{0}”相同。",
+            "Acelera sempre que pode. Segundo a Microsoft, em processadores que controlam o próprio clock, funciona como \"{0}\".",
+            "Ускоряется всегда, когда может. По данным Microsoft, на процессорах, которые сами управляют частотой, работает как «{0}».",
+            "可能な限り加速します。Microsoft によると、自らクロックを制御するプロセッサーでは「{0}」と同じ動作です。",
+            "가능할 때마다 가속합니다. Microsoft에 따르면 클럭을 스스로 제어하는 프로세서에서는 '{0}'과(와) 같이 동작합니다.",
+            "只要可以就加速。依 Microsoft 說明，在自行控制頻率的處理器上，效果與「{0}」相同。",
+            "Her fırsatta hızlanır. Microsoft'a göre saat hızını kendisi yöneten işlemcilerde \"{0}\" gibi çalışır.",
+            "Tăng tốc bất cứ khi nào có thể. Theo Microsoft, trên bộ xử lý tự điều khiển xung nhịp, chế độ này hoạt động như \"{0}\".",
+            "Mempercepat kapan pun bisa. Menurut Microsoft, pada prosesor yang mengatur clock-nya sendiri, mode ini bekerja seperti \"{0}\".",
+            "Accelera ogni volta che può. Secondo Microsoft, sui processori che gestiscono da sé la frequenza, funziona come \"{0}\".",
+        };
+        m["pw_bm_3"] = new[]
+        {
+            "Speeds up when it pays off in energy. Microsoft says it works like \"{0}\".",
+            "Przyspiesza, gdy to się opłaca energetycznie. Według Microsoftu działa jak „{0}”.",
+            "Beschleunigt, wenn es sich energetisch lohnt. Laut Microsoft wirkt der Modus wie „{0}“.",
+            "Accélère quand cela vaut la dépense d'énergie. Selon Microsoft, il agit comme « {0} ».",
+            "Acelera cuando compensa en energía. Según Microsoft, funciona como «{0}».",
+            "在能耗上划算时才加速。据 Microsoft 说明，其效果与“{0}”相同。",
+            "Acelera quando compensa em energia. Segundo a Microsoft, funciona como \"{0}\".",
+            "Ускоряется, когда это выгодно по энергии. По данным Microsoft, работает как «{0}».",
+            "エネルギー的に見合うときに加速します。Microsoft によると「{0}」と同じ動作です。",
+            "에너지 면에서 이득일 때 가속합니다. Microsoft에 따르면 '{0}'과(와) 같이 동작합니다.",
+            "在能耗上划算時才加速。依 Microsoft 說明，效果與「{0}」相同。",
+            "Enerji açısından değdiğinde hızlanır. Microsoft'a göre \"{0}\" gibi çalışır.",
+            "Tăng tốc khi đáng về mặt năng lượng. Theo Microsoft, chế độ này hoạt động như \"{0}\".",
+            "Mempercepat saat sepadan dari sisi energi. Menurut Microsoft, mode ini bekerja seperti \"{0}\".",
+            "Accelera quando conviene in termini di energia. Secondo Microsoft, funziona come \"{0}\".",
+        };
+        m["pw_bm_4"] = new[]
+        {
+            "Microsoft says it works like \"{0}\".",
+            "Według Microsoftu działa jak „{0}”.",
+            "Laut Microsoft wirkt der Modus wie „{0}“.",
+            "Selon Microsoft, il agit comme « {0} ».",
+            "Según Microsoft, funciona como «{0}».",
+            "据 Microsoft 说明，其效果与“{0}”相同。",
+            "Segundo a Microsoft, funciona como \"{0}\".",
+            "По данным Microsoft, работает как «{0}».",
+            "Microsoft によると「{0}」と同じ動作です。",
+            "Microsoft에 따르면 '{0}'과(와) 같이 동작합니다.",
+            "依 Microsoft 說明，效果與「{0}」相同。",
+            "Microsoft'a göre \"{0}\" gibi çalışır.",
+            "Theo Microsoft, chế độ này hoạt động như \"{0}\".",
+            "Menurut Microsoft, mode ini bekerja seperti \"{0}\".",
+            "Secondo Microsoft, funziona come \"{0}\".",
+        };
+        m["pw_bm_undoc"] = new[]
+        {
+            "Microsoft does not describe what this mode does.",
+            "Microsoft nie opisuje, co ten tryb robi.",
+            "Microsoft beschreibt nicht, was dieser Modus tut.",
+            "Microsoft ne décrit pas ce que fait ce mode.",
+            "Microsoft no describe qué hace este modo.",
+            "Microsoft 未说明此模式的作用。",
+            "A Microsoft não descreve o que este modo faz.",
+            "Microsoft не описывает, что делает этот режим.",
+            "このモードの動作について Microsoft は説明していません。",
+            "Microsoft는 이 모드가 무엇을 하는지 설명하지 않습니다.",
+            "Microsoft 未說明此模式的作用。",
+            "Microsoft bu modun ne yaptığını açıklamıyor.",
+            "Microsoft không mô tả chế độ này làm gì.",
+            "Microsoft tidak menjelaskan apa yang dilakukan mode ini.",
+            "Microsoft non descrive cosa fa questa modalità.",
+        };
+        m["pw_bm_unknown"] = new[]
+        {
+            "GhostDeck does not know this mode.",
+            "GhostDeck nie zna tego trybu.",
+            "GhostDeck kennt diesen Modus nicht.",
+            "GhostDeck ne connaît pas ce mode.",
+            "GhostDeck no conoce este modo.",
+            "GhostDeck 不认识此模式。",
+            "O GhostDeck não conhece este modo.",
+            "GhostDeck не знает этот режим.",
+            "GhostDeck はこのモードを認識していません。",
+            "GhostDeck가 알지 못하는 모드입니다.",
+            "GhostDeck 不認識此模式。",
+            "GhostDeck bu modu tanımıyor.",
+            "GhostDeck không biết chế độ này.",
+            "GhostDeck tidak mengenal mode ini.",
+            "GhostDeck non conosce questa modalità.",
+        };
+        m["pw_turbo_mode"] = new[]
+        {
+            "Turbo mode",
+            "Tryb turbo",
+            "Turbo-Modus",
+            "Mode turbo",
+            "Modo turbo",
+            "睿频模式",
+            "Modo turbo",
+            "Режим турбо",
+            "ターボモード",
+            "터보 모드",
+            "睿頻模式",
+            "Turbo modu",
+            "Chế độ turbo",
+            "Mode turbo",
+            "Modalità turbo",
+        };
+        m["pw_mode_lbl"] = new[]
+        {
+            "Mode",
+            "Tryb",
+            "Modus",
+            "Mode",
+            "Modo",
+            "模式",
+            "Modo",
+            "Режим",
+            "モード",
+            "모드",
+            "模式",
+            "Mod",
+            "Chế độ",
+            "Mode",
+            "Modalità",
+        };
+        m["pw_value"] = new[]
+        {
+            "Value in Windows",
+            "Wartość w Windows",
+            "Wert in Windows",
+            "Valeur dans Windows",
+            "Valor en Windows",
+            "Windows 中的值",
+            "Valor no Windows",
+            "Значение в Windows",
+            "Windows での値",
+            "Windows 값",
+            "Windows 中的值",
+            "Windows'taki değer",
+            "Giá trị trong Windows",
+            "Nilai di Windows",
+            "Valore in Windows",
+        };
+        m["pw_toggle_hint"] = new[]
+        {
+            "The switch moves between \"{0}\" and the modes chosen below. It also works from a hotkey, a scene and the turbo command.",
+            "Wyłącznik przełącza między „{0}” a trybami wybranymi niżej. Działa też ze skrótu klawiszowego, ze sceny i z komendy turbo.",
+            "Der Schalter wechselt zwischen „{0}“ und den unten gewählten Modi. Er funktioniert auch per Tastenkürzel, Szene und turbo-Befehl.",
+            "L'interrupteur bascule entre « {0} » et les modes choisis ci-dessous. Il fonctionne aussi par raccourci clavier, scène et commande turbo.",
+            "El interruptor cambia entre «{0}» y los modos elegidos abajo. También funciona con un atajo de teclado, una escena y el comando turbo.",
+            "开关在“{0}”与下方所选模式之间切换。也可通过快捷键、场景和 turbo 命令使用。",
+            "O interruptor alterna entre \"{0}\" e os modos escolhidos abaixo. Também funciona por atalho de teclado, cena e comando turbo.",
+            "Переключатель переходит между «{0}» и режимами, выбранными ниже. Работает также с горячей клавиши, из сцены и командой turbo.",
+            "スイッチは「{0}」と下で選んだモードを切り替えます。ショートカットキー、シーン、turbo コマンドからも使えます。",
+            "스위치는 '{0}'과(와) 아래에서 고른 모드 사이를 전환합니다. 단축키, 장면, turbo 명령으로도 작동합니다.",
+            "開關在「{0}」與下方所選模式之間切換。也可透過快速鍵、場景與 turbo 指令使用。",
+            "Anahtar \"{0}\" ile aşağıda seçilen modlar arasında geçiş yapar. Kısayol tuşu, sahne ve turbo komutuyla da çalışır.",
+            "Công tắc chuyển giữa \"{0}\" và các chế độ chọn bên dưới. Cũng dùng được qua phím tắt, cảnh và lệnh turbo.",
+            "Sakelar beralih antara \"{0}\" dan mode yang dipilih di bawah. Juga bekerja lewat pintasan keyboard, scene, dan perintah turbo.",
+            "L'interruttore passa tra \"{0}\" e le modalità scelte sotto. Funziona anche da scorciatoia, scena e comando turbo.",
+        };
+        m["pw_unchanged"] = new[]
+        {
+            "no change",
+            "bez zmian",
+            "keine Änderung",
+            "sans changement",
+            "sin cambios",
+            "不变",
+            "sem alteração",
+            "без изменений",
+            "変更なし",
+            "변경 없음",
+            "不變",
+            "değişiklik yok",
+            "không đổi",
+            "tanpa perubahan",
+            "nessuna modifica",
+        };
+        m["pw_grp_profile"] = new[]
+        {
+            "By profile",
+            "Za profilem",
+            "Nach Profil",
+            "Selon le profil",
+            "Según el perfil",
+            "按配置",
+            "Por perfil",
+            "По профилю",
+            "プロファイル別",
+            "프로필별",
+            "依設定檔",
+            "Profile göre",
+            "Theo hồ sơ",
+            "Menurut profil",
+            "Per profilo",
+        };
+        m["pw_map_profile"] = new[]
+        {
+            "Profile",
+            "Profil",
+            "Profil",
+            "Profil",
+            "Perfil",
+            "配置",
+            "Perfil",
+            "Профиль",
+            "プロファイル",
+            "프로필",
+            "設定檔",
+            "Profil",
+            "Hồ sơ",
+            "Profil",
+            "Profilo",
+        };
+        m["pw_map_turbo_ac"] = new[]
+        {
+            "Turbo, plugged in",
+            "Turbo, zasilacz",
+            "Turbo, Netz",
+            "Turbo, secteur",
+            "Turbo, red",
+            "睿频，交流电源",
+            "Turbo, tomada",
+            "Турбо, сеть",
+            "ターボ（電源接続）",
+            "터보, 전원 연결",
+            "睿頻，交流電源",
+            "Turbo, prizde",
+            "Turbo, cắm điện",
+            "Turbo, listrik",
+            "Turbo, alimentazione",
+        };
+        m["pw_map_turbo_dc"] = new[]
+        {
+            "Turbo, battery",
+            "Turbo, bateria",
+            "Turbo, Akku",
+            "Turbo, batterie",
+            "Turbo, batería",
+            "睿频，电池",
+            "Turbo, bateria",
+            "Турбо, батарея",
+            "ターボ（バッテリー）",
+            "터보, 배터리",
+            "睿頻，電池",
+            "Turbo, pil",
+            "Turbo, pin",
+            "Turbo, baterai",
+            "Turbo, batteria",
+        };
+        m["pw_map_note"] = new[]
+        {
+            "The power mode follows this table while \"{0}\" is selected. Turbo changes on a profile switch only where a mode is set; \"{1}\" = GhostDeck leaves it alone. A change made on this card holds until the next switch.",
+            "Tryb zasilania podąża za tą tabelą, gdy wybrane jest „{0}”. Turbo zmienia się przy przełączeniu profilu tylko tam, gdzie wybrano tryb; „{1}” = GhostDeck tego nie dotyka. Zmiana zrobiona w tej karcie obowiązuje do następnego przełączenia.",
+            "Der Energiemodus folgt dieser Tabelle, solange „{0}“ ausgewählt ist. Turbo ändert sich beim Profilwechsel nur dort, wo ein Modus gesetzt ist; „{1}“ = GhostDeck rührt es nicht an. Eine Änderung auf dieser Karte gilt bis zum nächsten Wechsel.",
+            "Le mode d'alimentation suit ce tableau tant que « {0} » est sélectionné. Le turbo ne change au changement de profil que là où un mode est défini ; « {1} » = GhostDeck n'y touche pas. Un changement fait sur cette carte tient jusqu'au prochain changement.",
+            "El modo de energía sigue esta tabla mientras «{0}» está seleccionado. El turbo cambia al cambiar de perfil solo donde hay un modo elegido; «{1}» = GhostDeck no lo toca. Un cambio hecho en esta tarjeta dura hasta el siguiente cambio.",
+            "选择“{0}”时，电源模式按此表切换。切换配置时，只有设置了模式的地方才会改变睿频；“{1}”= GhostDeck 不改动。在此卡片上所做的更改保持到下次切换。",
+            "O modo de energia segue esta tabela enquanto \"{0}\" estiver selecionado. O turbo muda na troca de perfil só onde há um modo definido; \"{1}\" = o GhostDeck não mexe. Uma alteração feita neste cartão vale até a próxima troca.",
+            "Режим питания следует этой таблице, пока выбрано «{0}». Турбо меняется при смене профиля только там, где задан режим; «{1}» = GhostDeck его не трогает. Изменение на этой карточке действует до следующей смены.",
+            "「{0}」を選んでいる間、電源モードはこの表に従います。ターボはモードを設定した所だけプロファイル切り替え時に変わります。「{1}」= GhostDeck は変更しません。このカードでの変更は次の切り替えまで有効です。",
+            "'{0}'을(를) 선택한 동안 전원 모드는 이 표를 따릅니다. 터보는 모드가 지정된 곳만 프로필 전환 시 바뀝니다. '{1}' = GhostDeck가 건드리지 않음. 이 카드에서 바꾼 값은 다음 전환까지 유지됩니다.",
+            "選擇「{0}」時，電源模式依此表切換。切換設定檔時，只有設定了模式的地方才會改變睿頻；「{1}」= GhostDeck 不改動。在此卡片上所做的變更保持到下次切換。",
+            "\"{0}\" seçiliyken güç modu bu tabloyu izler. Turbo, profil değişince yalnızca mod seçilen yerde değişir; \"{1}\" = GhostDeck dokunmaz. Bu kartta yapılan değişiklik bir sonraki geçişe kadar geçerlidir.",
+            "Chế độ nguồn theo bảng này khi \"{0}\" được chọn. Turbo chỉ đổi khi chuyển hồ sơ ở nơi có chọn chế độ; \"{1}\" = GhostDeck không đụng tới. Thay đổi trên thẻ này giữ đến lần chuyển tiếp theo.",
+            "Mode daya mengikuti tabel ini selama \"{0}\" dipilih. Turbo berubah saat ganti profil hanya di tempat yang diberi mode; \"{1}\" = GhostDeck tidak mengubahnya. Perubahan di kartu ini berlaku sampai pergantian berikutnya.",
+            "La modalità di alimentazione segue questa tabella finché è selezionato \"{0}\". Il turbo cambia al cambio di profilo solo dove è impostata una modalità; \"{1}\" = GhostDeck non lo tocca. Una modifica fatta su questa scheda vale fino al cambio successivo.",
+        };
+        m["pw_map_body2"] = new[]
+        {
+            "Pick a profile, then what GhostDeck sets in Windows when that profile switches on. The power mode applies while \"{0}\" is selected.",
+            "Wybierz profil, a potem co GhostDeck ma ustawić w Windows, gdy ten profil się włącza. Tryb zasilania działa, gdy wybrane jest „{0}”.",
+            "Wähle ein Profil und dann, was GhostDeck in Windows einstellt, wenn dieses Profil aktiv wird. Der Energiemodus gilt, solange „{0}“ ausgewählt ist.",
+            "Choisissez un profil, puis ce que GhostDeck règle dans Windows quand ce profil s'active. Le mode d'alimentation s'applique tant que « {0} » est sélectionné.",
+            "Elige un perfil y luego lo que GhostDeck ajusta en Windows cuando ese perfil se activa. El modo de energía se aplica mientras «{0}» está seleccionado.",
+            "先选择一个配置，再选择该配置启用时 GhostDeck 在 Windows 中设置的内容。电源模式在选择“{0}”时生效。",
+            "Escolha um perfil e depois o que o GhostDeck define no Windows quando esse perfil é ativado. O modo de energia vale enquanto \"{0}\" estiver selecionado.",
+            "Выберите профиль, а затем то, что GhostDeck установит в Windows при его включении. Режим питания действует, пока выбрано «{0}».",
+            "プロファイルを選び、そのプロファイルに切り替えたとき GhostDeck が Windows に設定する内容を選びます。電源モードは「{0}」を選んでいる間有効です。",
+            "프로필을 고른 뒤, 그 프로필이 켜질 때 GhostDeck가 Windows에 설정할 내용을 고르세요. 전원 모드는 '{0}'을(를) 선택한 동안 적용됩니다.",
+            "先選擇一個設定檔，再選擇該設定檔啟用時 GhostDeck 在 Windows 中設定的內容。電源模式在選擇「{0}」時生效。",
+            "Bir profil seçin, ardından o profil açıldığında GhostDeck'in Windows'ta neyi ayarlayacağını seçin. Güç modu \"{0}\" seçiliyken uygulanır.",
+            "Chọn một hồ sơ, rồi chọn những gì GhostDeck đặt trong Windows khi hồ sơ đó bật. Chế độ nguồn áp dụng khi \"{0}\" được chọn.",
+            "Pilih profil, lalu apa yang diatur GhostDeck di Windows saat profil itu aktif. Mode daya berlaku selama \"{0}\" dipilih.",
+            "Scegli un profilo, poi cosa imposta GhostDeck in Windows quando quel profilo si attiva. La modalità di alimentazione vale finché è selezionato \"{0}\".",
+        };
         m["pwm_req_eff"]  = new[] { "best power efficiency", "najlepsza efektywność energetyczna", "beste Energieeffizienz", "meilleure efficacité énergétique", "mejor eficiencia energética", "最佳能效", "melhor eficiência energética", "максимальная энергоэффективность", "最適な電力効率", "최고의 전력 효율", "最佳電源效率", "en iyi güç verimliliği", "hiệu quả năng lượng tốt nhất", "efisiensi daya terbaik", "massima efficienza energetica" };
         m["pwm_req_bal"]  = new[] { "balanced", "zrównoważony", "ausbalanciert", "équilibré", "equilibrado", "平衡", "equilibrado", "сбалансированный", "バランス", "균형", "平衡", "dengeli", "cân bằng", "seimbang", "bilanciato" };
         m["pwm_req_perf"] = new[] { "best performance", "najwyższa wydajność", "beste Leistung", "performances optimales", "máximo rendimiento", "最佳性能", "melhor desempenho", "максимальная производительность", "最適なパフォーマンス", "최고의 성능", "最佳效能", "en iyi performans", "hiệu năng tốt nhất", "performa terbaik", "massime prestazioni" };

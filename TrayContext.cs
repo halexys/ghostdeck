@@ -1321,6 +1321,10 @@ public sealed class TrayContext : ApplicationContext
     // Windows may temporarily override; the Settings card shows requested and effective apart.
     private void ApplyPowerModeSync(ProfileId id, ChangeSource source)
     {
+        // (#117) the profile's turbo modes, only for sources it sets ("no change" = untouched);
+        // the same one-shot rule: a later pick on the card stands until the next switch
+        if (PowerPlan.ApplyProfileTurbo(_settings, id) is { } terr)
+            ChangeLog.Add(source, "CPU turbo boost: " + (terr.Length == 0 ? PowerPlan.TurboStatus() : terr));
         if (!_settings.PowerModeSync) return;
         var mode = PowerPlan.ModeForProfile(_settings, id);
         if (PowerPlan.TrySetPowerMode(mode))
