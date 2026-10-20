@@ -82,7 +82,8 @@ public static class BackupPathTest
         Verdict Verdict, string Detail,
         string Survey, int ShiftOrig, int FanOrig,
         ProfileCheck[] Profiles, LoadRun[] Loads, CurveResult Curve,
-        bool Wrote, bool Restored, string[] VendorProcesses, string[] Log)
+        bool Wrote, bool Restored, string[] VendorProcesses, string[] Log,
+        string WinPower = "")   // Windows plan, turbo boost and power mode at the start (#230)
     {
         public bool Passed => Verdict == Verdict.Passed;
     }
@@ -105,10 +106,11 @@ public static class BackupPathTest
         string survey = "";
         int shift0 = -1, fan0 = -1;
         string[] vendor = VendorProcesses();
+        string winPower = PowerPlan.ReportLine();
 
         Result End(Verdict v, string detail, bool wrote, bool restored) => new(
             started, appVersion, firmware, dev.Name, v, detail, survey, shift0, fan0,
-            profiles.ToArray(), loads.ToArray(), curve, wrote, restored, vendor, log.ToArray());
+            profiles.ToArray(), loads.ToArray(), curve, wrote, restored, vendor, log.ToArray(), winPower);
 
         if (Ec.BackupSpec is not { } spec) return End(Verdict.Refused, "the backup path is not active", false, true);
         if (SystemInformation.PowerStatus.PowerLineStatus != PowerLineStatus.Online)
@@ -495,6 +497,7 @@ public static class BackupPathTest
         sb.AppendLine($"Started: {r.Started:yyyy-MM-dd HH:mm}   App version: {r.AppVersion}");
         sb.AppendLine($"Model: {r.Model}   Firmware: {r.Firmware}");
         sb.AppendLine($"Windows: {Environment.OSVersion.VersionString}");
+        if (r.WinPower.Length > 0) sb.AppendLine($"Windows power (unchanged by the test): {r.WinPower}");
         sb.AppendLine($"MSI software running: {(r.VendorProcesses.Length > 0 ? string.Join(", ", r.VendorProcesses) : "none seen")}");
         sb.AppendLine();
         sb.AppendLine($"VERDICT: {r.Verdict}" + (r.Detail.Length > 0 ? $" - {r.Detail}" : ""));

@@ -285,6 +285,42 @@ public static class PowerPlan
         return (restored, missing, failed);
     }
 
+    /// <summary>
+    /// One English line for the test reports (#236, #230): the active plan, the turbo mode on
+    /// both sources (number and Windows' own name) and the power mode. A run with turbo off
+    /// measures a different machine, and without this line the reader can only guess.
+    /// </summary>
+    public static string ReportLine()
+    {
+        var parts = new List<string>();
+        if (TryGetActiveScheme(out var scheme))
+        {
+            parts.Add($"plan \"{SchemeName(scheme)}\"");
+            parts.Add(TryReadBoost(scheme, out uint ac, out uint dc)
+                ? $"CPU turbo boost AC {ac} ({BoostName(ac)}), battery {dc} ({BoostName(dc)})"
+                : "CPU turbo boost unreadable");
+        }
+        else parts.Add("active plan unreadable");
+        if (TryGetUserPowerMode(out var mAc, out var mDc))
+        {
+            string mode = mAc == mDc ? ModeText(mAc) : $"AC {ModeText(mAc)}, battery {ModeText(mDc)}";
+            if (EffectiveText(EffectiveMode) is { Length: > 0 } eff) mode += $" (effective: {eff})";
+            parts.Add("power mode " + mode);
+        }
+        return string.Join("; ", parts);
+    }
+
+    private static string ModeText(Guid m) => ModeGroup(m) switch
+    {
+        0 => "best efficiency", 1 => "balanced", 2 => "best performance", _ => m.ToString("D"),
+    };
+
+    private static string EffectiveText(int mode) => mode switch
+    {
+        0 => "battery saver", 1 => "better battery", 2 => "balanced", 3 => "high performance",
+        4 => "max performance", 5 => "game mode", 6 => "mixed reality", _ => "",
+    };
+
     // ---------------- the hidden-in-Control-Panel attribute ----------------
 
     public static uint? ReadBoostAttributes()
