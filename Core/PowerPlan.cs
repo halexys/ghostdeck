@@ -28,7 +28,8 @@ public static class PowerPlan
     public static readonly Guid ModeBalanced = Guid.Empty;   // GUID_POWER_MODE_NONE
     public static readonly Guid ModeBestPerformance = new("ded574b5-45a0-4f42-8737-46345c09c238");
 
-    private const uint AttribHide = 1;   // POWER_ATTRIBUTE_HIDE
+    private const uint AttribHide = 1;       // POWER_ATTRIBUTE_HIDE
+    private const uint AttribShowAoac = 2;   // POWER_ATTRIBUTE_SHOW_AOAC: shown on Modern Standby machines too
 
     // ---------------- documented imports (present since Windows 7) ----------------
     [DllImport("powrprof.dll")] private static extern uint PowerGetActiveScheme(IntPtr root, out IntPtr scheme);
@@ -42,6 +43,7 @@ public static class PowerPlan
     [DllImport("powrprof.dll")] private static extern uint PowerReadFriendlyName(IntPtr root, ref Guid scheme, IntPtr sub, IntPtr setting, byte[]? buffer, ref uint size);
     [DllImport("powrprof.dll")] private static extern uint PowerReadSettingAttributes(ref Guid sub, ref Guid setting);
     [DllImport("powrprof.dll")] private static extern uint PowerWriteSettingAttributes(ref Guid sub, ref Guid setting, uint attributes);
+    [DllImport("powrprof.dll")] private static extern bool GetPwrCapabilities(byte[] caps);
     [DllImport("kernel32.dll")] private static extern IntPtr LocalFree(IntPtr mem);
 
     // ---------------- Windows 11 exports, resolved dynamically ----------------
@@ -329,11 +331,35 @@ public static class PowerPlan
         catch { return null; }
     }
 
-    public static bool HiddenInControlPanel() => (ReadBoostAttributes() ?? AttribHide) % 2 == 1;
+    /// <summary>
+    /// Modern Standby (S0 low-power idle, "AoAc" in SYSTEM_POWER_CAPABILITIES). On such a
+    /// machine Power Options lists a processor setting only when it carries SHOW_AOAC, so
+    /// clearing HIDE alone leaves it invisible (owner's GE78HX, 2026-10-20: attributes 0 =
+    /// still hidden, 2 = shown). Read once; it cannot change while the app runs.
+    /// </summary>
+    public static bool ModernStandby => _aoac ??= ReadAoAc();
+    private static bool? _aoac;
+
+    private static bool ReadAoAc()
+    {
+        try
+        {
+            var caps = new byte[128];   // SYSTEM_POWER_CAPABILITIES is 76 bytes; AoAc is the BOOLEAN at offset 20
+            return GetPwrCapabilities(caps) && caps[20] != 0;
+        }
+        catch { return false; }
+    }
+
+    /// <summary>Hidden the way Power Options decides it: the HIDE flag, or Modern Standby without SHOW_AOAC.</summary>
+    public static bool HiddenInControlPanel()
+    {
+        uint a = ReadBoostAttributes() ?? AttribHide;
+        return (a & AttribHide) != 0 || (ModernStandby && (a & AttribShowAoac) == 0);
+    }
 
     /// <summary>
-    /// Reveal/re-hide PERFBOOSTMODE in the Windows power options UI. Only the HIDE bit is
-    /// touched: revealing stores the full original DWORD in settings and clears bit 0;
+    /// Reveal/re-hide PERFBOOSTMODE in the Windows power options UI. Revealing stores the full
+    /// original DWORD in settings, clears HIDE and, on Modern Standby, sets SHOW_AOAC;
     /// re-hiding writes the exact original back, so no other attribute bit is ever lost.
     /// </summary>
     public static bool SetRevealed(AppSettings s, bool reveal)
@@ -345,7 +371,9 @@ public static class PowerPlan
             if (reveal)
             {
                 if (s.BoostAttrOriginal < 0) { s.BoostAttrOriginal = attrs.Value; s.Save(); }
-                return PowerWriteSettingAttributes(ref _subProcessor, ref _perfBoost, attrs.Value & ~AttribHide) == 0;
+                uint shown = attrs.Value & ~AttribHide;
+                if (ModernStandby) shown |= AttribShowAoac;
+                return PowerWriteSettingAttributes(ref _subProcessor, ref _perfBoost, shown) == 0;
             }
             uint back = s.BoostAttrOriginal >= 0 ? (uint)s.BoostAttrOriginal : attrs.Value | AttribHide;
             bool ok = PowerWriteSettingAttributes(ref _subProcessor, ref _perfBoost, back) == 0;

@@ -25,6 +25,13 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   the Thin 15 B12UCX / B12VE).
 
 ### Fixed
+- **Show it there** (Windows power card) now really shows the turbo boost setting in the Windows
+  power options on laptops with Modern Standby. It used to remove only the "hidden" mark, which is
+  not enough on those laptops, and the card then offered *Hide it again* for a setting that was
+  still not visible.
+- Power test and backup path test reports state the Windows power plan, the CPU turbo boost mode on
+  both power sources and the Windows power mode at the start of the run ([#236](../../issues/236),
+  [#230](../../issues/230)).
 - **Start with Windows works on battery** ([#172](../../issues/172), thanks @UzaydaGezen) - the startup task was created
   with Windows' default conditions: start only on mains power, stop when the laptop switches to battery,
   and stop after 72 hours. The task is now written with none of them, and a task made by an earlier

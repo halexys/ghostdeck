@@ -2974,8 +2974,14 @@ activating any plan; one `PowerSetActiveScheme` at the end for the plan that was
 active), skips and discards snapshots of deleted plans, keeps the snapshot of any failed
 write for a retry, and reports the counts; the confirmation and any attention-worthy result
 are GhostCardForm cards, never MessageBox. The reveal action is a footer link, not a button:
-it clears only the HIDE bit of the setting attributes after storing the full original DWORD
-(`PowerRead/WriteSettingAttributes`), and the re-hide writes that exact DWORD back.
+it clears the HIDE bit (1) of the setting attributes after storing the full original DWORD
+(`PowerRead/WriteSettingAttributes`), and the re-hide writes that exact DWORD back. On a Modern
+Standby machine (`GetPwrCapabilities`, `AoAc`) Power Options lists a processor setting only when
+it also carries SHOW_AOAC (2): with HIDE cleared and nothing else the value is 0 and the setting
+stays invisible, which is also all that `powercfg -attributes ... -ATTRIB_HIDE` does. The reveal
+therefore sets SHOW_AOAC there, and the card counts the setting as hidden when HIDE is set or,
+on Modern Standby, when SHOW_AOAC is missing (measured on the owner's GE78HX, 2026-10-20:
+original 1, after the old reveal 0 and still hidden, 2 shown).
 
 **Card layout (final, owner-approved 2026-10-04).** A flat card, nothing collapsible, two
 groups set apart by extra space, each under a caption with a coloured marker. Group one, CPU

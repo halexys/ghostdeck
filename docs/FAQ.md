@@ -198,7 +198,10 @@ powercfg -setactive scheme_current
 
 The footer link *Show it there* makes the hidden setting visible in the Windows power options as well
 (Control Panel → Power Options → Change advanced power settings → Processor power management). That is
-a permanent change to Windows itself, optional, and GhostDeck does not need it to work.
+a permanent change to Windows itself, optional, and GhostDeck does not need it to work. On laptops
+with Modern Standby (most recent ones) Windows lists the setting only when it is marked to show on
+such machines; GhostDeck sets that mark too, which is why `powercfg -attributes ... -ATTRIB_HIDE`
+alone does not make it appear there.
 
 ## The fan speed shows "--" instead of a percentage or RPM. Is it broken?
 
