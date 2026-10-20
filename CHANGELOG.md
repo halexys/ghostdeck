@@ -4,6 +4,8 @@ All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
+
+## [1.41.0] - 2026-10-20
 ### Added
 - **Choose the exact CPU turbo mode** ([#117](../../issues/117) on the roadmap, asked in
   [#221](../../issues/221) and [discussion #141](../../discussions/141)) - the Windows power card
@@ -13,8 +15,8 @@ Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
   or `--turbo`. A new **By profile** table sets the turbo modes (and, as before, the power mode)
   per GhostDeck profile; "no change" is the default, so nothing changes until you set it.
   *Restore Windows settings* now puts back each plan's original modes. The **?** next to the
-  switch opens a help card with every mode your Windows offers in a table (what it does, whether
-  it lowers power), and says when Windows has autonomous mode on, where Microsoft gives most modes
+  switch opens a help card with every mode your Windows offers in a table (the number Windows stores it
+  under, what it does), and says when Windows has autonomous mode on, where Microsoft gives most modes
   the same behaviour. Every mode carries an icon and colour for what it really does (less
   power, turbo, max turbo, asks for more), in the lists, the By profile table, the editor and the
   help card, which explains them in a legend. Long mode names wrap instead of being cut. Guide:
