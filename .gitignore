@@ -23,3 +23,6 @@ tools/preview.png
 # Python bytecode from tools/
 __pycache__/
 *.pyc
+
+# local-only installer payload (MSI-signed msiapcfg.dll copied by tools/build-setup.ps1) - never commit
+local/

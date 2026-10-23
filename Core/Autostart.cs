@@ -100,9 +100,10 @@ public static class Autostart
     /// </summary>
     public static bool Known => _known ?? IsEnabled();
 
-    public static void Set(bool enabled)
+    /// <summary><paramref name="exePath"/> = the exe the task starts; null = this process (the installer passes the installed copy).</summary>
+    public static void Set(bool enabled, string? exePath = null)
     {
-        if (enabled) Create();
+        if (enabled) Create(exePath ?? ExePath);
         else Run($"/Delete /TN \"{TaskName}\" /F");
         IsEnabled();   // remember what the scheduler really holds now
     }
@@ -114,10 +115,10 @@ public static class Autostart
     /// after 72 hours. Same trigger, user and elevation as before (logon of the current user,
     /// highest privileges, so no UAC prompt).
     /// </summary>
-    private static void Create()
+    private static void Create(string exePath)
     {
         string user = System.Security.SecurityElement.Escape(System.Security.Principal.WindowsIdentity.GetCurrent().Name);
-        string exe = System.Security.SecurityElement.Escape(ExePath);
+        string exe = System.Security.SecurityElement.Escape(exePath);
         string xml = $"""
             <?xml version="1.0" encoding="UTF-16"?>
             <Task version="1.2" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
@@ -146,7 +147,7 @@ public static class Autostart
         {
             File.WriteAllText(file, xml, System.Text.Encoding.Unicode);
             if (Run($"/Create /TN \"{TaskName}\" /XML \"{file}\" /F") != 0)   // fallback: the old flags rather than no autostart
-                Run($"/Create /TN \"{TaskName}\" /TR \"\\\"{ExePath}\\\"\" /SC ONLOGON /RL HIGHEST /F");
+                Run($"/Create /TN \"{TaskName}\" /TR \"\\\"{exePath}\\\"\" /SC ONLOGON /RL HIGHEST /F");
         }
         finally { try { File.Delete(file); } catch { } }
     }

@@ -27,6 +27,10 @@
   <ItemGroup>
     <!-- multi-size ghost icon reachable at runtime (window/taskbar); ApplicationIcon only brands the exe file -->
     <EmbeddedResource Include="app.ico" LogicalName="GhostDeck.app.ico" />
+    <!-- The MSI WMI schema for the installer (TECHNICAL §84). Copied from the build machine by
+         tools/build-setup.ps1 into the gitignored local/ folder - never committed (MSI-signed,
+         MSI's licence). Absent = the installer works but cannot deploy it. -->
+    <EmbeddedResource Include="local/msiapcfg.dll" LogicalName="GhostDeck.msiapcfg.dll" Condition="Exists('local/msiapcfg.dll')" />
   </ItemGroup>
 
 </Project>

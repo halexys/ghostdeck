@@ -11,6 +11,9 @@ internal static class Program
         // replaces the compiled tables for this run - for the tray app and the CLI alike.
         if (ModelDb.LoadOverride() is { } db) Devices.ApplyOverride(db);
 
+        // The one-file installer (TECHNICAL §84): started as GhostDeckSetup*.exe, or with --setup / --uninstall.
+        if (Setup.IsSetupLaunch(args)) return SetupForm.Run(args);
+
         // Any argument = CLI mode: forwarded to the running instance over the pipe, or executed
         // one-shot against the EC. The tray app itself never starts with arguments.
         if (args.Length > 0) return Cli.Run(args);
