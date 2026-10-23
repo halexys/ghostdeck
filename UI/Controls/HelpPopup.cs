@@ -130,6 +130,8 @@ internal sealed class HelpDot : Control
 {
     /// <summary>Supplies the text at click time, so a bubble about a live reading is never stale.</summary>
     public Func<string>? TextProvider { get; set; }
+    /// <summary>Set for a topic too big for a bubble: the dot opens this (a GhostDeck help card) instead.</summary>
+    public Action? OpenCard { get; set; }
 
     public HelpDot()
     {
@@ -143,6 +145,7 @@ internal sealed class HelpDot : Control
     protected override void OnClick(EventArgs e)
     {
         base.OnClick(e);
+        if (OpenCard != null) { OpenCard(); return; }
         var host = Parent ?? this;
         HelpPopup.Toggle(host, Bounds, TextProvider?.Invoke() ?? "", this);
     }

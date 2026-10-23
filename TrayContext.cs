@@ -58,7 +58,7 @@ public sealed class TrayContext : ApplicationContext
     private DateTime _lastSsdSampleAt = DateTime.MinValue;   // gap detection: a pause restarts the dwell
     private int _ssdBusy;                      // 1 while a background disk-temperature read is in flight
     private ToolStripMenuItem? _coolerItem;
-    private GpuSwitchState? _gpu;              // MSI graphics-mode switch (TECHNICAL §82), null = none / no Integrated mode
+    private GpuSwitchState? _gpu;              // MSI graphics-mode switch (TECHNICAL §84), null = none / no Integrated mode
     private bool _gpuBusy;                     // a request is running on a worker thread
     private OverlayForm? _overlay;             // gaming status overlay (lazy)
     private ToolStripMenuItem? _overlayItem;
@@ -165,6 +165,7 @@ public sealed class TrayContext : ApplicationContext
         DetectFirmwareChange();
         if (Known && !_simulate) { try { _coolerBoost = Ec.GetCoolerBoost(_device!); } catch { } }
         ReadGpuSwitch();
+        if (_coolerBoost) ArmBoostTimer(true);   // (#172) already on at start: the auto-off applies to it too
 
         // A trip that ended while the app was off reverts before the first apply. The card
         // comes up with the rest of the start-up state, below.
@@ -845,6 +846,7 @@ public sealed class TrayContext : ApplicationContext
         {
             try { _current = Ec.GetCurrent(_device!); } catch { }
             try { _coolerBoost = Ec.GetCoolerBoost(_device!); } catch { }
+            ArmBoostTimer(_coolerBoost);   // (#172) the auto-off follows the state found here
             if (_webcamSupported) { try { _webcamOn = Ec.GetWebcam(); } catch { } }
         }
         BuildMenu();
@@ -943,7 +945,7 @@ public sealed class TrayContext : ApplicationContext
         _coolerItem.Click += (_, _) => ToggleCoolerBoost();
         menu.Items.Add(_coolerItem);
 
-        if (_gpu is { } gpu)   // graphics mode (TECHNICAL §82): only where the firmware offers Integrated
+        if (_gpu is { } gpu)   // graphics mode (TECHNICAL §84): only where the firmware offers Integrated
         {
             var gm = new ToolStripMenuItem(string.Format(Lang.T("gpu_menu"), GpuModeLabel(gpu.Current))) { Enabled = GpuWritable };
             foreach (var mode in new[] { GpuMode.Hybrid, GpuMode.Integrated })
@@ -1355,6 +1357,10 @@ public sealed class TrayContext : ApplicationContext
     // Windows may temporarily override; the Settings card shows requested and effective apart.
     private void ApplyPowerModeSync(ProfileId id, ChangeSource source)
     {
+        // (#117) the profile's turbo modes, only for sources it sets ("no change" = untouched);
+        // the same one-shot rule: a later pick on the card stands until the next switch
+        if (PowerPlan.ApplyProfileTurbo(_settings, id) is { } terr)
+            ChangeLog.Add(source, "CPU turbo boost: " + (terr.Length == 0 ? PowerPlan.TurboLabels() : terr));
         if (!_settings.PowerModeSync) return;
         var mode = PowerPlan.ModeForProfile(_settings, id);
         if (PowerPlan.TrySetPowerMode(mode))
@@ -1781,7 +1787,7 @@ public sealed class TrayContext : ApplicationContext
         }
     }
 
-    // ---------------- graphics mode (TECHNICAL §82) ----------------
+    // ---------------- graphics mode (TECHNICAL §84) ----------------
     // Writes go through the same gate as every EC write (known model + experimental opt-in, not
     // simulating): arming the switch is an EC byte, and the request lives in a firmware variable.
     private bool GpuWritable => Writable && !_simulate && !_gpuBusy;
@@ -2288,7 +2294,17 @@ public sealed class TrayContext : ApplicationContext
     private OverlaySample? BuildOverlaySample()
     {
         HwSnapshot hw;
-        if (Known) { if (!Ec.TryReadHw(_device!, out hw)) return null; }
+        bool lost = false;
+        if (Known)
+        {
+            if (!Ec.TryReadHw(_device!, out hw))
+            {
+                // a refused read keeps the previous sample; a long run of them shows "--" instead
+                if (!Ec.ReadsLost) return null;
+                hw = new HwSnapshot(0, 0, 0, 0, 0, _firmware);
+                lost = true;
+            }
+        }
         else hw = ReadHwOrTelemetry();
         int load = SysInfo.CpuUsage();
         var (ramPct, _, ramUsed) = SysInfo.Ram();
@@ -2305,7 +2321,7 @@ public sealed class TrayContext : ApplicationContext
             Perf.GpuUsage(), Perf.VramUsedMb(), Perf.CpuClockMhz(),
             FpsMonitor.Current?.Fps ?? -1, FpsMonitor.Current?.FrameTimeMs ?? -1,
             Perf.DiskTemps2().First, Perf.BatteryMinutesLeft(), Perf.DiskTemps2().Second,
-            Perf.IgpuUsage(), SysInfo.CpuShortName(),
+            Perf.IgpuUsage(), SysInfo.CpuShortName(), lost,
             _settings.HasMetric(OverlayMetric.CpuPower) ? Perf.CpuPackageWatts() : -1,
             _settings.HasMetric(OverlayMetric.GpuPower) ? NvPower.Watts() : -1);   // NVML only when asked for
     }
@@ -2873,7 +2889,18 @@ public sealed class TrayContext : ApplicationContext
         {
             try
             {
-                if (!Ec.TryReadHw(dev, out var hw)) return;   // refused read = no history sample this tick
+                if (!Ec.TryReadHw(dev, out var hw))
+                {
+                    // refused read = no history sample this tick. A long run of them would leave
+                    // the tray temperatures frozen at their last values: blank them instead.
+                    if (Ec.ReadsLost)
+                    {
+                        int ssdNow = _settings.TempTraySsd ? Perf.Disks().Select(d => d.TempC).DefaultIfEmpty(-1).Max() : -1;
+                        ui?.Post(_ => OnReadsLost(ssdNow), null);
+                    }
+                    return;
+                }
+                if (_readsLost) ui?.Post(_ => OnReadsBack(), null);
                 int load = SysInfo.CpuUsage();
                 HwHistory.Add(new HwSample(DateTime.Now, (short)hw.CpuTemp, (short)hw.GpuTemp,
                     (short)hw.CpuFan, (short)hw.GpuFan, hw.CpuRpm, hw.GpuRpm, (short)load, _current,
@@ -2892,6 +2919,26 @@ public sealed class TrayContext : ApplicationContext
             catch { }
             finally { Interlocked.Exchange(ref _thermalBusy, 0); }
         });
+    }
+
+    // Hardware readings unavailable (Ec.ReadsLost): one History line when they go and one when
+    // they come back, and the tray temperatures show "--" meanwhile (the SSD keeps its own reading).
+    private volatile bool _readsLost;
+    private void OnReadsLost(int ssdTemp)
+    {
+        if (!_readsLost)
+        {
+            _readsLost = true;
+            ChangeLog.Add(ChangeSource.Firmware, Lang.T("log_hw_lost"));
+        }
+        if (_settings.TempTrayCpu || _settings.TempTrayGpu || _settings.TempTraySsd)
+            UpdateTempTrays(new HwSnapshot(0, 0, 0, 0, 0, _firmware), ssdTemp);
+    }
+    private void OnReadsBack()
+    {
+        if (!_readsLost) return;
+        _readsLost = false;
+        ChangeLog.Add(ChangeSource.Firmware, Lang.T("log_hw_back"));
     }
 
     /// <summary>
@@ -3226,7 +3273,9 @@ public sealed class TrayContext : ApplicationContext
         {
             // Cooler Boost may be toggled elsewhere (or cleared by the firmware) — keep the menu in sync.
             bool cb = Ec.GetCoolerBoost(_device!);
-            if (cb != _coolerBoost) { _coolerBoost = cb; UpdateCoolerBoostMenu(); }
+            // (#172) Turned on by the laptop's own fan key or by MSI's app: the auto-off timer is the
+            // user's rule for Fan Boost as such, so it starts here too (and stops when it goes off).
+            if (cb != _coolerBoost) { _coolerBoost = cb; ArmBoostTimer(cb); UpdateCoolerBoostMenu(); }
 
             // (#27) The Fn camera key flips the same EC bit — keep the Scenarios brick in sync.
             if (_webcamSupported)

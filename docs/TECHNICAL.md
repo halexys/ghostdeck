@@ -1886,7 +1886,8 @@ and a **Check now** button; the change log gets one line when a database goes li
 MSIPS_FORCE_FIRMWARE).
 
 **Release flow for a model change:** edit `Devices.cs`, bump `Devices.DataVersion`
-(date-serial), build, `GhostDeck.exe --dump-models data/models.json`,
+(date-serial), `python tools/model-history.py` (stamps the dates of new prefixes and
+promotions, §82), build, `GhostDeck.exe --dump-models data/models.json`,
 `pwsh tools/sign-models.ps1`, then `GhostDeck.exe --dump-supported-md
 docs/SUPPORTED_MODELS.md`, commit all three files (plus the `.sig`), push - users have it
 within a day. The next exe release compiles the same tables in, so the override retires
@@ -2943,6 +2944,93 @@ MIXED state is named in the status line rather than shown as a plain ON. Boost m
 names are enumerated live (`PowerReadPossibleValue` / `PowerReadPossibleFriendlyName`) - no
 hardcoded 0..6, and the names arrive already localized by Windows itself.
 
+**Turbo mode per source and per profile (#117, issue #221, discussion #141).** Two
+`ThemedComboBox` lists under the switch hold `PowerPlan.BoostModes()` (the live enumeration) and
+write one source each through `PowerPlan.TurboSetModes(settings, ac, dc)` (a negative value =
+leave that source). Under each list `PowerPlan.BoostDescription` gives a plain description of the
+selected value: 0-4 follow Microsoft's PERFBOOSTMODE table (on ACPI P-state and autonomous CPPC,
+Aggressive behaves as Enabled; the Efficient variants as their plain counterparts), and the texts
+take the Windows names of modes 1 and 2 as arguments so they match the user's Windows language;
+5 and 6 follow Microsoft's ProcessorPerformanceBoostMode reference (5: Windows calculates the extra
+performance needed above the guaranteed level and requests that level; 6: Windows always requests the
+highest level above guaranteed); the Efficient Enabled text says that the PERFBOOSTMODE table makes it
+the same as Enabled, since the name alone suggests otherwise; any other value is "unknown". The main switch
+keeps its meaning and its callers (scenes, hotkey, CLI, `ghostdeck://turbo`): off = 0/0 with the
+snapshot, on = the snapshot back. The snapshot now follows the lists: while one exists, a pick on a
+source updates that side, and `TurboOff` keeps a side that is already 0 from the earlier snapshot,
+so "on" returns to what was chosen last. Because a list can replace one non-zero mode with
+another, which no snapshot records, a second memory exists: `AppSettings.TurboOriginals`, the pair
+a plan had before GhostDeck's FIRST boost write of any kind; it is dropped as soon as the plan is
+back to exactly that pair with no snapshot held, and *Restore Windows settings* writes it
+(falling back to the snapshot for plans changed only by an older version;
+`PowerPlan.RestoreTargets` feeds the restore list). The per-source switches ("Control
+separately") are gone: *Disabled* in one list does the same. `AppSettings.TurboMap` holds, per
+profile key, `[plugged in, battery]` with -1 = "no change"; only profiles that set something are
+stored, so the default is an empty map and nothing happens. `PowerPlan.ApplyProfileTurbo` runs in
+`TrayContext.ApplyPowerModeSync` on every profile switch (independent of Auto, which governs the
+power mode only), skips a value this Windows does not list (a settings file from another machine)
+and writes nothing when the plan already matches; like the mode, it is never enforced in the
+background. Imported settings carry `TurboMap` but not `TurboOriginals` (machine state).
+
+**The help card and autonomous mode (#117, second round).** The "?" next to CPU turbo boost
+opens `WinPowerHelpForm` (a GhostCardForm with a painted content block, RENDERING.md §11) instead
+of a bubble (`HelpDot.OpenCard`): pages behind tabs (switch and lists with the "sure ways to
+less power" callout; a table of `BoostModes()` with value, Windows name, `BoostDescription` and
+"lowers power?" - 0 yes, 1-6 no, anything else unknown; power mode, Auto and By profile; Restore
+and the reveal link with the Microsoft sources named), sized to its tallest page so switching
+pages never moves the buttons, and an aux button opening docs/WINDOWS-POWER.md on GitHub.
+`PowerPlan.TryReadAutonomous` reads PERFAUTONOMOUS (`8baa4a8a-14c6-4451-8e8b-14bdbd197537`,
+processor subgroup) of the active plan, read only, with the same AC/DC value-index calls; when both
+sources are 1 the modes page adds the sentence that Windows has autonomous mode on and that
+Microsoft then gives modes 1-4 the behaviour of Enabled. Microsoft notes the platform may ignore
+the setting, so the text says what Windows has switched on, never what the processor does.
+`ReportLine()` adds `autonomous mode AC n, battery n` to both test reports. The details table
+shows each value as the Windows name with its number ("Aggressive (2)") in *Now* and *Saved*.
+
+**What a mode really does: groups, icons, short lines (#117, third round).**
+`PowerPlan.GroupOf(value, autonomous)` sorts the boost values by Microsoft's tables: 0 = less
+power; 1 and 3 = turbo; 2 and 4 = turbo while autonomous mode is on for both sources, otherwise
+their own group "max turbo" (Aggressive is described apart only on non-autonomous CPPC); 5 and
+6 = asks for more (above the guaranteed level); anything else unknown. `GroupColor` takes theme
+tokens (Green, Accent, Amber, Violet, Muted), `GroupLabel` the short name, and
+`IconPainter.BoostGroup` draws the icon: a rounded tile in the group colour at low alpha with a
+drawn leaf (Segoe MDL2 has none) or an MDL2 glyph (LightningBolt E945, the flame ECAD, Up E74A,
+a circled question mark E9CE); on a highlighted list row the symbol is white. The icon appears
+in the lists (`ThemedComboBox.ItemIcon`, a new optional delegate for the field and every row,
+plus `ItemNote` for the grey group name at the right of an open row; lists that set neither
+draw as before, `combotest` 30/30), in the By profile table, on the editor chips and in the help
+card's table, whose "lowers power?" column and note gave way to a three-column legend (with
+the autonomous sentence under it, or the generic "1-4 are one group" note when it is off).
+Under the lists `PowerPlan.ShortDescription` gives one short line per source, one line across
+both columns when the two sources hold the same mode. The full `pw_bm_*` descriptions stay in
+the help card and the editor. The help card moved its intro into the first page and is 960
+logical px wide, so its tallest page fits a 1080p screen at 125 %. The render harness can draw
+the "autonomous mode off" look on a machine that has it on (`AUTONOMOUS=0`, through a private
+preview field read by `AutonomousOn`, which the app never sets).
+Measured against main in the harness (2026-10-20, 134 % DPI): the Power sub-tab builds in the same
+time with the same 529 system windows; a card Sync costs about 1 ms on both once the layout pass
+remembers its text heights (without that it was 3 ms); a click in the By profile editor repaints once
+in about 15 ms against 9 ms on main, because the card is taller and carries more chips.
+
+**No text cut (#117, fourth and fifth rounds, owner test on 1.40.99).** Nothing in
+this feature ends in "..." any more. `WinPowerBody` lost its one-line ellipsis format: every label,
+table header, details cell and By profile cell wraps through one `Cell` helper and its row grows
+(header rows measure their longest caption, `ThH`). `ThemedComboBox` has a new opt-in
+`WrapSelected` (off by default, every other list unchanged, `combotest` 30/30): the selected value
+wraps and the field grows (`FieldHeightFor(width)`, remembered per text, width and font); the
+card's turbo lists use it, and the open list stays one line per row because `DropDownWidth` is
+measured to the longest label. `PowerMapForm` wraps its labels, its profile tabs and any chip
+wider than the card (a full-width chip that grows), and `WinPowerHelpForm` wraps its tabs.
+The UI shows a mode by its Windows name alone (`BoostName`): the card, the lists, By profile, the editor, the restore card and the
+change log (`TurboLabels`, "Aggressive / Efficient Enabled"). The number Windows stores appears
+only in the *Value* column of the help card's table, with one sentence under it saying what it
+is; the CLI and the test reports keep "2 (Aggressive)". Its text is now a step above the Settings cards (14.5 px body, 14 px table, 16.5 px
+headings, 14.5 px tabs and buttons through the new `GhostCardForm.ButtonFontPx`), and the icon
+legend moved to a page of its own, so the tallest page (the table) still fits a 1080p screen at
+125 % (about 890 px). The harness stress set `BOOSTNAMES=long` (very long names, `FAKEMODES` for
+modes 6 and 5 as live and saved values) was drawn at 134 % and at 100 % (`DPIUNAWARE=1`) with no cut
+and no "...".
+
 **The Windows power mode row.** A FOUR-segment control: the three modes of the Windows power
 slider, set directly for both power sources through the official Windows 11 API
 (`PowerSetUserConfiguredAC/DCPowerMode`, resolved dynamically; the long-lived but
@@ -2950,8 +3038,10 @@ undocumented `PowerSetActiveOverlayScheme` stays as a fallback for builds withou
 export), plus **"Auto: profile"** as the fourth segment, so exactly one segment is ever lit.
 Auto fires only inside `SetProfile`, never enforced in the background. The profile → mode
 mapping is editable (`PowerMapForm`, a GhostDeck card opened from the pencil hotspot on the
-mapping caption - one row per profile with a painted three-way picker, see RENDERING.md §11;
-the second hotspot restores the defaults behind a confirmation card):
+BY PROFILE caption - since #117 a profile picker on top and, for the picked profile, painted chip
+rows for the power mode and the turbo mode of each source, "no change" first; the chips wrap
+instead of cutting long Windows names; see RENDERING.md §11; the second hotspot restores the
+defaults of both maps behind a confirmation card):
 `AppSettings.PowerModeMap` stores only the rows that differ from the defaults (Silent and
 Super Battery → best power efficiency, Balanced → balanced, Extreme → best performance), and
 `PowerPlan.ModeForProfile(settings, id)` is the single resolver for the card and the tray.
@@ -2973,26 +3063,36 @@ activating any plan; one `PowerSetActiveScheme` at the end for the plan that was
 active), skips and discards snapshots of deleted plans, keeps the snapshot of any failed
 write for a retry, and reports the counts; the confirmation and any attention-worthy result
 are GhostCardForm cards, never MessageBox. The reveal action is a footer link, not a button:
-it clears only the HIDE bit of the setting attributes after storing the full original DWORD
-(`PowerRead/WriteSettingAttributes`), and the re-hide writes that exact DWORD back.
+it clears the HIDE bit (1) of the setting attributes after storing the full original DWORD
+(`PowerRead/WriteSettingAttributes`), and the re-hide writes that exact DWORD back. On a Modern
+Standby machine (`GetPwrCapabilities`, `AoAc`) Power Options lists a processor setting only when
+it also carries SHOW_AOAC (2): with HIDE cleared and nothing else the value is 0 and the setting
+stays invisible, which is also all that `powercfg -attributes ... -ATTRIB_HIDE` does. The reveal
+therefore sets SHOW_AOAC there, and the card counts the setting as hidden when HIDE is set or,
+on Modern Standby, when SHOW_AOAC is missing (measured on the owner's GE78HX, 2026-10-20:
+original 1, after the old reveal 0 and still hidden, 2 shown).
 
-**Card layout (final, owner-approved 2026-10-04).** A flat card, nothing collapsible, two
-groups set apart by extra space, each under a caption with a coloured marker. Group one, CPU
-TURBO BOOST: the main switch with its help dot; one status sentence (plain when on, an amber
-strip when it is off, with or without a snapshot, or when the two sources differ); an open table "Technical details" - a header row naming the active plan
-and the two sources, then *Now*, *Saved* (amber when a snapshot exists, "none" otherwise) and
-*Control separately* with one switch per source. Group two, WINDOWS POWER MODE: the
-four-segment control; under it the Auto sentence and, only on a real override, the amber
-note; then PROFILE MAPPING - caption with two glyph hotspots on the right (edit, restore
-defaults) and four rows of scenario icon in the profile colour, profile name and mode. Below
+**Card layout (owner-approved 2026-10-04, turbo lists and BY PROFILE added 2026-10-20 for
+#117).** A flat card, nothing collapsible, three groups set apart by extra space, each under a
+caption with a coloured marker. Group one, CPU TURBO BOOST: the main switch with its help dot;
+one status sentence (plain when on, an amber strip when it is off, with or without a snapshot,
+or when the two sources differ); a faint sentence on what the switch does; TURBO MODE - the two
+lists under a plugged-in / battery header with the description of each pick below it; an open
+table "Technical details" - a header row naming the active plan and the two sources, then
+*Now* and *Saved* as "name (number)" (Saved amber when a snapshot exists, "none" otherwise). Group two, WINDOWS POWER MODE: the four-segment control; under it the Auto sentence
+and, only on a real override, the amber note. Group three, BY PROFILE (violet marker): the
+caption with two glyph hotspots on the right (edit, restore defaults), a table of profile
+(scenario icon in the profile colour + name), power mode, turbo plugged in and turbo on battery
+("no change" faint; long Windows names wrap to a second line, the row grows), and a faint note
+on when each column applies. Below
 both groups: the restore block (only while something is held) and the footer sentence with
 its *Show it there* / *Hide it again* link. Every decision the card asks for is a GhostDeck
 card (RENDERING.md §11): restore, reveal, hide, the default mapping, and the mapping editor.
 
 **Outside the card.** The Start tile of the Power group shows the lit mode and a
 switched-off turbo (§34.1). `--turbo on|off|status` goes through the same `PowerPlan`
-functions, so a CLI change and the card can never disagree (docs/CLI.md). Scenes do not
-carry a turbo field yet.
+functions, so a CLI change and the card can never disagree (docs/CLI.md). The scene field
+*Turbo* (on / off) calls the same `TurboOn` / `TurboOff`. User guide: docs/WINDOWS-POWER.md.
 
 **Rendering: one owner-drawn control.** The card body is `UI/Controls/WinPowerBody.cs`, a
 single double-buffered control. Its first builds were composed from ~35 nested AutoSize
@@ -3001,7 +3101,7 @@ another and repaint one by one, and the Power tab visibly drew itself element by
 about a second (the powrprof reads were measured at ~5 ms per enumeration and are not the
 cause; the boost-mode list is cached anyway). In `WinPowerBody` one `Flow` routine owns the
 geometry - it measures when called without a Graphics (and positions the few real children:
-three ToggleSwitches, the SegControl, the HelpDot) and paints when called with one, so
+the ToggleSwitch, the two turbo-mode lists, the SegControl, the HelpDot) and paints when called with one, so
 layout and paint cannot drift apart. Hotspots (mapping edit/reset, restore, the reveal link)
 are painted and hit-tested. The host card gives the control its width and reads the height
 back (`CardSection.Relayout`, the "wp-wide" rule); a height change caused by STATE (not by
@@ -3659,7 +3759,7 @@ The original values go to `backup-path-restore.json` before the first write, so 
 
 **The fan curve on this path.** The curve editor works through the same slots. `Ec.ReadFanCurve` and `Ec.WriteFanCurve` take the entry's `BlockCurveSpec` (block class, first temperature index, first speed index, count) and go through `Ec.BackupWrite`, so a curve write passes the same three checks as a profile write and is refused while the gate is closed; the slots of both fans' tables and the Advanced fan-mode value (`0x8D`) are on the allow-list, temperatures are accepted in 0..110 and speeds in 0..the model's maximum. Since DataVersion 20261020 the GF65 Thin 10UE entry carries its `FanCurve` as verified: in the owner's two path tests of 8 October 2026 (#230) the fan followed the raised table in both phases (2261 to 4733 RPM), so the editor is offered there once the path test has passed, with the same opt-in as on other models. The Delta 15 entry has no curve: no run on that board has arrived, and the owner's own measurement (#48) says the firmware there follows the table only outside the two power-saving shift modes.
 
-**Machines without an entry: the layout fingerprint.** Three boards of three generations - the Delta 15 A5EFK (`15CK`), the GF65 Thin 10UE (`16W2`) and the GS75 Stealth 8SE (`17G1`) - answered with the same instance count in every block and the same constant markers: `MSI_CPU[0]` = 13, `MSI_System[1]` = 2, `MSI_System[11]` = 5, `MSI_System[19]` = 226, `MSI_AP[1]` = 20. `EcBlocks.LayoutKnown()` checks exactly that (19 / 18 / 21 / 8 instances plus the five markers). A machine that shows the fingerprint but has no entry runs in the monitoring-only mode of §39 with fan duty and both tachometers next to the temperatures, the Status note carries one more sentence, and a card at start (`blocks_report_hint`) points to the Report tab. The report wizard then captures the data blocks instead of an EC image: one `EcBlocks.Snapshot` per scenario (every slot of the surveyed blocks, read fresh), and the report lists the slots that differ between scenarios followed by the full snapshots, so an entry can be written from the report alone and shipped through the signed database (§54). The fingerprint never unlocks a write: it says where the registers are, a recipe says what may go into them.
+**Machines without an entry: the layout fingerprint.** Three boards of three generations - the Delta 15 A5EFK (`15CK`), the GF65 Thin 10UE (`16W2`) and the GS75 Stealth 8SE (`17G1`) - answered with the same instance count in every block and the same constant markers: `MSI_CPU[0]` = 13, `MSI_System[1]` = 2, `MSI_System[11]` = 5, `MSI_System[19]` = 226, `MSI_AP[1]` = 20. `EcBlocks.LayoutKnown()` checks exactly that (19 / 18 / 21 / 8 instances plus the five markers). A machine that shows the fingerprint but has no entry runs in the monitoring-only mode of §39 with fan duty and both tachometers next to the temperatures, the Status note carries one more sentence, and a card at start (`blocks_report_hint`) points to the Report tab. The report wizard then captures the data blocks instead of an EC image: one `EcBlocks.Snapshot` per scenario (every slot of the surveyed blocks, read fresh), and the report lists the slots that differ between scenarios followed by the full snapshots, so an entry can be written from the report alone and shipped through the signed database (§54). The fingerprint never unlocks a write: it says where the registers are, a recipe says what may go into them. A fourth, older board shows where the fingerprint stops: the GS63VR 7RG Stealth Pro (board `16K3`, #257) serves the same instance counts and four of the five markers, but `MSI_System[11]` reads 3, so it lands in temperatures only. Its report wizard capture kept `MSI_System[7]` = `0xC3` and `MSI_System[9]` = `0x0C` in all four scenarios - values outside the recipe set above and unchanged by the scenarios - so nothing can be written from it.
 
 **Trigger.** The backup path is tried when the probe ends `NotSupported`, `ClassMissing` or `InstanceMissing`. The GS75 firmware has no `MSI_ACPI` in its `_WDG` at all, so on a machine without MSI's schema file the probe ends `ClassMissing` rather than `NotSupported`; the Status note tells the two apart (`telemetry_note` against `telemetry_note_schema`). The GS75 also shows the limit of the BIOS-string identification: board code `17G1` maps to two EC lines (`17G1EMS1` / `17G1EMS2`), so that machine stays unidentified until something else names its EC line; a candidate is the `MSI_Software` block, not yet read.
 
@@ -3673,9 +3773,113 @@ The original values go to `backup-path-restore.json` before the first write, so 
 
 **Diagnostics and testing.** `msi-wmi-blocks.txt` in the diagnostic package lists eight blocks in full with the time each query took, the type and `write` qualifier of the value property, whether a single instance can be fetched by path, and the block routine names found in the firmware table (`WQxx` read, `WSxx` write). `MSI_Software` is not read: the firmware flags it as an expensive collection. `wmi-interface.txt` carries the verdict of the backup-path check and its readings. `MSIPS_BLOCKS_FILE=<msi-wmi-blocks.txt>` with `MSIPS_BLOCKS_BIOS=<version>` replays a saved dump instead of querying WMI (writes land in the in-memory copy; `MSIPS_BLOCKS_STUCK=1` makes the copy ignore them).
 
+**What is confirmed so far.** The read path: by the diagnostic packages of all three machines. The write path and the test on hardware: two path tests by the GF65 Thin 10UE owner on 8 October 2026 (#230), one with Windows turbo boost and one without, both passed - Super Battery delivered 52 % and 34 % of the slower Extreme run's work, every profile read back as written, the restore was confirmed by read-back, and the fan followed the raised table in both phases of the curve check. MSI's services were running during both runs and did not interfere. Against replayed dumps: the full run on all three machines, including a firmware that ignores a write. On 18 October 2026 the owner added the two checks the test cannot make - Silent audibly quieter than Balanced under light load, switching stable over days - and the GF65 Thin 10UE entry became the first tested model of this generation (DataVersion 20261024). The Delta 15: no run on hardware yet. The GS66 Stealth (`16V1EMS1`, #258) joined on 20 October 2026 from its owner's block report, which shows all five fingerprint markers; its recipes are msi-ec's, and switching Dragon Center scenarios moved neither the shift nor the fan slot in that capture, so the path test is the first check of the values on that board.
+
+## 82. The Models tab: five sub-tabs and the model history dates (2026-10)
+
+**Layout.** The tab has the Settings-style sub-tab strip (`SubTabs`): **Start** (your laptop
+with what works on it, or a "not in the database yet" card with *Report my model* and a link
+to the backup-path guide; the database in numbers as clickable tiles; a growth chart of
+recognised and tested models; *closest to tested* = experimental models with a confirmed
+curve, a backup-path layout, a partial credit or a known fourth mode; the five latest
+changes), **List** (the table: filter chips, a result count, rows that grow instead of
+ending in "...", zebra rows, a NEW badge, a click opens the row's details with every prefix,
+the dates, the fourth mode, the backup path, the report link, each thanked login as its own
+link and *Copy row*; under the table a *Report my model* box), **Features** (coverage tiles
+and a dot matrix: filled = works, ring = curve addresses from the maps, not yet confirmed),
+**Series** (tested share per series = first word of the name; a click opens the List
+filtered) and **Community** (every thanked login, sorted by the number of models, and the
+full timeline). The search box stays in the header; typing on Start, Series or Community
+switches to the List. The tab opens on Start; clicking the Models tab again returns there.
+
+**Everything is computed from the database in effect** (`Devices.All`) in `ModelsStats.Build`,
+rebuilt on every database change (`OnDeviceDbChanged`), so a new model, a promotion, a curve,
+an RPM address or a credit updates every number, the chart, the timeline, the series and the
+thanks with no hand edits. Each sub-tab is ONE drawn surface (`ModelsView` in
+`UI/ModelsViews.cs` and `UI/ModelsListView.cs`, measure and paint share one `Render` pass,
+click zones registered while painting), hosted in the page's scrolling panel, so the tab adds
+no window per row. Text measuring is cached per text and font (`UI/ModelsText.cs`; the font
+is keyed by reference, because `Font.GetHashCode` reads the family name through GDI+ on every
+call), wrapped cells count lines from cached word widths instead of a GDI measure per cell,
+and the List draws only the rows inside the repaint area. Pitfall found on the way:
+`TextRenderer.MeasureText` with `WordBreak` and an empty size wraps at every space and
+returns the widest word, not the line. `&` in a credit is drawn with `NoPrefix`.
+
+**History dates.** `data/model-history.json` (embedded in the exe as
+`GhostDeck.model-history.json`, read by `Core/ModelHistory.cs`) holds, per firmware PREFIX,
+the day it was first recognised (`added`) and the day its model was first seen as Tested
+(`tested`); a model's dates are the earliest over its prefixes, so renaming or merging an
+entry keeps its history. `tools/model-history.py` writes the file: `--backfill` rebuilt it
+from the git history of `Devices.cs` (first model 2026-06-26, the msi-ec import on
+2026-06-29), a plain run adds today's date for every new prefix and every new promotion, and
+`--check` (CI step "Model history dates") fails while `Devices.cs` has a prefix or a Tested
+model without a date. The dates travel in the signed database as optional `added` /
+`tested` keys per model (first carried by dataVersion 20261023); older clients ignore them,
+and a downloaded database without them gets the compiled dates by prefix
+(`ModelHistory.Apply(onlyMissing: true)` in `Devices.ApplyOverride`).
+
+**Reports per person.** `DeviceProfile.CreditIssues` (`Issues("login:42,43; other:7")` in
+`Devices.cs`, `creditIssues` in the database) lists every report of every thanked login, in the
+order of `Credit`; the details of a List row and the Start card show each login (profile link)
+followed by its report numbers (each a link). `tools/model-history.py --check` also fails when a
+login in `Credit` has no entry here, so a new credit cannot go out without its reports. The
+first fill (2026-10-18) came from the GitHub API: the author and commenters of each model's main
+report, plus every report a person opened that names one of the model's prefixes; it also found
+two credited logins that do not exist on GitHub, now corrected.
+
+**Hover, chart cursor, entry animation.** Every click zone carries a hover kind (card, row,
+chip, button, link) and the view draws the highlight over the zone under the mouse; moving
+between zones invalidates only the two rectangles. A paint pass skips everything outside its
+clip (text, cards, chips) but still collects the click zones of the whole view, so a hover
+repaint costs ~0.2-20 ms instead of a full repaint (~50-250 ms per view, measured at 140 % in
+the render harness, `RESIZEBENCH=1`). The growth chart follows the mouse like Status > History:
+a dashed line at the last change before the cursor, a dot on each series and a card with the
+date and both counts. The first time Start shows in a run, the chart draws in from the left and
+the tiles count up over 450 ms (repainting only those two areas), skipped when Windows UI
+effects are off. The page computes its statistics in a message of their own after the window
+handle exists, so the background pre-build never blocks the UI thread for long.
+
+Screenshots: `docs/images/models_start.png`, `models_list.png`, `models_features.png`,
+`models_series.png`, `models_community.png`, `models_start_light.png` (render harness,
+`MODELSTAB`, `MODELSOPEN`, `MODELSEARCH`, `MODELSMOUSE`).
+
+**NEW badge.** `AppSettings.ModelsSeen` keeps first prefix + tier (`17S1IMS1|T`) of every
+model at the previous visit. The list as it was when the app started is the reference for
+the whole run, so a model added or promoted since then carries the badge (List, header line,
+"New" chip) until the next start. The very first run marks nothing.
+
+## 83. Hardware readings unavailable (2026-10)
+
+Every hardware sample goes through `Ec.TryReadHw`, which swallows a refused read (WMI or COM
+error) and returns false. A single refusal is normal (resume from sleep, the WMI provider host
+recycling) and the callers simply skip that tick. Before this change a long run of refusals
+left the numbers on screen frozen: the tray temperature icons and the overlay kept their last
+values, and Status showed temperature dashes but fan targets of 0.
+
+**The rule.** `Ec` remembers when the current run of refused reads began (`_failSince`, UTC
+ticks, 0 after any successful read). `Ec.ReadsLost` is true once that run is longer than
+`ReadsLostAfter` (10 s, a little over three ticks of the 3-second sampler). Only then:
+
+- **Tray** (`TrayContext.SampleHw`): the temperature icons are redrawn from a zero snapshot, so
+  they read "--" (the SSD icon keeps its own reading, it does not come from the EC). History
+  gets one `ChangeSource.Firmware` line (`log_hw_lost`) when the readings go and one
+  (`log_hw_back`) on the first successful read after that; `_readsLost` makes each line appear
+  once per outage.
+- **Overlay** (`BuildOverlaySample`): instead of `null` (= keep the previous sample) it sends a
+  zero snapshot with `OverlaySample.HwLost`, so temperatures and RPM show "--" and the fan
+  target shows "--" instead of "0/0%".
+- **Status**: the fan target rings show a dash instead of 0 (0 is a real curve target, so a lost
+  reading must not look like one), and an amber note (`hw_lost_note`) above the info card says
+  that Windows is not answering and that the values come back on their own.
+
+Nothing else changes: no write is retried or blocked by this, and profile switching keeps its
+own error handling. Machines without the EC interface (telemetry-only, #48) never reach
+`TryReadHw` for their temperatures and are unaffected. The render harness draws the Status
+state with `HWLOST=1`.
+
 **What is confirmed so far.** The read path: by the diagnostic packages of all three machines. The write path and the test on hardware: two path tests by the GF65 Thin 10UE owner on 8 October 2026 (#230), one with Windows turbo boost and one without, both passed - Super Battery delivered 52 % and 34 % of the slower Extreme run's work, every profile read back as written, the restore was confirmed by read-back, and the fan followed the raised table in both phases of the curve check. MSI's services were running during both runs and did not interfere. Against replayed dumps: the full run on all three machines, including a firmware that ignores a write. The Delta 15: no run on hardware yet.
 
-## 82. Graphics mode: Hybrid / Integrated only (MSI GPU switch)
+## 84. Graphics mode: Hybrid / Integrated only (MSI GPU switch)
 
 MSI Center's *GPU Switch* on recent laptops offers MSHybrid and **Integrated graphics**, the
 latter powering the discrete GPU off completely for battery life. It is not an EC register like
@@ -3723,7 +3927,7 @@ restart: the RTX and the external monitor on it are back. After each boot EC `0x
 `Get_AP(0)` byte 2 read `00` again - the firmware consumes the arm. The card, the display warning
 and Cancel were also exercised. MsiGT verified the same sequence on a Creator Z16HX Studio B13VGTO.
 
-## 83. Overlay: CPU and GPU power in watts
+## 85. Overlay: CPU and GPU power in watts
 
 Two optional overlay cells, **CPU W** and **GPU W** (Settings → Overlay; offered only where the
 source exists). Both keep the "no kernel driver" rule (§21):
@@ -3742,8 +3946,36 @@ there, costing battery on a hybrid laptop. So NVML is initialised and asked only
 `GpuTelemetry` already sees the card clocked (a powered-down card reports no clock) and only while
 the GPU W cell is switched on; otherwise the cell shows `--`, like the GPU temperature. Checking
 whether to offer the item does not touch NVML at all (an NVIDIA discrete adapter in the roles and
-`nvml.dll` on disk). In Integrated-only mode (§82) the discrete card is gone from Windows and the
+`nvml.dll` on disk). In Integrated-only mode (§84) the discrete card is gone from Windows and the
 cell is dropped.
 
 Measured on the Prestige 16 AI Studio B1VFG: idle CPU W 9-11 W, GPU W 2 W; under the power test's
 compute load GPU W 39 W against `nvidia-smi`'s 38.8 W.
+
+## 86. The one-file installer (this fork)
+
+`GhostDeckSetup-<version>.exe` is GhostDeck itself, not a second program: started under a name
+beginning with `GhostDeckSetup`, or with `--setup` / `--uninstall`, `Program.Main` shows
+`SetupForm` (elevating first) instead of the tray or the CLI. Install copies the running exe to
+`%ProgramFiles%\GhostDeck\GhostDeck.exe` (an existing copy is kept as `.bak` and restored if a
+later step fails), deploys the MSI WMI schema when Windows lacks it, creates the autostart task
+for the installed copy (`Autostart.Set(on, exePath)`), a Start-menu shortcut and an Apps &
+Features entry whose uninstall string is `GhostDeck.exe --uninstall`. Opened again it offers
+Reinstall, Update (when the installed version is older) or Uninstall; uninstall removes the app,
+the task, the shortcut and the entry, and leaves the schema (other MSI tools may use it) and
+`%AppData%\GhostDeck`.
+
+**The schema never enters the repository.** `msiapcfg.dll` is MSI's signed component
+(MSI-WMI-SCHEMA.md). `tools/build-setup.ps1` copies it from the build machine's
+`SysWOW64` into the gitignored `local/` folder after checking its Authenticode signature is
+Micro-Star's, and the csproj embeds `local/msiapcfg.dll` only when the file exists. Deployment
+does what MSI's NBFoundation package does: the file goes to `SysWOW64`, `WmiAcpi\MofImagePath`
+becomes `%windir%\sysWOW64\msiapcfg.dll`, then every `ACPI\PNP0C14` device is restarted
+(`pnputil /restart-device`, as HandheldCompanion does) so `wmiacpi.sys` publishes `MSI_ACPI`
+without a reboot; if the class still does not appear after 5 s the done page asks for a reboot.
+Nothing is written when `MSI_ACPI` already exists. A build without the file (`-NoSchema`, or a
+machine without it) installs everything else and says MSI Center is needed once.
+
+The script publishes self-contained (`--self-contained`, compressed single file, about 70 MB),
+so a fresh Windows needs no .NET runtime. Because it carries an MSI-signed file, the result is
+for the owner's own machines, not a release asset.

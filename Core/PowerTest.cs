@@ -108,7 +108,10 @@ public static class PowerTest
         bool Wrote = false,
         // Whether the discrete graphics chip was loaded too, and which one. Without this the
         // report cannot be compared against one from a machine where that load never started.
-        bool GpuLoaded = false, string GpuAdapter = "");
+        bool GpuLoaded = false, string GpuAdapter = "",
+        // Windows plan, turbo boost and power mode at the start (#236). The run itself never
+        // changes them, so the line holds for every phase.
+        string WinPower = "");
 
     /// <summary>Where the run is, for the page's progress bar and live line.</summary>
     public readonly record struct Progress(
@@ -197,13 +200,14 @@ public static class PowerTest
         string? aborted = null;
         var started = DateTime.Now;
         bool onAc = OnAc();
+        string winPower = PowerPlan.ReportLine();
 
         // Nothing has been written yet, so refusing here is free. Five minutes of load on a machine
         // that is already busy produces a report whose work column describes the other program.
         Report(pr, 0, steps, "", "check", 0, "");
         Result Nothing(string? why, int busy) => new(
             started, appVersion, firmware, dev.Name, dev.Tier.ToString(), onAc, false, threads,
-            ProfileId.Balanced, 0, Array.Empty<byte>(), Array.Empty<Phase>(), null, why, busy);
+            ProfileId.Balanced, 0, Array.Empty<byte>(), Array.Empty<Phase>(), null, why, busy, WinPower: winPower);
 
         int preBusy;
         // Cancel is live from the moment the page shows its Cancel button, which is before this
@@ -296,7 +300,7 @@ public static class PowerTest
 
         return new Result(started, appVersion, firmware, dev.Name, dev.Tier.ToString(),
             onAc, boost, threads, startProfile, startShift, before, phases.ToArray(), fourth, aborted,
-            0, wrote, gpu.Active, gpu.Adapter);
+            0, wrote, gpu.Active, gpu.Adapter, winPower);
     }
 
     // ---------------- fourth-mode probe ----------------
@@ -578,6 +582,7 @@ public static class PowerTest
         sb.AppendLine($"EC firmware: {(string.IsNullOrEmpty(r.Firmware) ? "(unknown)" : r.Firmware)}");
         sb.AppendLine($"Model: {r.Model}  ({r.Tier})");
         sb.AppendLine($"Power source: {(r.OnAc ? "AC" : "battery")}");
+        if (r.WinPower.Length > 0) sb.AppendLine($"Windows power (unchanged by the run): {r.WinPower}");
         sb.AppendLine($"Fan Boost (max fans) at the start: {(r.FanBoost ? "ON - fan and temperature columns are flattened by it" : "off")}");
         string startExtra = dev.FourthMode is { } sfm && r.StartShift == sfm.ShiftValue ? $" + {sfm.Name}" : "";
         sb.AppendLine($"State when the run started (restored afterwards): {r.StartProfile}{startExtra}" +

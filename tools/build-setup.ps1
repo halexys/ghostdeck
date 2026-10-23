@@ -1,4 +1,4 @@
-# Builds the one-file installer GhostDeckSetup.exe (TECHNICAL.md §84) on THIS machine.
+# Builds the one-file installer GhostDeckSetup.exe (TECHNICAL.md §86) on THIS machine.
 #
 #   pwsh tools/build-setup.ps1 -Version 1.40.0
 #

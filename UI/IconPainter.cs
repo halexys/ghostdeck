@@ -8,6 +8,78 @@ internal static class IconPainter
     private static Color Mix(Color a, Color b, float t) => Color.FromArgb(
         (int)(a.R + (b.R - a.R) * t), (int)(a.G + (b.G - a.G) * t), (int)(a.B + (b.B - a.B) * t));
 
+    /// <summary>
+    /// The icon of a turbo-mode group (#117): a rounded tile in the group colour at low alpha with
+    /// the symbol on top - a leaf (drawn, Segoe MDL2 has none) for less power, MDL2 glyphs for the
+    /// rest (LightningBolt E945, the flame ECAD, Up E74A, a circled question mark E9CE).
+    /// <paramref name="ink"/> overrides the symbol colour (white on a highlighted list row).
+    /// </summary>
+    // One font per pixel size, kept: a list or a table draws a dozen icons per repaint, and
+    // a font per icon is avoidable work (harness: one icon 0.04 ms with the cached font).
+    private static readonly Dictionary<int, Font> _glyphFonts = new();
+    private static Font GlyphFont(float px)
+    {
+        int key = (int)Math.Round(px * 4);
+        lock (_glyphFonts)
+        {
+            if (!_glyphFonts.TryGetValue(key, out var f)) _glyphFonts[key] = f = new Font("Segoe MDL2 Assets", key / 4f, GraphicsUnit.Pixel);
+            return f;
+        }
+    }
+
+    public static void BoostGroup(Graphics g, PowerPlan.BoostGroup grp, RectangleF box, Color c, Color? ink = null)
+    {
+        var old = g.SmoothingMode;
+        g.SmoothingMode = SmoothingMode.AntiAlias;
+        float r = Math.Max(2f, box.Width * 0.24f);
+        using (var tile = new GraphicsPath())
+        {
+            tile.AddArc(box.X, box.Y, r * 2, r * 2, 180, 90);
+            tile.AddArc(box.Right - r * 2, box.Y, r * 2, r * 2, 270, 90);
+            tile.AddArc(box.Right - r * 2, box.Bottom - r * 2, r * 2, r * 2, 0, 90);
+            tile.AddArc(box.X, box.Bottom - r * 2, r * 2, r * 2, 90, 90);
+            tile.CloseFigure();
+            using var tb = new SolidBrush(Color.FromArgb(ink != null ? 60 : 46, c));
+            g.FillPath(tb, tile);
+        }
+        Color fg = ink ?? c;
+        float s = Math.Min(box.Width, box.Height);
+        if (grp == PowerPlan.BoostGroup.Less)
+        {
+            // a leaf on a 32-unit grid: two arcs meeting at the tip, a midrib and a short stem
+            float u = s / 32f;
+            PointF P(float gx, float gy) => new(box.X + gx * u, box.Y + gy * u);
+            using var leaf = new GraphicsPath();
+            leaf.AddBezier(P(8f, 24f), P(6f, 13f), P(14f, 7f), P(25f, 7f));
+            leaf.AddBezier(P(25f, 7f), P(26f, 18f), P(19f, 26f), P(8f, 24f));
+            leaf.CloseFigure();
+            using var lb = new SolidBrush(fg);
+            g.FillPath(lb, leaf);
+            using var rib = new Pen(Color.FromArgb(150, 0, 0, 0), Math.Max(1f, 1.4f * u)) { StartCap = LineCap.Round, EndCap = LineCap.Round };
+            g.DrawLine(rib, P(10.5f, 21.5f), P(21f, 11f));
+            using var stem = new Pen(fg, Math.Max(1f, 2f * u)) { StartCap = LineCap.Round, EndCap = LineCap.Round };
+            g.DrawLine(stem, P(8.5f, 23.5f), P(5.5f, 26.5f));
+        }
+        else
+        {
+            string glyph = grp switch
+            {
+                PowerPlan.BoostGroup.Turbo => "",
+                PowerPlan.BoostGroup.TurboMax => "",
+                PowerPlan.BoostGroup.AskMore => "",
+                _ => "",
+            };
+            var f = GlyphFont(s * 0.66f);
+            using var gb = new SolidBrush(fg);
+            using var sf = new StringFormat(StringFormat.GenericTypographic) { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center };
+            var oldHint = g.TextRenderingHint;
+            g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAliasGridFit;
+            g.DrawString(glyph, f, gb, new RectangleF(box.X, box.Y + s * 0.02f, box.Width, box.Height), sf);
+            g.TextRenderingHint = oldHint;
+        }
+        g.SmoothingMode = old;
+    }
+
     public static void Scenario(Graphics g, ProfileId id, RectangleF box, Color c, float stroke)
     {
         g.SmoothingMode = SmoothingMode.AntiAlias;

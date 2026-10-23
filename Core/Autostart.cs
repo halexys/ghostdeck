@@ -72,12 +72,8 @@ public static class Autostart
             var m = System.Text.RegularExpressions.Regex.Match(xml, @"<Command>\s*""?([^""<]+?)""?\s*</Command>");
             if (m.Success && !string.Equals(m.Groups[1].Value.Trim(), ExePath, StringComparison.OrdinalIgnoreCase))
                 Set(true);
-            // Tasks made by older versions carry the scheduler's laptop-hostile defaults (see Set):
-            // no start on battery, killed when unplugged, killed after 72 h. Recreate them once.
-            else if (!xml.Contains("<DisallowStartIfOnBatteries>false", StringComparison.OrdinalIgnoreCase)
-                     || !xml.Contains("<StopIfGoingOnBatteries>false", StringComparison.OrdinalIgnoreCase)
-                     || !xml.Contains("<ExecutionTimeLimit>PT0S", StringComparison.OrdinalIgnoreCase))
-                Set(true);
+            else if (NeedsConditionFix(xml))
+                Set(true);   // (#172) a task from an older version still carries the battery conditions
         }
         catch { }
     }
@@ -103,52 +99,71 @@ public static class Autostart
     /// <summary><paramref name="exePath"/> = the exe the task starts; null = this process (the installer passes the installed copy).</summary>
     public static void Set(bool enabled, string? exePath = null)
     {
-        if (enabled) Create(exePath ?? ExePath);
-        else Run($"/Delete /TN \"{TaskName}\" /F");
+        if (enabled)
+        {
+            // (#172) Registered from our own XML so the task starts on battery too. The plain
+            // schtasks line stays as the fallback for a scheduler that refuses the XML.
+            string exe = exePath ?? ExePath;
+            if (!CreateFromXml(exe))
+                Run($"/Create /TN \"{TaskName}\" /TR \"\\\"{exe}\\\"\" /SC ONLOGON /RL HIGHEST /F");
+        }
+        else
+            Run($"/Delete /TN \"{TaskName}\" /F");
         IsEnabled();   // remember what the scheduler really holds now
     }
 
-    /// <summary>
-    /// The task is created from a full definition, not from /SC ONLOGON flags: the flags leave the
-    /// scheduler's defaults in place, and those are wrong for a laptop tray app - it would not
-    /// start at a logon on battery, be killed the moment the charger is pulled, and be killed
-    /// after 72 hours. Same trigger, user and elevation as before (logon of the current user,
-    /// highest privileges, so no UAC prompt).
-    /// </summary>
-    private static void Create(string exePath)
+    // (#172) schtasks /Create gives a task Windows' default conditions: start only on mains power,
+    // stop when the laptop switches to battery, and - with no ExecutionTimeLimit element - stop
+    // after 72 hours. None of that fits a tray app. The task is therefore written from the XML
+    // below: the same logon trigger, the same principal (this user, interactive, highest
+    // available) and the same action as the schtasks line produced, with both battery conditions
+    // off and no time limit. The path and the user's SID come straight from the process, so a
+    // non-ASCII path never passes through a console code page.
+    private static bool NeedsConditionFix(string xml) =>
+        xml.Contains("<DisallowStartIfOnBatteries>true", StringComparison.OrdinalIgnoreCase)
+        || xml.Contains("<StopIfGoingOnBatteries>true", StringComparison.OrdinalIgnoreCase)
+        || !xml.Contains("<ExecutionTimeLimit>PT0S</ExecutionTimeLimit>", StringComparison.OrdinalIgnoreCase);
+
+    private static bool CreateFromXml(string exePath)
     {
-        string user = System.Security.SecurityElement.Escape(System.Security.Principal.WindowsIdentity.GetCurrent().Name);
-        string exe = System.Security.SecurityElement.Escape(exePath);
-        string xml = $"""
+        string? sid = System.Security.Principal.WindowsIdentity.GetCurrent().User?.Value;
+        if (string.IsNullOrEmpty(sid)) return false;
+        string cmd = System.Security.SecurityElement.Escape(exePath) ?? exePath;
+        string xml = $$"""
             <?xml version="1.0" encoding="UTF-16"?>
             <Task version="1.2" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
-              <Triggers>
-                <LogonTrigger><Enabled>true</Enabled><UserId>{user}</UserId></LogonTrigger>
-              </Triggers>
               <Principals>
-                <Principal id="Author"><UserId>{user}</UserId><LogonType>InteractiveToken</LogonType><RunLevel>HighestAvailable</RunLevel></Principal>
+                <Principal id="Author">
+                  <UserId>{{sid}}</UserId>
+                  <LogonType>InteractiveToken</LogonType>
+                  <RunLevel>HighestAvailable</RunLevel>
+                </Principal>
               </Principals>
               <Settings>
-                <MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy>
                 <DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries>
                 <StopIfGoingOnBatteries>false</StopIfGoingOnBatteries>
                 <ExecutionTimeLimit>PT0S</ExecutionTimeLimit>
-                <AllowStartOnDemand>true</AllowStartOnDemand>
-                <Enabled>true</Enabled>
-                <Priority>7</Priority>
+                <MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy>
               </Settings>
+              <Triggers>
+                <LogonTrigger>
+                  <Enabled>true</Enabled>
+                </LogonTrigger>
+              </Triggers>
               <Actions Context="Author">
-                <Exec><Command>"{exe}"</Command></Exec>
+                <Exec>
+                  <Command>{{cmd}}</Command>
+                </Exec>
               </Actions>
             </Task>
             """;
         string file = Path.Combine(Path.GetTempPath(), $"ghostdeck-task-{Environment.ProcessId}.xml");
         try
         {
-            File.WriteAllText(file, xml, System.Text.Encoding.Unicode);
-            if (Run($"/Create /TN \"{TaskName}\" /XML \"{file}\" /F") != 0)   // fallback: the old flags rather than no autostart
-                Run($"/Create /TN \"{TaskName}\" /TR \"\\\"{exePath}\\\"\" /SC ONLOGON /RL HIGHEST /F");
+            File.WriteAllText(file, xml, System.Text.Encoding.Unicode);   // the declaration says UTF-16
+            return Run($"/Create /TN \"{TaskName}\" /XML \"{file}\" /F") == 0;
         }
+        catch { return false; }
         finally { try { File.Delete(file); } catch { } }
     }
 }

@@ -3,7 +3,7 @@ using System.Diagnostics;
 namespace GhostDeck;
 
 /// <summary>
-/// The installer window (Core/Setup.cs, TECHNICAL §84): start → installing → done, or, when this
+/// The installer window (Core/Setup.cs, TECHNICAL §86): start → installing → done, or, when this
 /// setup is already installed, reinstall / update / uninstall. Fixed dark palette - it runs before
 /// any settings exist, so it does not follow the app theme. Spanish only: this is the fork owner's
 /// personal installer, not a shipped component of the app.

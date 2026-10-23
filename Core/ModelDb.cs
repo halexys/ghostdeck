@@ -183,6 +183,21 @@ public static class ModelDb
         }
         if (d.Credit.Length > 0) w.WriteString("credit", d.Credit);
         if (d.CreditUrl.Length > 0) w.WriteString("creditUrl", d.CreditUrl);
+        // Optional: every report of every thanked login (Models tab), same two-way degradation.
+        if (d.CreditIssues.Count > 0)
+        {
+            w.WriteStartObject("creditIssues");
+            foreach (var (login, nums) in d.CreditIssues)
+            {
+                w.WriteStartArray(login);
+                foreach (var n in nums) w.WriteNumberValue(n);
+                w.WriteEndArray();
+            }
+            w.WriteEndObject();
+        }
+        // Optional history dates for the Models tab (same two-way degradation as fourthMode).
+        if (d.Added.Length > 0) w.WriteString("added", d.Added);
+        if (d.TestedOn.Length > 0) w.WriteString("tested", d.TestedOn);
         // recipes always explicit ("0xAA=0xVV" pairs) - the file is generated, never hand-edited
         w.WriteStartObject("recipes");
         foreach (var id in Profiles.Order)
@@ -309,8 +324,19 @@ public static class ModelDb
             BlockPath = blocks,
             Credit = m.TryGetProperty("credit", out var cr) ? cr.GetString() ?? "" : "",
             CreditUrl = m.TryGetProperty("creditUrl", out var cu) ? cu.GetString() ?? "" : "",
+            CreditIssues = m.TryGetProperty("creditIssues", out var ci) ? ParseIssues(ci) : DeviceProfile.NoIssues,
+            Added = m.TryGetProperty("added", out var ad) ? ad.GetString() ?? "" : "",
+            TestedOn = m.TryGetProperty("tested", out var te) ? te.GetString() ?? "" : "",
             Recipes = recipes,
         };
+    }
+
+    private static IReadOnlyDictionary<string, int[]> ParseIssues(JsonElement e)
+    {
+        var map = new Dictionary<string, int[]>(StringComparer.OrdinalIgnoreCase);
+        foreach (var p in e.EnumerateObject())
+            map[p.Name] = p.Value.EnumerateArray().Select(x => x.GetInt32()).Where(n => n > 0).ToArray();
+        return map;
     }
 
     private static byte ParseByte(string? s)

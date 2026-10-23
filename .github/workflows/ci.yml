@@ -27,6 +27,12 @@ jobs:
 
       # data/models.json must be exactly what the compiled tables dump (and must round-trip
       # through the parser byte-for-byte) - the wire format can never drift from the code.
+      # Every prefix in Devices.cs needs its "added" date and every Tested model its "tested" date
+      # (Models tab growth chart, timeline, NEW badge). The fix is one command, run before the dump.
+      - name: Model history dates
+        shell: pwsh
+        run: python tools/model-history.py --check
+
       - name: Model database consistency
         shell: pwsh
         run: |

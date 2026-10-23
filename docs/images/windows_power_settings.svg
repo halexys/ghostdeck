@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 430" width="960" height="430" font-family="Segoe UI, Helvetica, Arial, sans-serif">
+  <title>What each control sets</title>
+  <rect x="0" y="0" width="960" height="430" rx="14" fill="#111622"/>
+  <text x="32" y="44" font-size="22" font-weight="700" fill="#F3F7FF">What each control sets</text>
+  <text x="32" y="70" font-size="14" fill="#A4ADBD">Three separate controls. They live in different places and do different things.</text>
+
+  <!-- column 1: GhostDeck profile -->
+  <g>
+    <rect x="32" y="96" width="280" height="64" rx="10" fill="#1A2234" stroke="#3DE3FF" stroke-width="1.5"/>
+    <text x="52" y="124" font-size="17" font-weight="700" fill="#F3F7FF">GhostDeck profile</text>
+    <text x="52" y="146" font-size="13" fill="#A4ADBD">Silent, Balanced, Extreme, Super Battery</text>
+    <path d="M172 160 v26" stroke="#5E6B82" stroke-width="2"/>
+    <path d="M166 180 l6 8 l6 -8" fill="none" stroke="#5E6B82" stroke-width="2"/>
+    <rect x="32" y="192" width="280" height="56" rx="10" fill="#161D2C" stroke="#323E58"/>
+    <text x="52" y="216" font-size="14" font-weight="700" fill="#C9D4E8">Laptop controller (EC)</text>
+    <text x="52" y="236" font-size="13" fill="#A4ADBD">written by GhostDeck</text>
+    <path d="M172 248 v26" stroke="#5E6B82" stroke-width="2"/>
+    <path d="M166 268 l6 8 l6 -8" fill="none" stroke="#5E6B82" stroke-width="2"/>
+    <rect x="32" y="280" width="280" height="70" rx="10" fill="#161D2C" stroke="#323E58"/>
+    <text x="52" y="304" font-size="14" fill="#F3F7FF">Power limits in watts</text>
+    <text x="52" y="326" font-size="14" fill="#F3F7FF">Fan behaviour</text>
+    <rect x="32" y="362" width="280" height="30" rx="15" fill="#123326"/>
+    <text x="172" y="382" font-size="13" font-weight="700" fill="#61E7A4" text-anchor="middle">Changes the watt limit</text>
+  </g>
+
+  <!-- column 2: CPU turbo mode -->
+  <g>
+    <rect x="340" y="96" width="280" height="64" rx="10" fill="#1A2234" stroke="#3DE3FF" stroke-width="1.5"/>
+    <text x="360" y="124" font-size="17" font-weight="700" fill="#F3F7FF">CPU turbo mode</text>
+    <text x="360" y="146" font-size="13" fill="#A4ADBD">The switch and the two lists</text>
+    <path d="M480 160 v26" stroke="#5E6B82" stroke-width="2"/>
+    <path d="M474 180 l6 8 l6 -8" fill="none" stroke="#5E6B82" stroke-width="2"/>
+    <rect x="340" y="192" width="280" height="56" rx="10" fill="#161D2C" stroke="#323E58"/>
+    <text x="360" y="216" font-size="14" font-weight="700" fill="#C9D4E8">Windows power plan</text>
+    <text x="360" y="236" font-size="13" fill="#A4ADBD">plugged in and on battery</text>
+    <path d="M480 248 v26" stroke="#5E6B82" stroke-width="2"/>
+    <path d="M474 268 l6 8 l6 -8" fill="none" stroke="#5E6B82" stroke-width="2"/>
+    <rect x="340" y="280" width="280" height="70" rx="10" fill="#161D2C" stroke="#323E58"/>
+    <text x="360" y="304" font-size="14" fill="#F3F7FF">May the CPU speed up above</text>
+    <text x="360" y="326" font-size="14" fill="#F3F7FF">its base clock, and how eagerly</text>
+    <rect x="340" y="362" width="280" height="30" rx="15" fill="#22273A"/>
+    <text x="480" y="382" font-size="13" font-weight="700" fill="#A4ADBD" text-anchor="middle">Does not change the watt limit</text>
+  </g>
+
+  <!-- column 3: Windows power mode -->
+  <g>
+    <rect x="648" y="96" width="280" height="64" rx="10" fill="#1A2234" stroke="#3DE3FF" stroke-width="1.5"/>
+    <text x="668" y="124" font-size="17" font-weight="700" fill="#F3F7FF">Windows power mode</text>
+    <text x="668" y="146" font-size="13" fill="#A4ADBD">Efficiency, Balanced, Performance</text>
+    <path d="M788 160 v26" stroke="#5E6B82" stroke-width="2"/>
+    <path d="M782 180 l6 8 l6 -8" fill="none" stroke="#5E6B82" stroke-width="2"/>
+    <rect x="648" y="192" width="280" height="56" rx="10" fill="#161D2C" stroke="#323E58"/>
+    <text x="668" y="216" font-size="14" font-weight="700" fill="#C9D4E8">Power mode overlay</text>
+    <text x="668" y="236" font-size="13" fill="#A4ADBD">tuned by the laptop maker</text>
+    <path d="M788 248 v26" stroke="#5E6B82" stroke-width="2"/>
+    <path d="M782 268 l6 8 l6 -8" fill="none" stroke="#5E6B82" stroke-width="2"/>
+    <rect x="648" y="280" width="280" height="70" rx="10" fill="#161D2C" stroke="#323E58"/>
+    <text x="668" y="304" font-size="14" fill="#F3F7FF">Windows' own power tuning</text>
+    <text x="668" y="326" font-size="14" fill="#F3F7FF">on top of the plan</text>
+    <rect x="648" y="362" width="280" height="30" rx="15" fill="#22273A"/>
+    <text x="788" y="382" font-size="13" font-weight="700" fill="#A4ADBD" text-anchor="middle">Does not change the watt limit</text>
+  </g>
+
+  <text x="32" y="418" font-size="13" fill="#C9D4E8">Only the profile changes the watt limit. The sure ways to less power: the Silent profile, or turbo set to "Disabled".</text>
+</svg>

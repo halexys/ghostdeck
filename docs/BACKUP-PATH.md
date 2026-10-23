@@ -26,7 +26,7 @@ GhostDeck checks the interface once at start. When it is refused, one of three t
 
 ### 2a. Your model is on record: the backup path
 
-Today that is the **GF65 Thin 10UE** and the **Delta 15 A5EFK**. Status names your model, shows the firmware as the EC line and the BIOS version it was read from (for example `16W2EMS1 (BIOS E16W2IMS.105)`), and carries a note that the laptop works over the backup path.
+Today that is the **GF65 Thin 10UE** (a tested model since 18 October 2026, the first of this generation), the **Delta 15 A5EFK** and the **GS66 Stealth** (board `16V1`, since 20 October 2026). Status names your model, shows the firmware as the EC line and the BIOS version it was read from (for example `16W2EMS1 (BIOS E16W2IMS.105)`), and carries a note that the laptop works over the backup path.
 
 ![Status on the backup path](images/backup_path_status.png)
 
@@ -66,7 +66,7 @@ The test proves, on your machine, that switching profiles through the blocks rea
 
 ![The result card after a pass](images/path_test_result_gf65.png)
 
-5. The report is a text file on your desktop, `ghostdeck-path-test-<firmware>-<date>.txt`. Please attach it to the issue for your model (for the GF65 Thin 10UE that is [#230](../../../issues/230), for the Delta 15 [#48](../../../issues/48)) or open a new one. One report per model is what tells us whether the layout holds on more than one machine.
+5. The report is a text file on your desktop, `ghostdeck-path-test-<firmware>-<date>.txt`. Please attach it to the issue for your model (for the GF65 Thin 10UE that is [#230](../../../issues/230), for the Delta 15 [#48](../../../issues/48), for the GS66 Stealth [#258](../../../issues/258)) or open a new one. One report per model is what tells us whether the layout holds on more than one machine.
 
 The whole run takes about a minute and a half, about three minutes with the fan-curve check. Every value the test changes is put back at the end; if the run is interrupted, GhostDeck puts the values back at its next start.
 
@@ -146,9 +146,11 @@ The optional fan-curve check raises every speed slot of the CPU fan's table to t
 
 | Machine | Firmware | Result |
 |---|---|---|
-| GF65 Thin 10UE (owner, #230) | `16W2EMS1`, BIOS `E16W2IMS.105` | two runs on 8 October 2026, with and without Windows turbo boost: **passed** (Super Battery at 52 % and 34 % of Extreme), restore confirmed, the fan followed the raised table in both phases. Curve editor enabled for the model. |
+| GF65 Thin 10UE (owner, #230) | `16W2EMS1`, BIOS `E16W2IMS.105` | two runs on 8 October 2026, with and without Windows turbo boost: **passed** (Super Battery at 52 % and 34 % of Extreme), restore confirmed, the fan followed the raised table in both phases. Curve editor enabled for the model. On 18 October the owner confirmed that Silent is audibly quieter than Balanced and that switching stayed stable over days, and the entry was promoted to **tested**. |
 | Delta 15 A5EFK (#48, discussion #241) | `15CKEMS1` | layout on record from the diagnostic package; no run on hardware yet. The owner's own measurement says the firmware follows the curve table only outside the two power-saving shift modes. |
+| GS66 Stealth 10SF (#258) | `16V1EMS1`, BIOS `E16V1IMS.112` | layout on record since 20 October 2026, from the owner's block report (all five fingerprint markers). Recipes from msi-ec; switching Dragon Center scenarios moved neither the shift nor the fan slot in his capture, so the path test is the first check of the values. No run on hardware yet. |
 | GS75 Stealth 8SE | board `17G1` | blocks served in the same layout, firmware without `MSI_ACPI`; stays in monitoring only until the EC line can be told apart. |
+| GS63VR 7RG Stealth Pro (#257) | board `16K3`, BIOS `E16K3IMS.116` | blocks served with the same instance counts and four of the five markers, but `MSI_System[11]` reads 3 instead of 5, so the fingerprint does not match and the laptop shows temperatures only. In the owner's report the shift slot (`MSI_System[7]` = `0xC3`) and the fan slot (`MSI_System[9]` = `0x0C`) kept the same value in all four scenarios, so no recipe can be read from it. Asked whether switching scenarios changes anything audible and for the diagnostic package. |
 
 ### 5.7 For developers
 

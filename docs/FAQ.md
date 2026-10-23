@@ -64,7 +64,7 @@ GhostDeck recognises a laptop by the EC firmware string, not by the name on the 
 
 On some older MSI laptops - the Dragon Center generation, roughly 2018-2021: Delta 15, GF65 Thin, GS75 and their relatives - the firmware does not implement the interface GhostDeck normally uses for profiles. Every call is refused, whatever MSI software is installed, so the clean-install fix above does not apply. The same firmware still serves MSI's **data blocks**, and GhostDeck can work through them: the **backup WMI path**. What you see depends on whether your model's block layout is on record.
 
-**Model on record** (today the GF65 Thin 10UE and the Delta 15 A5EFK): Status names the model and says the laptop works over the backup path. Profile switching starts locked. A **path test**, offered at start and in the tray menu, checks in about a minute and a half that switching works on your machine: it reads the current state, changes one setting and puts it back, goes through the four profiles with short processor loads, and restores what it found. An optional step checks the fan curve. When the test passes, switching is unlocked on that machine; the result is a text file on the desktop, and attaching it to your issue helps the next owner of the same model. Fan Boost, the charge limit, the keyboard backlight and the webcam switch are not available on this path. Passed so far on a GF65 Thin 10UE ([issue #230](../../../issues/230)).
+**Model on record** (today the GF65 Thin 10UE, the Delta 15 A5EFK and the GS66 Stealth): Status names the model and says the laptop works over the backup path. Profile switching starts locked. A **path test**, offered at start and in the tray menu, checks in about a minute and a half that switching works on your machine: it reads the current state, changes one setting and puts it back, goes through the four profiles with short processor loads, and restores what it found. An optional step checks the fan curve. When the test passes, switching is unlocked on that machine; the result is a text file on the desktop, and attaching it to your issue helps the next owner of the same model. Fan Boost, the charge limit, the keyboard backlight and the webcam switch are not available on this path. Passed so far on a GF65 Thin 10UE ([issue #230](../../../issues/230)), which is a tested model since 18 October 2026.
 
 **Model not on record**, but the blocks answer in the layout GhostDeck knows: the badge says *monitoring only*, Status shows temperatures and fan speeds, and a card at start points to the Report tab. *Report my model* captures the blocks in each scenario of your MSI app, and the model can then be added through the signed model database without waiting for a release.
 
@@ -176,14 +176,19 @@ base clock: noticeably cooler and quieter under load, slower at peak. Two things
   forgets on a cold boot), it survives a reboot and stays in effect when the app is closed.
 - **Nothing is lost.** Before writing "off" the app saves the plan's previous plugged-in and battery
   values, shows them in the card under *Saved*, and turning the switch back on writes exactly those
-  values. The two power sources can also be switched separately - turbo off on battery only, full speed
-  when plugged in. *Restore Windows settings* (it appears only while the app holds something to restore)
-  puts back every saved plan value and the power mode at once, and lists what comes back before it does.
+  values. *Restore Windows settings* (it appears only while the app holds something to restore) puts
+  back every plan's original values and the power mode at once, and lists what comes back before it does.
+
+**Choosing the turbo mode.** Two lists pick the exact mode Windows uses, plugged in and on battery
+separately (for example Efficient Enabled on battery, Aggressive plugged in), each with a plain
+description of what the mode does. *Disabled* in one list turns turbo off for that source only. The
+**By profile** table can set these modes per GhostDeck profile; "no change" is the default. The full
+guide, with every mode explained: [WINDOWS-POWER.md](WINDOWS-POWER.md).
 
 **Windows power mode.** The same choice as Windows 11's *Settings → System → Power → Power mode*: best
 power efficiency, balanced, best performance. Pick one directly, or pick **Auto: profile** and the mode
 follows the GhostDeck profile (Silent and Super Battery → efficiency, Balanced → balanced, Extreme →
-performance; the pencil next to *Profile mapping* changes that). Windows may override the mode for a
+performance; the pencil next to *By profile* changes that). Windows may override the mode for a
 while on its own (battery saver, for instance) - the card then says which mode Windows is applying.
 
 **I removed GhostDeck while turbo was off.** The setting stays off, because it belongs to the Windows
@@ -198,7 +203,10 @@ powercfg -setactive scheme_current
 
 The footer link *Show it there* makes the hidden setting visible in the Windows power options as well
 (Control Panel → Power Options → Change advanced power settings → Processor power management). That is
-a permanent change to Windows itself, optional, and GhostDeck does not need it to work.
+a permanent change to Windows itself, optional, and GhostDeck does not need it to work. On laptops
+with Modern Standby (most recent ones) Windows lists the setting only when it is marked to show on
+such machines; GhostDeck sets that mark too, which is why `powercfg -attributes ... -ATTRIB_HIDE`
+alone does not make it appear there.
 
 ## The fan speed shows "--" instead of a percentage or RPM. Is it broken?
 

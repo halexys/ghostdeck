@@ -27,9 +27,9 @@ public static class Cli
         GhostDeck command line:
           GhostDeck.exe --profile <Silent|Balanced|Extreme|SuperBattery>
           GhostDeck.exe --cycle                 switch to the next profile
-          GhostDeck.exe --fanboost <on|off> [seconds]   full fan speed; the optional auto-off (10-7200 s) needs the app running
-          GhostDeck.exe --overlay <on|off>      gaming overlay (needs the app running)
-          GhostDeck.exe --crosshair <on|off>    the crosshair (needs the app running)
+          GhostDeck.exe --fanboost <on|off> [seconds]   full fan speed; the optional auto-off (10-7200 s) runs in the app (started if needed)
+          GhostDeck.exe --overlay <on|off>      gaming overlay (starts the app if it is not running)
+          GhostDeck.exe --crosshair <on|off>    the crosshair (starts the app if it is not running)
           GhostDeck.exe --crosshair preset "<name>"   switch the crosshair on with a saved preset
           GhostDeck.exe --crosshair code <GDX1....>     switch it on with a shared crosshair code
           GhostDeck.exe --curve <preset|auto>   apply a saved fan-curve preset (auto = stock fans)
@@ -46,8 +46,8 @@ public static class Cli
           GhostDeck.exe --turbo <on|off|status>   CPU turbo boost via the Windows power plan (works on any machine)
           GhostDeck.exe --gpu <hybrid|integrated|status>   MSI graphics mode for the next restart (models with the MSI GPU switch)
           GhostDeck.exe --truecolor <srgb|gamer|movie|antiblue|office|adobergb|displayp3|status>   MSI True Color profile (experimental; enable it under Settings -> System first; status works always)
-          GhostDeck.exe --winlock <on|off>      block both Windows keys (needs the app running)
-          GhostDeck.exe --scene "<name>"        apply a saved scene (needs the app running)
+          GhostDeck.exe --winlock <on|off>      block both Windows keys (starts the app if it is not running)
+          GhostDeck.exe --scene "<name>"        apply a saved scene (starts the app if it is not running)
           GhostDeck.exe --panic                 safe state: Fan Boost off, Balanced, fans auto
           GhostDeck.exe --status                print the current state as JSON
           GhostDeck.exe --diag [path.zip]       save the diagnostic zip (read-only, runs locally)
@@ -696,7 +696,7 @@ public static class Cli
         catch { }
     }
 
-    // ---------------- --gpu (TECHNICAL.md §82) ----------------
+    // ---------------- --gpu (TECHNICAL.md §84) ----------------
     /// <summary>Shared by the one-shot path and the running app. Never restarts: the mode applies at the next restart.</summary>
     internal static (int Code, string Msg) RunGpu(string arg, bool writable)
     {

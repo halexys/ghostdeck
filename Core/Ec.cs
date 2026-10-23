@@ -351,7 +351,7 @@ public static class Ec
 
     public static byte ReadByte(byte addr) => ReadRaw(addr);
 
-    // ---------------- GPU switch arming (TECHNICAL.md §82) ----------------
+    // ---------------- GPU switch arming (TECHNICAL.md §84) ----------------
     // MSI Center's "GraphicsSwithc" command (API_NB_Base Module, as reverse-engineered by
     // tim-rue/MsiGT): read Get_AP(0), set the low two bits of its byte 1 to 01 and write the
     // result to EC 0xD1. Without it the firmware ignores the mode stored in MsiDCVarData. The
@@ -568,6 +568,21 @@ public static class Ec
         catch { return ProfileId.Balanced; }
     }
 
+    // "Hardware readings unavailable": when the current run of refused reads began (UTC ticks),
+    // 0 while reads succeed. A single refused read is normal (sleep/resume, the WMI provider host
+    // recycling); only a run longer than ReadsLostAfter means the numbers on screen would freeze,
+    // so that is when the tray icons, the overlay and Status show "--" and a note (TECHNICAL §83).
+    private static long _failSince;
+    public static readonly TimeSpan ReadsLostAfter = TimeSpan.FromSeconds(10);
+    public static bool ReadsLost
+    {
+        get
+        {
+            long t = Interlocked.Read(ref _failSince);
+            return t != 0 && DateTime.UtcNow.Ticks - t >= ReadsLostAfter.Ticks;
+        }
+    }
+
     /// <summary>
     /// The one entry point for periodic hardware sampling. A WMI call can be refused for reasons
     /// unrelated to the EC (provider host recycling, sleep/resume, service restart, system
@@ -576,11 +591,17 @@ public static class Ec
     /// </summary>
     public static bool TryReadHw(DeviceProfile dev, out HwSnapshot hw)
     {
-        try { hw = ReadHw(dev); return true; }
+        try
+        {
+            hw = ReadHw(dev);
+            Interlocked.Exchange(ref _failSince, 0);
+            return true;
+        }
         catch (Exception ex) when (ex is ManagementException or COMException
             or ObjectDisposedException or InvalidOperationException)
         {
             AppLifecycle.Report(ex, "ec");   // transient codes are dropped there; oddities land in errors.log
+            Interlocked.CompareExchange(ref _failSince, DateTime.UtcNow.Ticks, 0);   // start of the run
             hw = default;
             return false;
         }

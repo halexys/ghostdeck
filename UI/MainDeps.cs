@@ -37,7 +37,7 @@ public sealed class MainDeps
     public required Action<bool> SetAutoSwitch { get; init; }
     public required Func<bool> CoolerBoost { get; init; }          // current Cooler Boost (max fans) state
     public required Action<bool> SetCoolerBoost { get; init; }     // turn Cooler Boost on/off (gated on writable)
-    public required Func<GpuSwitchState?> GpuState { get; init; }  // MSI graphics-mode switch, null = none (TECHNICAL §82)
+    public required Func<GpuSwitchState?> GpuState { get; init; }  // MSI graphics-mode switch, null = none (TECHNICAL §84)
     public required Func<bool> GpuWritable { get; init; }
     public required Action<GpuMode> RequestGpuMode { get; init; }  // asks first, then requests (and maybe restarts)
     public required Action RestartForGpu { get; init; }

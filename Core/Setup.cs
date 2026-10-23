@@ -6,7 +6,7 @@ using Microsoft.Win32;
 namespace GhostDeck;
 
 /// <summary>
-/// The one-file installer of this fork (docs/TECHNICAL.md §84). The same GhostDeck.exe, started as
+/// The one-file installer of this fork (docs/TECHNICAL.md §86). The same GhostDeck.exe, started as
 /// GhostDeckSetup*.exe or with --setup / --uninstall, installs itself: copy to Program Files,
 /// the MSI WMI schema when Windows lacks it, the autostart task, a Start-menu shortcut and an
 /// Apps &amp; Features entry. The schema (msiapcfg.dll, MSI-signed) is NOT in the repository: a

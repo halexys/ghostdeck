@@ -3,8 +3,9 @@ using System.Drawing.Drawing2D;
 namespace GhostDeck;
 
 /// <summary>
-/// Body of the "Windows power" settings card (discussion #141; roadmap #109 + #36): the CPU
-/// turbo-boost switch of the active power plan and the Windows power mode.
+/// Body of the "Windows power" settings card (discussion #141; roadmap #109 + #36 + #117): the
+/// CPU turbo-boost switch and the turbo mode per power source of the active power plan, the
+/// Windows power mode, and what both do on a profile switch.
 ///
 /// ONE double-buffered, owner-drawn control. The first builds composed this card from ~35
 /// nested AutoSize containers (FlowLayoutPanel / TableLayoutPanel); every layout pass made
@@ -12,7 +13,7 @@ namespace GhostDeck;
 /// element by element for about a second. Here a single <see cref="Flow"/> routine owns the
 /// whole geometry - it measures when called without a Graphics and paints when called with
 /// one, so layout and paint cannot disagree - and only the genuinely interactive pieces
-/// (three ToggleSwitches, the SegControl, the HelpDot) are real child controls. Hotspots
+/// (the ToggleSwitch, two ThemedComboBoxes, the SegControl, the HelpDot) are real child controls. Hotspots
 /// (mapping edit/reset, restore, the reveal link) are painted and hit-tested.
 ///
 /// Layout = the owner-approved flat design (2026-10-04, variant "Lines"): no filled frames,
@@ -22,7 +23,11 @@ namespace GhostDeck;
 public sealed class WinPowerBody : Control
 {
     private readonly MainDeps _d;
-    private readonly ToggleSwitch _turbo = new(), _srcAc = new(), _srcDc = new();
+    private readonly ToggleSwitch _turbo = new();
+    private readonly ThemedComboBox _cbAc = new(), _cbDc = new();   // (#117) turbo mode per source
+    private readonly List<PowerPlan.BoostMode> _modes;
+    private bool _syncing;                                           // Sync sets the lists; their event must not write back
+    private bool _autonomous;                                        // PERFAUTONOMOUS on for both sources: modes 1-4 are one group
     private readonly HelpDot _help;
     private readonly SegControl _seg;
     private readonly ToolTip _tip = new();
@@ -47,6 +52,7 @@ public sealed class WinPowerBody : Control
     private int _hot = -1;                 // 0 edit, 1 reset, 2 restore, 3 link
     private bool _inLayout;
     private PowerMapForm? _mapDlg;
+    private WinPowerHelpForm? _helpDlg;
 
     private static readonly (ProfileId Id, string Name)[] MapRows =
     {
@@ -63,7 +69,6 @@ public sealed class WinPowerBody : Control
     private static readonly Font FTitle = new("Segoe UI Semibold", 10.5f);
     private static readonly Font FGlyph = new("Segoe MDL2 Assets", 11f);
 
-    private const TextFormatFlags FmtLeft = TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding | TextFormatFlags.EndEllipsis;
     private const TextFormatFlags FmtWrap = TextFormatFlags.Left | TextFormatFlags.Top | TextFormatFlags.WordBreak | TextFormatFlags.NoPadding;
 
     public WinPowerBody(MainDeps d)
@@ -72,18 +77,37 @@ public sealed class WinPowerBody : Control
         SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.UserPaint | ControlStyles.ResizeRedraw, true);
         BackColor = Theme.Card;
 
-        _help = new HelpDot { TextProvider = () => Lang.T("pw_turbo_help") };
+        _help = new HelpDot { OpenCard = OpenHelp };   // the whole card explained: a GhostDeck card, not a bubble
         _seg = new SegControl(new[] { Lang.T("pw_seg_eff"), Lang.T("pw_seg_bal"), Lang.T("pw_seg_perf"), Lang.T("pw_auto_seg") }, 1);
         _seg.MinimumSize = Size.Empty;   // the body sizes it; SegControl ellipsizes if a language outgrows a cell
-        Controls.AddRange(new Control[] { _turbo, _help, _srcAc, _srcDc, _seg });
+        // the list Windows offers on THIS machine, names in its own language (read once, cached)
+        _modes = PowerPlan.BoostModes();
+        foreach (var cb in new[] { _cbAc, _cbDc })
+        {
+            cb.BeginUpdate();
+            foreach (var m in _modes) cb.Items.Add(PowerPlan.BoostName(m.Value));
+            cb.EndUpdate();
+            cb.MaxDropDownItems = Math.Max(8, _modes.Count);
+            cb.WrapSelected = true;   // a long Windows name wraps and the field grows; never "..."
+            // each mode with the icon of what it really does, its group named at the right of the open list
+            cb.ItemIcon = (g, i, r, hot) => { if (i < _modes.Count) GroupIcon(g, _modes[i].Value, r, hot); };
+            cb.ItemNote = i => i < _modes.Count ? PowerPlan.GroupLabel(PowerPlan.GroupOf(_modes[i].Value, _autonomous)) : "";
+        }
+        Controls.AddRange(new Control[] { _turbo, _help, _cbAc, _cbDc, _seg });
 
         _turbo.Toggled += v => Apply(v ? PowerPlan.TurboOn(_d.Settings) : PowerPlan.TurboOff(_d.Settings), "CPU turbo boost: " + (v ? "on" : "off"));
-        _srcAc.Toggled += v => Apply(PowerPlan.TurboSetSource(_d.Settings, acSide: true, on: v), "CPU turbo boost (plugged in): " + (v ? "on" : "off"));
-        _srcDc.Toggled += v => Apply(PowerPlan.TurboSetSource(_d.Settings, acSide: false, on: v), "CPU turbo boost (battery): " + (v ? "on" : "off"));
+        _cbAc.SelectedIndexChanged += (_, _) => OnPick(acSide: true);
+        _cbDc.SelectedIndexChanged += (_, _) => OnPick(acSide: false);
         _seg.SelectedChanged += OnSegment;
     }
 
     private int S(float v) => (int)Math.Ceiling(v * DeviceDpi / 96f);
+
+    private void GroupIcon(Graphics g, uint value, RectangleF r, bool hot = false)
+    {
+        var grp = PowerPlan.GroupOf(value, _autonomous);
+        IconPainter.BoostGroup(g, grp, r, PowerPlan.GroupColor(grp), hot ? Color.White : null);
+    }
 
     private static Color Mix(Color a, Color b, float t) => Color.FromArgb(
         (int)(a.R + (b.R - a.R) * t), (int)(a.G + (b.G - a.G) * t), (int)(a.B + (b.B - a.B) * t));
@@ -110,6 +134,18 @@ public sealed class WinPowerBody : Control
         dlg.Show(); dlg.Activate();
     }
 
+    /// <summary>(#117) A mode picked in one of the lists; picking one while turbo is off turns that source on.</summary>
+    private void OnPick(bool acSide)
+    {
+        if (_syncing) return;
+        var cb = acSide ? _cbAc : _cbDc;
+        if (cb.SelectedIndex < 0 || cb.SelectedIndex >= _modes.Count) return;
+        var m = _modes[cb.SelectedIndex];
+        int v = (int)m.Value;
+        Apply(PowerPlan.TurboSetModes(_d.Settings, acSide ? v : -1, acSide ? -1 : v, out _),
+              $"CPU turbo boost ({(acSide ? "plugged in" : "battery")}): {PowerPlan.BoostName(m.Value)}");
+    }
+
     private void OnSegment(int i)
     {
         var s = _d.Settings;
@@ -130,30 +166,38 @@ public sealed class WinPowerBody : Control
         }
     }
 
+    private void OpenHelp()
+    {
+        if (_helpDlg is { IsDisposed: false }) { _helpDlg.Activate(); return; }   // one help card at a time
+        _helpDlg = new WinPowerHelpForm();
+        _helpDlg.Show(); _helpDlg.Activate();
+    }
+
     private void EditMapping()
     {
         if (_mapDlg is { IsDisposed: false }) { _mapDlg.Activate(); return; }   // one editor at a time
         _mapDlg = new PowerMapForm(_d.Settings, _d.ColorOf, () =>
         {
-            ChangeLog.Add(ChangeSource.Panel, "Windows power mode: profile mapping edited");
+            ChangeLog.Add(ChangeSource.Panel, "Windows power: profile mapping edited");
             ReapplyAuto();
             Sync();
-        });
+        }, _d.Current());
         _mapDlg.Show(); _mapDlg.Activate();
     }
 
     private void ResetMapping() => Ask(Lang.T("pw_mapping"), Lang.T("pw_map_reset_confirm"), Lang.T("pw_restore_ack"), () =>
     {
-        _d.Settings.PowerModeMap.Clear(); _d.Settings.Save();
-        ChangeLog.Add(ChangeSource.Panel, "Windows power mode: default profile mapping restored");
+        _d.Settings.PowerModeMap.Clear(); _d.Settings.TurboMap.Clear(); _d.Settings.Save();
+        ChangeLog.Add(ChangeSource.Panel, "Windows power: default profile mapping restored");
         ReapplyAuto();
         Sync();
     });
 
-    /// <summary>A changed mapping takes effect at once while Auto drives the mode.</summary>
+    /// <summary>A changed mapping takes effect at once: the mode while Auto drives it, the turbo modes the current profile sets.</summary>
     private void ReapplyAuto()
     {
         if (_d.Settings.PowerModeSync) PowerPlan.TrySetPowerMode(PowerPlan.ModeForProfile(_d.Settings, _d.Current()));
+        PowerPlan.ApplyProfileTurbo(_d.Settings, _d.Current());
     }
 
     private void Restore() => Ask(Lang.T("pw_restore_btn"), Lang.T("pw_restore_confirm") + "\n\n" + string.Join("\n", _restoreLines), Lang.T("pw_restore_ack"), () =>
@@ -193,21 +237,29 @@ public sealed class WinPowerBody : Control
         if (BackColor != Theme.Card) BackColor = Theme.Card;   // children clear to Parent.BackColor; follow a theme switch
         var s = _d.Settings;
         bool haveScheme = PowerPlan.TryGetActiveScheme(out var scheme);
+        bool autonomous = PowerPlan.AutonomousOn(haveScheme ? scheme : null);
+        if (autonomous != _autonomous) { _autonomous = autonomous; _cbAc.Invalidate(); _cbDc.Invalidate(); }   // the groups of 2 and 4 follow it
         _plan = haveScheme ? PowerPlan.SchemeName(scheme) : "—";
         _haveBoost = haveScheme && PowerPlan.TryReadBoost(scheme, out _ac, out _dc);
         _snap = haveScheme && s.TurboSnapshots.TryGetValue(scheme.ToString("D").ToLowerInvariant(), out var sn) && sn is { Length: 2 } ? sn : null;
 
-        _turbo.Enabled = _srcAc.Enabled = _srcDc.Enabled = _haveBoost;
+        _turbo.Enabled = _cbAc.Enabled = _cbDc.Enabled = _haveBoost && _modes.Count > 0;
+        _syncing = true;
+        try
+        {
+            _cbAc.SelectedIndex = _haveBoost ? _modes.FindIndex(m => m.Value == _ac) : -1;
+            _cbDc.SelectedIndex = _haveBoost ? _modes.FindIndex(m => m.Value == _dc) : -1;
+        }
+        finally { _syncing = false; }
         if (_haveBoost)
         {
             string an = PowerPlan.BoostName(_ac), dn = PowerPlan.BoostName(_dc);
             _turbo.Checked = !(_ac == 0 && _dc == 0);   // the Checked setter never fires Toggled
-            _srcAc.Checked = _ac != 0; _srcDc.Checked = _dc != 0;
             if (_ac == 0 && _dc == 0)
             {
                 // two honest OFF texts: "comes back" ONLY when a snapshot really exists
                 if (_snap != null) { _statusText = string.Format(Lang.T("pw_turbo_off_snap_fmt"), PowerPlan.BoostName((uint)_snap[0]), PowerPlan.BoostName((uint)_snap[1])); _statusKind = 1; }
-                else { _statusText = string.Format(Lang.T("pw_turbo_off_nosnap_fmt"), PowerPlan.FallbackBoost()?.Name ?? "—"); _statusKind = 1; }
+                else { _statusText = string.Format(Lang.T("pw_turbo_off_nosnap_fmt"), PowerPlan.FallbackBoost() is { } fbm ? PowerPlan.BoostName(fbm.Value) : "—"); _statusKind = 1; }
             }
             else if (_ac != 0 && _dc != 0) { _statusText = string.Format(Lang.T("pw_turbo_on_fmt"), an, dn); _statusKind = 0; }
             else { _statusText = string.Format(Lang.T("pw_turbo_mixed_fmt"), an, dn); _statusKind = 1; }   // a real MIXED state, named
@@ -232,9 +284,8 @@ public sealed class WinPowerBody : Control
             ? string.Format(Lang.T("pw_override_fmt"), Lang.T(effKey)) : "";
 
         _restoreLines.Clear();
-        foreach (var (key, v) in s.TurboSnapshots)
-            if (v is { Length: 2 } && Guid.TryParse(key, out var g2))
-                _restoreLines.Add(string.Format(Lang.T("pw_restore_turbo_fmt"), PowerPlan.SchemeName(g2), PowerPlan.BoostName((uint)v[0]), PowerPlan.BoostName((uint)v[1])));
+        foreach (var (g2, v) in PowerPlan.RestoreTargets(s))
+            _restoreLines.Add(string.Format(Lang.T("pw_restore_turbo_fmt"), PowerPlan.SchemeName(g2), PowerPlan.BoostName((uint)v[0]), PowerPlan.BoostName((uint)v[1])));
         if (s.PowerModePrev.Length > 0 && Guid.TryParse(s.PowerModePrev, out var pm))
             _restoreLines.Add(string.Format(Lang.T("pw_restore_mode_fmt"), Lang.T(PowerPlan.ModeKey(pm))));
         if (_auto) _restoreLines.Add(Lang.T("pw_restore_auto"));
@@ -274,8 +325,19 @@ public sealed class WinPowerBody : Control
         Flow(e.Graphics);
     }
 
-    private static int TextH(string text, Font f, int width) =>
-        TextRenderer.MeasureText(text, f, new Size(Math.Max(10, width), 0), FmtWrap).Height;
+    // The layout pass measures the same strings at the same widths on every Sync (the mode names,
+    // the short lines, the By profile cells); remembering the heights keeps a Sync close to what it
+    // cost before the turbo lists (harness, 2026-10-20: layout pass 1.9 ms -> 0.08 ms, Sync 3.0 -> 1.0 ms).
+    private static readonly Dictionary<(string, Font, int), int> _textH = new();
+    private static int TextH(string text, Font f, int width)
+    {
+        var key = (text, f, Math.Max(10, width));
+        if (_textH.TryGetValue(key, out int h)) return h;
+        if (_textH.Count > 400) _textH.Clear();   // widths change on resize; never let it grow without bound
+        return _textH[key] = TextRenderer.MeasureText(text, f, new Size(key.Item3, 0), FmtWrap).Height;
+    }
+
+    private int _ddwFor = -1, _ddw;   // the drop-down width, computed once per autonomous state and DPI
 
     /// <summary>Measures (g == null, also positions the child controls) or paints. Returns the height.</summary>
     private int Flow(Graphics? g)
@@ -286,23 +348,88 @@ public sealed class WinPowerBody : Control
 
         // ---- group 1: CPU turbo boost ----
         y = Caption(g, y, Lang.T("pw_turbo_label"), Theme.Accent);
-        int rowH = S(38);
-        if (g != null) TextRenderer.DrawText(g, Lang.T("pw_turbo_label"), FRow, new Rectangle(0, y, W - S(110), rowH), Theme.Text, FmtLeft);
+        string turboLabel = Lang.T("pw_turbo_label");
+        int rowH = Math.Max(S(38), TextH(turboLabel, FRow, W - S(110)) + S(8));
+        if (g != null) Cell(g, turboLabel, FRow, 0, y, W - S(110), rowH, Theme.Text);
         else
         {
             _help.Location = new Point(W - _help.Width, y + (rowH - _help.Height) / 2);
             _turbo.Location = new Point(_help.Left - S(8) - _turbo.Width, y + (rowH - _turbo.Height) / 2);
         }
         y += rowH + S(6);
-        y = Strip(g, y, _statusText, _statusKind == 0 ? null : Theme.Amber) + S(18);
+        y = Strip(g, y, _statusText, _statusKind == 0 ? null : Theme.Amber) + S(8);
+        string hint = string.Format(Lang.T("pw_toggle_hint"), PowerPlan.BoostName(0));
+        int hintH = TextH(hint, FBody, W);
+        if (g != null) TextRenderer.DrawText(g, hint, FBody, new Rectangle(0, y, W, hintH), Theme.Faint, FmtWrap);
+        y += hintH + S(18);
+
+        // (#117) turbo mode per source: a list each, the plain description of the pick under it
+        int x1 = Math.Max(S(170), (int)(W * 0.36f)), x2 = x1 + (W - x1) / 2, trH = S(44);
+        int colA = x2 - x1 - S(14), colB = W - x2;
+        y = Sub(g, y, Lang.T("pw_turbo_mode"));
+        int thH = ThH((Lang.T("pw_ac"), colA), (Lang.T("pw_dc"), colB));
+        if (g != null)
+        {
+            DrawTh(g, Lang.T("pw_ac"), x1, y, colA, thH);
+            DrawTh(g, Lang.T("pw_dc"), x2, y, colB, thH);
+            g.DrawLine(line, 0, y + thH, W, y + thH);
+        }
+        y += thH + S(10);
+        // both fields as tall as the taller one needs (a long name takes two lines)
+        int cbH = Math.Max(_cbAc.FieldHeightFor(Math.Max(S(60), colA)), _cbDc.FieldHeightFor(Math.Max(S(60), colB)));
+        string modeLbl = Lang.T("pw_mode_lbl");
+        cbH = Math.Max(cbH, TextH(modeLbl, FBody, x1 - S(10)));
+        if (g != null) Cell(g, modeLbl, FBody, 0, y, x1 - S(10), cbH, Theme.Muted);
+        else
+        {
+            _cbAc.SetBounds(x1, y + (cbH - _cbAc.FieldHeightFor(Math.Max(S(60), colA))) / 2, Math.Max(S(60), colA), 0);
+            _cbDc.SetBounds(x2, y + (cbH - _cbDc.FieldHeightFor(Math.Max(S(60), colB))) / 2, Math.Max(S(60), colB), 0);
+            // the open list fits the longest name plus its icon and the longest group note
+            int ddwKey = DeviceDpi * 2 + (_autonomous ? 1 : 0);
+            if (_ddwFor != ddwKey)
+            {
+                int nameMax = 0, noteMax = 0;
+                foreach (var m in _modes)
+                {
+                    nameMax = Math.Max(nameMax, TextRenderer.MeasureText(PowerPlan.BoostName(m.Value), _cbAc.Font).Width);
+                    noteMax = Math.Max(noteMax, TextRenderer.MeasureText(PowerPlan.GroupLabel(PowerPlan.GroupOf(m.Value, _autonomous)), _cbAc.Font).Width);
+                }
+                _ddw = nameMax + noteMax + ThemedComboBox.IconSide(_cbAc.ItemHeight) + S(64);
+                _ddwFor = ddwKey;
+            }
+            int ddw = _ddw;
+            _cbAc.DropDownWidth = Math.Max(_cbAc.Width, ddw);
+            _cbDc.DropDownWidth = Math.Max(_cbDc.Width, ddw);
+        }
+        y += cbH + S(8);
+        // one short line per list; the same mode on both sources gets one line across both columns
+        if (_haveBoost && _ac == _dc)
+        {
+            string both = string.Format(Lang.T("pw_bmshort_both"), PowerPlan.ShortDescription(_ac, _autonomous));
+            int hBoth = TextH(both, FBody, W - x1);
+            if (g != null) TextRenderer.DrawText(g, both, FBody, new Rectangle(x1, y, W - x1, hBoth), Theme.Muted, FmtWrap);
+            y += hBoth + S(22);
+        }
+        else
+        {
+            string dA = _haveBoost ? PowerPlan.ShortDescription(_ac, _autonomous) : "", dB = _haveBoost ? PowerPlan.ShortDescription(_dc, _autonomous) : "";
+            int hA = dA.Length > 0 ? TextH(dA, FBody, colA) : 0, hB = dB.Length > 0 ? TextH(dB, FBody, colB) : 0;
+            if (g != null)
+            {
+                if (hA > 0) TextRenderer.DrawText(g, dA, FBody, new Rectangle(x1, y, colA, hA), Theme.Muted, FmtWrap);
+                if (hB > 0) TextRenderer.DrawText(g, dB, FBody, new Rectangle(x2, y, colB, hB), Theme.Muted, FmtWrap);
+            }
+            y += Math.Max(hA, hB) + S(22);
+        }
 
         // technical details: an open table, rows separated by hairlines
         y = Sub(g, y, Lang.T("pw_details"));
-        int x1 = Math.Max(S(170), (int)(W * 0.36f)), x2 = x1 + (W - x1) / 2, thH = S(28), trH = S(44);
+        string planTh = string.Format(Lang.T("pw_plan_fmt"), _plan);
+        thH = ThH((planTh, x1 - S(10)), (Lang.T("pw_ac"), x2 - x1 - S(8)), (Lang.T("pw_dc"), W - x2));
         if (g != null)
         {
-            DrawTh(g, string.Format(Lang.T("pw_plan_fmt"), _plan), 0, y, x1 - S(10), thH);
-            DrawTh(g, Lang.T("pw_ac"), x1, y, x2 - x1, thH);
+            DrawTh(g, planTh, 0, y, x1 - S(10), thH);
+            DrawTh(g, Lang.T("pw_ac"), x1, y, x2 - x1 - S(8), thH);
             DrawTh(g, Lang.T("pw_dc"), x2, y, W - x2, thH);
             g.DrawLine(line, 0, y + thH, W, y + thH);
         }
@@ -313,24 +440,21 @@ public sealed class WinPowerBody : Control
             (Lang.T("pw_now"), _haveBoost ? PowerPlan.BoostName(_ac) : "—", _haveBoost ? PowerPlan.BoostName(_dc) : "—", Theme.Text),
             (Lang.T("pw_saved"), _snap != null ? PowerPlan.BoostName((uint)_snap[0]) : none, _snap != null ? PowerPlan.BoostName((uint)_snap[1]) : none, _snap != null ? Theme.Amber : Theme.Faint),
         };
-        foreach (var r in rows)
+        for (int i = 0; i < rows.Length; i++)
         {
+            var r = rows[i];
+            // a long Windows name ("Wydajność: agresywnie - gwarantowane (6)") wraps; the row grows
+            int rh = Math.Max(trH, Math.Max(TextH(r.Label, FBody, x1 - S(10)),
+                     Math.Max(TextH(r.A, FBody, x2 - x1 - S(8)), TextH(r.B, FBody, W - x2))) + S(16));
             if (g != null)
             {
-                TextRenderer.DrawText(g, r.Label, FBody, new Rectangle(0, y, x1 - S(10), trH), Theme.Muted, FmtLeft);
-                TextRenderer.DrawText(g, r.A, FBody, new Rectangle(x1, y, x2 - x1 - S(8), trH), r.Col, FmtLeft);
-                TextRenderer.DrawText(g, r.B, FBody, new Rectangle(x2, y, W - x2, trH), r.Col, FmtLeft);
-                g.DrawLine(line, 0, y + trH, W, y + trH);
+                Cell(g, r.Label, FBody, 0, y, x1 - S(10), rh, Theme.Muted);
+                Cell(g, r.A, FBody, x1, y, x2 - x1 - S(8), rh, r.Col);
+                Cell(g, r.B, FBody, x2, y, W - x2, rh, r.Col);
+                if (i < rows.Length - 1) g.DrawLine(line, 0, y + rh, W, y + rh);
             }
-            y += trH + 1;
+            y += rh + 1;
         }
-        if (g != null) TextRenderer.DrawText(g, Lang.T("pw_per_source"), FBody, new Rectangle(0, y, x1 - S(10), trH), Theme.Muted, FmtLeft);
-        else
-        {
-            _srcAc.Location = new Point(x1, y + (trH - _srcAc.Height) / 2);
-            _srcDc.Location = new Point(x2, y + (trH - _srcDc.Height) / 2);
-        }
-        y += trH;
 
         // ---- group 2: Windows power mode (extra air above - the owner's F1 note) ----
         y += S(30);
@@ -345,35 +469,75 @@ public sealed class WinPowerBody : Control
         }
         if (_overrideLine.Length > 0) y = Strip(g, y, _overrideLine, Theme.Amber) + S(10);
 
-        // profile mapping: caption line with two glyph hotspots on the right, then icon rows
-        y += S(8);
+        // ---- group 3: by profile (#36 mode + #117 turbo), the edit and reset glyphs on the caption line ----
+        y += S(22);
         int gb = S(28);
         if (g == null)
         {
-            _rReset = new Rectangle(W - gb, y - S(4), gb, gb);
-            _rEdit = new Rectangle(W - gb * 2 - S(4), y - S(4), gb, gb);
+            _rReset = new Rectangle(W - gb, y + (S(22) - gb) / 2, gb, gb);
+            _rEdit = new Rectangle(W - gb * 2 - S(4), _rReset.Y, gb, gb);
         }
         else
         {
             DrawGlyph(g, "", _rEdit, _hot == 0);    // MDL2 Edit
             DrawGlyph(g, "", _rReset, _hot == 1);   // MDL2 UpdateRestore
         }
-        y = Sub(g, y, Lang.T("pw_mapping"));
-        int mapH = S(42), ib = S(20), nameW = 0;
+        y = Caption(g, y, Lang.T("pw_grp_profile"), Theme.Violet, W - gb * 2 - S(16));
+        int ib = S(20), nameW = 0;
         foreach (var r in MapRows) nameW = Math.Max(nameW, TextRenderer.MeasureText(r.Name, FBodyB).Width);
-        int nx = ib + S(14), mx = nx + nameW + S(30);
+        int nx = ib + S(12), c0 = nx + nameW + S(18), cw = Math.Max(S(40), (W - c0) / 3);
+        int[] cx = { c0, c0 + cw, c0 + cw * 2 };
+        thH = ThH((Lang.T("pw_map_profile"), c0 - S(8)), (Lang.T("pw_mode_now"), cw - S(10)), (Lang.T("pw_map_turbo_ac"), cw - S(10)), (Lang.T("pw_map_turbo_dc"), W - cx[2]));
+        if (g != null)
+        {
+            DrawTh(g, Lang.T("pw_map_profile"), 0, y, c0 - S(8), thH);
+            DrawTh(g, Lang.T("pw_mode_now"), cx[0], y, cw - S(10), thH);
+            DrawTh(g, Lang.T("pw_map_turbo_ac"), cx[1], y, cw - S(10), thH);
+            DrawTh(g, Lang.T("pw_map_turbo_dc"), cx[2], y, W - cx[2], thH);
+            g.DrawLine(line, 0, y + thH, W, y + thH);
+        }
+        y += thH + 1;
+        string unchanged = Lang.T("pw_unchanged");
         for (int i = 0; i < MapRows.Length; i++)
         {
+            var (id, name) = MapRows[i];
+            var (ta, td) = PowerPlan.TurboFor(_d.Settings, id);
+            var cells = new (string Text, int Mode)[]
+            {
+                (Lang.T(ModeKeys[PowerPlan.ModeGroupFor(_d.Settings, id)]), -2),   // -2 = not a turbo cell
+                (ta >= 0 ? PowerPlan.BoostName((uint)ta) : unchanged, ta),
+                (td >= 0 ? PowerPlan.BoostName((uint)td) : unchanged, td),
+            };
+            // a set turbo mode carries its group icon; long Windows mode names wrap to a second line
+            int gi = S(18), gGap = S(8);
+            int CellW(int j) => (j < 2 ? cw - S(10) : W - cx[2]) - (cells[j].Mode >= 0 ? gi + gGap : 0);
+            int rh = S(42);
+            for (int j = 0; j < 3; j++) rh = Math.Max(rh, TextH(cells[j].Text, FBody, CellW(j)) + S(16));
             if (g != null)
             {
-                var (id, name) = MapRows[i];
-                IconPainter.Scenario(g, id, new RectangleF(0, y + (mapH - ib) / 2f, ib, ib), _d.ColorOf(id), 1.7f * DeviceDpi / 96f);
-                TextRenderer.DrawText(g, name, FBodyB, new Rectangle(nx, y, nameW + S(8), mapH), Theme.Text, FmtLeft);
-                TextRenderer.DrawText(g, Lang.T(ModeKeys[PowerPlan.ModeGroupFor(_d.Settings, id)]), FBody, new Rectangle(mx, y, Math.Max(10, W - mx), mapH), Theme.Muted, FmtLeft);
-                if (i < MapRows.Length - 1) g.DrawLine(line, 0, y + mapH, W, y + mapH);
+                IconPainter.Scenario(g, id, new RectangleF(0, y + (rh - ib) / 2f, ib, ib), _d.ColorOf(id), 1.7f * DeviceDpi / 96f);
+                Cell(g, name, FBodyB, nx, y, nameW + S(8), rh, Theme.Text);
+                for (int j = 0; j < 3; j++)
+                {
+                    int w = CellW(j), tx = cx[j];
+                    if (cells[j].Mode >= 0)
+                    {
+                        GroupIcon(g, (uint)cells[j].Mode, new RectangleF(tx, y + (rh - gi) / 2f, gi, gi));
+                        tx += gi + gGap;
+                    }
+                    int th = TextH(cells[j].Text, FBody, w);
+                    TextRenderer.DrawText(g, cells[j].Text, FBody, new Rectangle(tx, y + (rh - th) / 2, w, th),
+                        cells[j].Mode != -1 ? Theme.Text : Theme.Faint, FmtWrap);
+                }
+                if (i < MapRows.Length - 1) g.DrawLine(line, 0, y + rh, W, y + rh);
             }
-            y += mapH + 1;
+            y += rh + 1;
         }
+        string note = string.Format(Lang.T("pw_map_note"), Lang.T("pw_auto_seg"), unchanged);
+        int noteH = TextH(note, FBody, W);
+        y += S(8);
+        if (g != null) TextRenderer.DrawText(g, note, FBody, new Rectangle(0, y, W, noteH), Theme.Faint, FmtWrap);
+        y += noteH;
 
         // ---- restore (exists only while something is held) ----
         y += S(14);
@@ -425,8 +589,8 @@ public sealed class WinPowerBody : Control
         return y;
     }
 
-    /// <summary>Group caption: colored marker + caption in the SAME colour + a hairline to the edge.</summary>
-    private int Caption(Graphics? g, int y, string text, Color color)
+    /// <summary>Group caption: colored marker + caption in the SAME colour + a hairline to the edge (or to <paramref name="lineEnd"/>).</summary>
+    private int Caption(Graphics? g, int y, string text, Color color, int lineEnd = -1)
     {
         int h = S(22);
         if (g != null)
@@ -438,21 +602,41 @@ public sealed class WinPowerBody : Control
             TextRenderer.DrawText(g, t, FCap, new Point(S(11), y + (h - ts.Height) / 2), color, TextFormatFlags.NoPadding);
             using var lp = new Pen(Theme.Border);
             int lx = S(11) + ts.Width + S(12);
-            if (lx < Width - 4) g.DrawLine(lp, lx, y + h / 2, Width, y + h / 2);
+            int le = lineEnd < 0 ? Width : lineEnd;
+            if (lx < le - 4) g.DrawLine(lp, lx, y + h / 2, le, y + h / 2);
         }
         return y + h + S(10);
     }
 
-    /// <summary>Small-caps section caption inside a group.</summary>
+    /// <summary>Small-caps section caption inside a group; a long one wraps.</summary>
     private int Sub(Graphics? g, int y, string text)
     {
-        int h = S(20);
-        if (g != null) TextRenderer.DrawText(g, text.ToUpperInvariant(), FSub, new Rectangle(0, y, Width - S(70), h), Theme.Faint, FmtLeft);
+        string t = text.ToUpperInvariant();
+        int h = Math.Max(S(20), TextH(t, FSub, Width - S(70)));
+        if (g != null) Cell(g, t, FSub, 0, y, Width - S(70), h, Theme.Faint);
         return y + h + S(8);
     }
 
+    /// <summary>Height of a table header row: one line, or what its longest caption needs to wrap.</summary>
+    private int ThH(params (string Text, int Width)[] cells)
+    {
+        int h = S(28);
+        foreach (var (text, w) in cells) h = Math.Max(h, TextH(text.ToUpperInvariant(), FSub, w) + S(10));
+        return h;
+    }
+
     private void DrawTh(Graphics g, string text, int x, int y, int w, int h) =>
-        TextRenderer.DrawText(g, text.ToUpperInvariant(), FSub, new Rectangle(x, y, Math.Max(10, w), h), Theme.Faint, FmtLeft);
+        Cell(g, text.ToUpperInvariant(), FSub, x, y, w, h, Theme.Faint);
+
+    /// <summary>
+    /// A text in a cell: wrapped, never cut and never ending in "...", centred in the row height
+    /// (the caller measured the row with <see cref="TextH"/> so it fits).
+    /// </summary>
+    private static void Cell(Graphics g, string text, Font f, int x, int y, int w, int rowH, Color c)
+    {
+        int h = TextH(text, f, w);
+        TextRenderer.DrawText(g, text, f, new Rectangle(x, y + Math.Max(0, (rowH - h) / 2), Math.Max(10, w), h), c, FmtWrap);
+    }
 
     /// <summary>
     /// Status sentence. Plain = muted text; with a colour = a tinted strip with a 3 px rail,

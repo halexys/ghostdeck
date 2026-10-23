@@ -3,6 +3,85 @@
 All notable changes to this project are documented here.
 Format loosely based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [Unreleased]
+
+## [1.41.0] - 2026-10-20
+### Added
+- **Choose the exact CPU turbo mode** ([#117](../../issues/117) on the roadmap, asked in
+  [#221](../../issues/221) and [discussion #141](../../discussions/141)) - the Windows power card
+  has two lists with every turbo mode your Windows offers (Enabled, Aggressive, Efficient Enabled
+  and the rest), plugged in and on battery separately, each with a plain description of what the
+  mode does. The switch above them still turns turbo off and back on, also from a hotkey, a scene
+  or `--turbo`. A new **By profile** table sets the turbo modes (and, as before, the power mode)
+  per GhostDeck profile; "no change" is the default, so nothing changes until you set it.
+  *Restore Windows settings* now puts back each plan's original modes. The **?** next to the
+  switch opens a help card with every mode your Windows offers in a table (the number Windows stores it
+  under, what it does), and says when Windows has autonomous mode on, where Microsoft gives most modes
+  the same behaviour. Every mode carries an icon and colour for what it really does (less
+  power, turbo, max turbo, asks for more), in the lists, the By profile table, the editor and the
+  help card, which explains them in a legend. Long mode names wrap instead of being cut. Guide:
+  [docs/WINDOWS-POWER.md](docs/WINDOWS-POWER.md).
+- **Models tab in five sub-tabs** - **Start** (your laptop and what works on it, or a "not in the
+  database yet" card with *Report my model*; the database in numbers; a growth chart of recognised
+  and tested models; the experimental models closest to tested; the latest changes), **List** (the
+  table with filter chips, a result count, a NEW badge for models added or promoted since your last
+  visit, and a click on a row for its details: every prefix, the dates, the fourth mode, the
+  backup path, the report link, every thanked person as a link, *Copy row*), **Features** (coverage
+  and a dot matrix), **Series** (how much of each series owners have tested) and **Community**
+  (everyone thanked and the full timeline). Everything is computed from the model database, so it
+  follows every database update without a release. Every person thanked for a model is listed
+  with **every one of their reports** (each number opens it), the growth chart shows the date and
+  both counts under the mouse, every clickable tile, card, chip and link lights up under the
+  mouse, the chart draws in and the numbers count up the first time Start opens (only when
+  Windows animations are on), and the search box has a magnifier and room around the text.
+- Model database 20261023: every model carries the day it was added and the day it became Tested,
+  rebuilt from the project history, and every thanked person's report numbers (optional `added`,
+  `tested` and `creditIssues` keys; older versions ignore them). Two thanked logins that pointed to
+  no GitHub account are corrected (@itsHarshDabas for the Crosshair 16 HX AI D2XW, @arcfybr for
+  the Thin 15 B12UCX / B12VE).
+
+### Fixed
+- **Show it there** (Windows power card) now really shows the turbo boost setting in the Windows
+  power options on laptops with Modern Standby. It used to remove only the "hidden" mark, which is
+  not enough on those laptops, and the card then offered *Hide it again* for a setting that was
+  still not visible.
+- Power test and backup path test reports state the Windows power plan, the CPU turbo boost mode on
+  both power sources and the Windows power mode at the start of the run ([#236](../../issues/236),
+  [#230](../../issues/230)).
+- **Start with Windows works on battery** ([#172](../../issues/172), thanks @UzaydaGezen) - the startup task was created
+  with Windows' default conditions: start only on mains power, stop when the laptop switches to battery,
+  and stop after 72 hours. The task is now written with none of them, and a task made by an earlier
+  version is corrected at the next start.
+- **Fan Boost auto-off also covers Fan Boost turned on outside the app** ([#172](../../issues/172)) - with
+  the laptop's own fan key, MSI's app, or already on when GhostDeck starts. Before, the countdown ran only
+  when GhostDeck itself switched Fan Boost on.
+- When Windows stops answering the hardware readings for more than 10 seconds (it can happen
+  after sleep or when a Windows service restarts), the tray temperatures, the overlay and the
+  Status rings show a dash instead of freezing on the last numbers, Status says why in one line,
+  and History gets one entry when the readings go and one when they come back.
+- The diagnostic scripts (`msi_ec_snapshot.ps1`, `msi_ec_fulldump.ps1`) say that MSI Center 2.0.49
+  and newer have no Silent tile and that their "ECO-Silent" tile is Super Battery, and the Silent
+  step can be skipped with `skip`, so a capture no longer records Super Battery twice by mistake.
+- `--help` and docs/CLI.md said `--scene`, `--overlay`, `--crosshair`, `--winlock` and the Fan Boost
+  auto-off "need the app running"; since 1.38 these commands start the app themselves when it is not.
+- **MSI GF65 Thin 10UE (`16W2EMS1`) promoted to Tested** ([#230](../../issues/230), thanks
+  @scorvus99) - the first laptop of the Dragon Center generation to get there, through the backup
+  WMI path: two path-test runs with every profile read back as written and Super Battery at 52 %
+  and 34 % of Extreme's work, the fan curve verified, and the owner's confirmation that Silent is
+  audibly quieter than Balanced and switching stays stable over days.
+- Models tab: long model names and thank-you lists wrap onto extra lines instead of ending in
+  "...", "&" in a credit is shown instead of underlining the next letter, rows alternate in
+  colour, and the Family, SB and Status columns are as wide as their headers need in every language.
+
+### Changed
+- Settings → System → Updates: the model database row reads like the Models tab header - its name,
+  and under it the version with the number of models and tested ones - with *Check now* beside it,
+  instead of a bare version number. The button shows the check and its result itself ("Checking...",
+  "Already up to date", "Updated"), so the card no longer grows into the one below it.
+- Model database 20261022: Vector 16 HX AI / Raider 16 HX AI (`15M3EMS1`) - seventh owner credit after a clean power test on 1.40.0 ([#254](../../issues/254), thanks @onrchnn).
+- Model database 20261025: Bravo 17 (`17LNIMS1`) gains the D7VF name and a second owner credit after the fan curve was confirmed again on firmware .10E ([#256](../../issues/256), thanks @andreyminayevdev).
+- Model database 20261026: Titan 18 HX A14V / Raider 18 HX A14V (`1822EMS1`) - fan curve verified ([#260](../../issues/260), thanks @se-240717038). GS66 Stealth (`16V1EMS1`) gets the backup-path block layout, so the path test is offered on these laptops ([#258](../../issues/258), thanks @SFIsaksen).
+
 ## [1.40.0] - 2026-10-18
 ### Added
 - **Backup WMI path for laptops whose firmware refuses MSI's EC control interface**

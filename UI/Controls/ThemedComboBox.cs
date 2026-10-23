@@ -85,6 +85,48 @@ public sealed class ThemedComboBox : Control
     /// <summary>Width of the open list; anything below the field's width means "as wide as the field".</summary>
     public int DropDownWidth { get; set; }
 
+    /// <summary>
+    /// Optional icon in front of an item: (graphics, item index, icon box, highlighted row). Null =
+    /// text only, as in every list that does not set it. Drawn in the field for the selected item
+    /// and on every row of the open list (#117: the turbo-mode group icons).
+    /// </summary>
+    public Action<Graphics, int, Rectangle, bool>? ItemIcon { get; set; }
+    /// <summary>Optional short note at the right end of a row of the open list (grey), e.g. the group of a mode.</summary>
+    public Func<int, string>? ItemNote { get; set; }
+
+    /// <summary>
+    /// Off by default. On: a selected value too long for the field wraps onto more lines and the
+    /// field grows to fit it, instead of ending in "..." (#117: Windows names of turbo modes such
+    /// as "Wydajność: agresywnie - gwarantowane"). The owner reads Height after a change.
+    /// </summary>
+    public bool WrapSelected
+    {
+        get => _wrap;
+        set { _wrap = value; SetBounds(Left, Top, Width, 0); }
+    }
+    private bool _wrap;
+
+    private const TextFormatFlags FieldWrap = TextFormatFlags.Left | TextFormatFlags.Top | TextFormatFlags.WordBreak | TextFormatFlags.NoPrefix;
+
+    private int TextLeft => 8 + (ItemIcon != null && _sel >= 0 ? IconSide(_itemHeight) + 8 : 0);
+
+    /// <summary>The field height for a width: one row, or with <see cref="WrapSelected"/> as many lines as the value needs.</summary>
+    public int FieldHeightFor(int width)
+    {
+        int one = _itemHeight + 6;
+        if (!_wrap || _sel < 0) return one;
+        int tw = Math.Max(10, width - TextLeft - 22);
+        // layout asks for this on every pass; the answer changes only with the text, the width or the font
+        if (Text == _fhText && tw == _fhWidth && ReferenceEquals(Font, _fhFont)) return Math.Max(one, _fhHeight + 12);
+        _fhText = Text; _fhWidth = tw; _fhFont = Font;
+        _fhHeight = TextRenderer.MeasureText(Text, Font, new Size(tw, 0), FieldWrap).Height;
+        return Math.Max(one, _fhHeight + 12);
+    }
+    private string? _fhText; private int _fhWidth, _fhHeight; private Font? _fhFont;
+
+    /// <summary>Side of the icon box for a row or field of the given height.</summary>
+    internal static int IconSide(int rowHeight) => Math.Max(10, (int)(rowHeight * 0.7f));
+
     /// <summary>Height of one row of the open list; the field is this plus 6.</summary>
     public int ItemHeight
     {
@@ -100,6 +142,7 @@ public sealed class ThemedComboBox : Control
             int v = Math.Clamp(value, -1, _items.Count - 1);
             if (v == _sel) return;
             _sel = v;
+            if (_wrap) SetBounds(Left, Top, Width, 0);   // a longer or shorter value changes the height
             Invalidate();
             if (IsHandleCreated) AccessibilityNotifyClients(AccessibleEvents.ValueChange, -1);
             SelectedIndexChanged?.Invoke(this, EventArgs.Empty);
@@ -136,7 +179,7 @@ public sealed class ThemedComboBox : Control
 
     // The system control fixes its own height; layouts written for it rely on that.
     protected override void SetBoundsCore(int x, int y, int width, int height, BoundsSpecified specified) =>
-        base.SetBoundsCore(x, y, width, _itemHeight + 6, specified | BoundsSpecified.Height);
+        base.SetBoundsCore(x, y, width, FieldHeightFor(width), specified | BoundsSpecified.Height);
 
     // ---------------- the closed field ----------------
 
@@ -146,8 +189,21 @@ public sealed class ThemedComboBox : Control
         g.SmoothingMode = SmoothingMode.AntiAlias;
         using (var bg = new SolidBrush(Theme.Surface)) g.FillRectangle(bg, ClientRectangle);
         var textRect = new Rectangle(8, 0, Width - 30, Height);
-        TextRenderer.DrawText(g, Text, Font, textRect, Enabled ? Theme.Text : Theme.Muted,
-            TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPrefix);
+        if (ItemIcon != null && _sel >= 0)
+        {
+            int ic = IconSide(_itemHeight);
+            ItemIcon(g, _sel, new Rectangle(8, (Height - ic) / 2, ic, ic), false);
+            textRect = new Rectangle(8 + ic + 8, 0, Width - 30 - ic - 8, Height);
+        }
+        if (_wrap)
+        {
+            // wrapped and centred as a block: TextRenderer centres only a single line
+            int th = TextRenderer.MeasureText(Text, Font, new Size(Math.Max(10, textRect.Width), 0), FieldWrap).Height;
+            TextRenderer.DrawText(g, Text, Font, new Rectangle(textRect.X, (Height - th) / 2, textRect.Width, th), Enabled ? Theme.Text : Theme.Muted, FieldWrap);
+        }
+        else
+            TextRenderer.DrawText(g, Text, Font, textRect, Enabled ? Theme.Text : Theme.Muted,
+                TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPrefix);
         int cx = Width - 13, cy = Height / 2;
         using (var pen = new Pen(Theme.Muted, 1.6f))
             g.DrawLines(pen, new[] { new Point(cx - 4, cy - 2), new Point(cx, cy + 2), new Point(cx + 4, cy - 2) });
@@ -501,8 +557,23 @@ public sealed class ThemedComboBox : Control
                 var row = new Rectangle(1, 1 + r * RowH, Width - 2 - bar, RowH);
                 bool hot = i == Hot;
                 if (hot) { using var b = new SolidBrush(Theme.AccentFill); g.FillRectangle(b, row); }
+                int tx = row.X + 8, tw = row.Width - 10;
+                if (_field.ItemIcon != null)
+                {
+                    int ic = IconSide(row.Height);
+                    _field.ItemIcon(g, i, new Rectangle(tx, row.Y + (row.Height - ic) / 2, ic, ic), hot);
+                    tx += ic + 8; tw -= ic + 8;
+                }
+                if (_field.ItemNote?.Invoke(i) is { Length: > 0 } note)
+                {
+                    var ns = TextRenderer.MeasureText(note, Font, Size.Empty, TextFormatFlags.NoPadding);
+                    TextRenderer.DrawText(g, note, Font, new Rectangle(row.Right - 10 - ns.Width, row.Y, ns.Width, row.Height),
+                        hot ? Color.FromArgb(220, 255, 255, 255) : Theme.Faint,
+                        TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding | TextFormatFlags.NoPrefix);
+                    tw -= ns.Width + 14;
+                }
                 TextRenderer.DrawText(g, _field._items[i]?.ToString() ?? "", Font,
-                    new Rectangle(row.X + 8, row.Y, row.Width - 10, row.Height), hot ? Color.White : Theme.Text,
+                    new Rectangle(tx, row.Y, Math.Max(10, tw), row.Height), hot ? Color.White : Theme.Text,
                     TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPrefix);
             }
             if (Scrolls)

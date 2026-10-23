@@ -360,6 +360,8 @@ public class GhostCardForm : Form
     }
 
     // ---------------- content hooks (editor cards) ----------------
+    /// <summary>Button text size in logical pixels; a card with larger body text raises it to match.</summary>
+    protected virtual float ButtonFontPx => 13f;
     /// <summary>Card width in logical pixels.</summary>
     protected virtual int CardWidth => 500;
     /// <summary>Height in device pixels of the content block under the body text; 0 = none.</summary>
@@ -471,12 +473,13 @@ public class GhostCardForm : Form
         using var scanF = new Font("Consolas", 10.5f * k, FontStyle.Bold, GraphicsUnit.Pixel);
         using var titleF = new Font("Segoe UI", 17f * k, FontStyle.Bold, GraphicsUnit.Pixel);
         using var bodyF = new Font("Segoe UI", 13.5f * k, FontStyle.Regular, GraphicsUnit.Pixel);
-        using var btnF = new Font("Segoe UI", 13f * k, FontStyle.Bold, GraphicsUnit.Pixel);
+        using var btnF = new Font("Segoe UI", ButtonFontPx * k, FontStyle.Bold, GraphicsUnit.Pixel);
 
         // measure the body first - the card grows with the text (and with the language)
         int yHdr = Ce(14 * k), hHdr = Ce(24 * k);
+        int hBtnPad = Ce((ButtonFontPx - 13f) * k);   // a larger button font gets a taller button
         int yTitle = yHdr + hHdr + Ce(8 * k);
-        int hTitle, hBody, hContent, hBtn = Ce(34 * k);
+        int hTitle, hBody, hContent, hBtn = Ce(34 * k) + hBtnPad;
         using (var probe = Graphics.FromImage(new Bitmap(1, 1)))
         {
             probe.TextRenderingHint = TextRenderingHint.AntiAlias;

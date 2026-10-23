@@ -16,7 +16,7 @@ public sealed record GpuSwitchState(bool Supported, bool IntegratedSupported, bo
 /// <summary>
 /// MSI's graphics-mode switch (Hybrid / Integrated only), done the way MSI Center does it -
 /// reverse-engineered by tim-rue/MsiGT from OmApSvcBroker.exe and API_NB_Base Module.dll, see
-/// TECHNICAL.md §82. Byte 5 of the UEFI variable MsiDCVarData holds:
+/// TECHNICAL.md §84. Byte 5 of the UEFI variable MsiDCVarData holds:
 ///   bits 0-1  mode for the next boot (0 = Hybrid, 1 = Discrete, 2 = Integrated)
 ///   bits 2-3  mode the machine booted in
 ///   bit 4     switch supported      bit 5  Integrated supported      bit 6  Discrete NOT supported

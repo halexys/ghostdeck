@@ -1872,6 +1872,104 @@ public static class Lang
             "Kurva kipas:  ✓ dapat diedit = bisa ditulis sekarang   ·   ◉ belum diverifikasi = dapat diedit setelah mengaktifkan Eksperimental, tetapi alamat belum dikonfirmasi - bandingkan dulu dengan MSI Center   ·   — = tidak ada.   SB = punya register super-battery.   RPM = alamat takometer kipas diketahui (RPM nyata ditampilkan).",
             "Curva ventole:  ✓ modificabile = scrivibile ora   ·   ◉ non verificata = modificabile dopo aver attivato Sperimentale, ma indirizzi non confermati - confronta prima con MSI Center   ·   — = nessuna.   SB = ha un registro super-battery.   RPM = indirizzo tachimetro ventola noto (RPM reali mostrati)."
             };
+        // ---- Models tab, five sub-tabs (2026-10-18) ----
+        m["mdl_tab_list"]      = new[] { "List", "Lista", "Liste", "Liste", "Lista", "列表", "Lista", "Список", "リスト", "목록", "清單", "Liste", "Danh sách", "Daftar", "Elenco" };
+        m["mdl_tab_features"]  = new[] { "Features", "Funkcje", "Funktionen", "Fonctions", "Funciones", "功能", "Funções", "Функции", "機能", "기능", "功能", "Özellikler", "Tính năng", "Fitur", "Funzioni" };
+        m["mdl_tab_series"]    = new[] { "Series", "Serie", "Serien", "Séries", "Series", "系列", "Séries", "Серии", "シリーズ", "시리즈", "系列", "Seriler", "Dòng máy", "Seri", "Serie" };
+        m["mdl_tab_community"] = new[] { "Community", "Społeczność", "Community", "Communauté", "Comunidad", "社区", "Comunidade", "Сообщество", "コミュニティ", "커뮤니티", "社群", "Topluluk", "Cộng đồng", "Komunitas", "Community" };
+        m["mdl_db_line"]       = new[] { "Model database {0}  ·  {1} models, {2} tested", "Baza modeli {0}  ·  {1} modeli, {2} zweryfikowanych", "Modelldatenbank {0}  ·  {1} Modelle, {2} getestet", "Base de modèles {0}  ·  {1} modèles, {2} testés", "Base de modelos {0}  ·  {1} modelos, {2} probados", "机型数据库 {0}  ·  {1} 个机型，{2} 个已测试", "Base de modelos {0}  ·  {1} modelos, {2} testados", "База моделей {0}  ·  {1} моделей, проверено {2}", "モデルデータベース {0}  ·  {1} モデル、テスト済み {2}", "모델 데이터베이스 {0}  ·  모델 {1}개, 테스트됨 {2}개", "機型資料庫 {0}  ·  {1} 個機型，{2} 個已測試", "Model veritabanı {0}  ·  {1} model, {2} test edildi", "Cơ sở dữ liệu model {0}  ·  {1} model, {2} đã kiểm thử", "Basis data model {0}  ·  {1} model, {2} teruji", "Database modelli {0}  ·  {1} modelli, {2} testati" };
+        m["mdl_new_since"]     = new[] { "{0} new since your last visit", "nowe od Twojej ostatniej wizyty: {0}", "{0} neu seit deinem letzten Besuch", "{0} nouveau(x) depuis votre dernière visite", "{0} nuevos desde tu última visita", "自上次访问以来新增 {0} 个", "{0} novos desde sua última visita", "новых с прошлого визита: {0}", "前回の訪問以降の新規: {0}", "지난 방문 이후 새 항목 {0}개", "自上次造訪以來新增 {0} 個", "son ziyaretinizden beri {0} yeni", "{0} mục mới kể từ lần ghé trước", "{0} baru sejak kunjungan terakhir", "{0} nuovi dall'ultima visita" };
+        m["mdl_card_you"]      = new[] { "Your laptop", "Twój laptop", "Dein Laptop", "Votre portable", "Tu portátil", "你的笔记本", "Seu notebook", "Ваш ноутбук", "あなたのノートPC", "내 노트북", "你的筆電", "Dizüstü bilgisayarınız", "Laptop của bạn", "Laptop Anda", "Il tuo portatile" };
+        m["mdl_notin_title"]   = new[] { "Your laptop is not in the database yet", "Twojego laptopa nie ma jeszcze w bazie", "Dein Laptop ist noch nicht in der Datenbank", "Votre portable n'est pas encore dans la base", "Tu portátil aún no está en la base de datos", "你的笔记本尚未收录在数据库中", "Seu notebook ainda não está na base", "Вашего ноутбука ещё нет в базе", "このノートPCはまだデータベースにありません", "내 노트북은 아직 데이터베이스에 없습니다", "你的筆電尚未收錄在資料庫中", "Dizüstü bilgisayarınız henüz veritabanında yok", "Laptop của bạn chưa có trong cơ sở dữ liệu", "Laptop Anda belum ada di basis data", "Il tuo portatile non è ancora nel database" };
+        m["mdl_notin_body"]    = new[] { "Firmware {0}. A report carries this ID and the register readings, takes a few minutes and adds the model for everyone.", "Firmware {0}. Zgłoszenie zawiera ten identyfikator i odczyt rejestrów, zajmuje kilka minut i dodaje model dla wszystkich.", "Firmware {0}. Ein Bericht enthält diese Kennung und die Registerwerte, dauert wenige Minuten und fügt das Modell für alle hinzu.", "Firmware {0}. Un rapport contient cet identifiant et les relevés de registres, prend quelques minutes et ajoute le modèle pour tous.", "Firmware {0}. Un informe incluye este identificador y las lecturas de registros, tarda unos minutos y añade el modelo para todos.", "固件 {0}。报告包含此标识和寄存器读数，只需几分钟，即可为所有人添加该机型。", "Firmware {0}. Um relatório leva este ID e as leituras dos registradores, leva poucos minutos e adiciona o modelo para todos.", "Прошивка {0}. Отчёт содержит этот идентификатор и показания регистров, занимает несколько минут и добавляет модель для всех.", "ファームウェア {0}。レポートにはこの ID とレジスタの読み取り値が含まれ、数分でモデルが全員向けに追加されます。", "펌웨어 {0}. 보고서에는 이 ID와 레지스터 값이 담기며, 몇 분이면 모두를 위해 모델이 추가됩니다.", "韌體 {0}。回報包含此識別碼與暫存器讀值，只需幾分鐘，即可為所有人加入該機型。", "Firmware {0}. Rapor bu kimliği ve yazmaç okumalarını içerir, birkaç dakika sürer ve modeli herkes için ekler.", "Firmware {0}. Báo cáo chứa mã này và số liệu thanh ghi, mất vài phút và thêm model cho mọi người.", "Firmware {0}. Laporan memuat ID ini dan pembacaan register, hanya beberapa menit dan menambahkan model untuk semua orang.", "Firmware {0}. Un report contiene questo ID e le letture dei registri, richiede pochi minuti e aggiunge il modello per tutti." };
+        m["mdl_btn_report"]    = new[] { "Report my model", "Zgłoś mój model", "Mein Modell melden", "Signaler mon modèle", "Reportar mi modelo", "报告我的机型", "Reportar meu modelo", "Сообщить о модели", "モデルを報告", "내 모델 보고", "回報我的機型", "Modelimi bildir", "Báo cáo model của tôi", "Laporkan model saya", "Segnala il mio modello" };
+        m["mdl_btn_backup"]    = new[] { "Older laptop? Backup path", "Starszy laptop? Ścieżka zapasowa", "Älterer Laptop? Ausweichweg", "Portable ancien ? Voie de secours", "¿Portátil antiguo? Vía alternativa", "旧款笔记本？备用路径", "Notebook antigo? Caminho alternativo", "Старый ноутбук? Запасной путь", "古いノートPC？予備ルート", "구형 노트북? 예비 경로", "舊款筆電？備用路徑", "Eski dizüstü? Yedek yol", "Laptop cũ? Đường dự phòng", "Laptop lama? Jalur cadangan", "Portatile più vecchio? Percorso alternativo" };
+        m["mdl_exp_body"]      = new[] { "Experimental: the profiles come from register maps and no owner has checked them on this model yet. One test on your laptop is enough to confirm them.", "Eksperymentalny: profile pochodzą z map rejestrów i żaden właściciel nie sprawdził ich jeszcze na tym modelu. Jeden test na Twoim laptopie wystarczy, żeby je potwierdzić.", "Experimentell: Die Profile stammen aus Registerkarten und kein Besitzer hat sie auf diesem Modell geprüft. Ein Test auf deinem Laptop genügt, um sie zu bestätigen.", "Expérimental : les profils viennent des cartes de registres et aucun propriétaire ne les a encore vérifiés sur ce modèle. Un test sur votre portable suffit à les confirmer.", "Experimental: los perfiles provienen de mapas de registros y ningún propietario los ha comprobado aún en este modelo. Una prueba en tu portátil basta para confirmarlos.", "实验性：配置来自寄存器映射，尚无机主在此机型上验证。在你的笔记本上测试一次即可确认。", "Experimental: os perfis vêm de mapas de registradores e nenhum dono os conferiu ainda neste modelo. Um teste no seu notebook basta para confirmá-los.", "Экспериментальная: профили взяты из карт регистров, и ни один владелец ещё не проверил их на этой модели. Одного теста на вашем ноутбуке достаточно для подтверждения.", "実験的：プロファイルはレジスタマップに基づき、このモデルではまだ所有者が確認していません。あなたのノートPCで1回テストすれば確認できます。", "실험적: 프로필은 레지스터 맵에서 가져왔으며 아직 이 모델에서 소유자가 확인하지 않았습니다. 내 노트북에서 한 번 테스트하면 확인됩니다.", "實驗性：設定檔來自暫存器對照表，尚無機主在此機型上確認。在你的筆電上測試一次即可確認。", "Deneysel: profiller yazmaç haritalarından gelir ve bu modelde henüz hiçbir sahip doğrulamadı. Dizüstünüzde tek bir test onaylamak için yeterli.", "Thử nghiệm: hồ sơ lấy từ bản đồ thanh ghi và chưa chủ máy nào kiểm tra trên model này. Một lần kiểm thử trên laptop của bạn là đủ để xác nhận.", "Eksperimental: profil berasal dari peta register dan belum ada pemilik yang memeriksanya di model ini. Satu tes di laptop Anda cukup untuk mengonfirmasinya.", "Sperimentale: i profili vengono dalle mappe dei registri e nessun proprietario li ha ancora verificati su questo modello. Un test sul tuo portatile basta per confermarli." };
+        m["mdl_tested_by"]     = new[] { "Tested by", "Przetestowali", "Getestet von", "Testé par", "Probado por", "测试者", "Testado por", "Проверили", "テスト担当", "테스트한 사람", "測試者", "Test edenler", "Kiểm thử bởi", "Diuji oleh", "Testato da" };
+        m["mdl_issue"]         = new[] { "report {0}", "zgłoszenie {0}", "Meldung {0}", "rapport {0}", "informe {0}", "报告 {0}", "relatório {0}", "отчёт {0}", "レポート {0}", "보고 {0}", "回報 {0}", "rapor {0}", "báo cáo {0}", "laporan {0}", "segnalazione {0}" };
+        m["mdl_f_profiles"]    = new[] { "Profiles", "Profile", "Profile", "Profils", "Perfiles", "配置", "Perfis", "Профили", "プロファイル", "프로필", "設定檔", "Profiller", "Hồ sơ", "Profil", "Profili" };
+        m["mdl_f_curve"]       = new[] { "Fan curve", "Krzywa wentylatora", "Lüfterkurve", "Courbe ventilateur", "Curva del ventilador", "风扇曲线", "Curva do ventilador", "Кривая вентилятора", "ファンカーブ", "팬 곡선", "風扇曲線", "Fan eğrisi", "Đường cong quạt", "Kurva kipas", "Curva ventole" };
+        m["mdl_f_curve_ok"]    = new[] { "Fan curve confirmed", "Krzywa potwierdzona", "Lüfterkurve bestätigt", "Courbe confirmée", "Curva confirmada", "风扇曲线已确认", "Curva confirmada", "Кривая подтверждена", "ファンカーブ確認済み", "팬 곡선 확인됨", "風扇曲線已確認", "Fan eğrisi doğrulandı", "Đường cong đã xác nhận", "Kurva terkonfirmasi", "Curva confermata" };
+        m["mdl_f_rpm"]         = new[] { "Fan RPM", "Obroty wentylatorów", "Lüfterdrehzahl", "Régime ventilateurs", "RPM de ventiladores", "风扇转速", "RPM dos ventiladores", "Обороты вентиляторов", "ファン回転数", "팬 RPM", "風扇轉速", "Fan devri", "Tốc độ quạt", "RPM kipas", "Giri ventole" };
+        m["mdl_f_sb"]          = new[] { "Super Battery", "Super Battery", "Super Battery", "Super Battery", "Super Battery", "Super Battery", "Super Battery", "Super Battery", "Super Battery", "Super Battery", "Super Battery", "Super Battery", "Super Battery", "Super Battery", "Super Battery" };
+        m["mdl_f_apex"]        = new[] { "Apex (fourth mode)", "Apex (czwarty tryb)", "Apex (vierter Modus)", "Apex (quatrième mode)", "Apex (cuarto modo)", "Apex（第四模式）", "Apex (quarto modo)", "Apex (четвёртый режим)", "Apex（第4モード）", "Apex (네 번째 모드)", "Apex（第四模式）", "Apex (dördüncü mod)", "Apex (chế độ thứ tư)", "Apex (mode keempat)", "Apex (quarta modalità)" };
+        m["mdl_f_backup"]      = new[] { "Backup path", "Ścieżka zapasowa", "Ausweichweg", "Voie de secours", "Vía alternativa", "备用路径", "Caminho alternativo", "Запасной путь", "予備ルート", "예비 경로", "備用路徑", "Yedek yol", "Đường dự phòng", "Jalur cadangan", "Percorso alternativo" };
+        m["mdl_card_numbers"]  = new[] { "Database in numbers", "Baza w liczbach", "Datenbank in Zahlen", "La base en chiffres", "La base en cifras", "数据库概览", "A base em números", "База в цифрах", "数字で見るデータベース", "숫자로 보는 데이터베이스", "資料庫概覽", "Rakamlarla veritabanı", "Cơ sở dữ liệu qua con số", "Basis data dalam angka", "Il database in numeri" };
+        m["mdl_card_numbers_sub"] = new[] { "click a tile to open its list", "kliknij kafelek, żeby otworzyć listę", "Kachel anklicken öffnet die Liste", "cliquez sur une tuile pour ouvrir la liste", "haz clic en un recuadro para abrir la lista", "点击方块打开对应列表", "clique num bloco para abrir a lista", "нажмите плитку, чтобы открыть список", "タイルをクリックで一覧を表示", "타일을 클릭하면 목록이 열립니다", "點擊方塊開啟對應清單", "listeyi açmak için bir kutuya tıklayın", "nhấn vào ô để mở danh sách", "klik kotak untuk membuka daftarnya", "fai clic su un riquadro per aprire l'elenco" };
+        m["mdl_n_models"]      = new[] { "recognised models", "rozpoznanych modeli", "erkannte Modelle", "modèles reconnus", "modelos reconocidos", "已识别机型", "modelos reconhecidos", "распознанных моделей", "認識済みモデル", "인식된 모델", "已識別機型", "tanınan model", "model được nhận diện", "model dikenali", "modelli riconosciuti" };
+        m["mdl_n_tested"]      = new[] { "tested by owners", "zweryfikowanych przez właścicieli", "von Besitzern getestet", "testés par des propriétaires", "probados por propietarios", "经机主测试", "testados por donos", "проверено владельцами", "所有者がテスト済み", "소유자가 테스트함", "經機主測試", "sahipleri tarafından test edildi", "chủ máy đã kiểm thử", "diuji pemilik", "testati dai proprietari" };
+        m["mdl_n_exp"]         = new[] { "experimental", "eksperymentalnych", "experimentell", "expérimentaux", "experimentales", "实验性", "experimentais", "экспериментальных", "実験的", "실험적", "實驗性", "deneysel", "thử nghiệm", "eksperimental", "sperimentali" };
+        m["mdl_n_curve"]       = new[] { "with a fan curve", "z krzywą wentylatora", "mit Lüfterkurve", "avec courbe ventilateur", "con curva de ventilador", "支持风扇曲线", "com curva de ventilador", "с кривой вентилятора", "ファンカーブ対応", "팬 곡선 지원", "支援風扇曲線", "fan eğrili", "có đường cong quạt", "dengan kurva kipas", "con curva ventole" };
+        m["mdl_n_rpm"]         = new[] { "with fan RPM", "z odczytem obrotów", "mit Lüfterdrehzahl", "avec régime ventilateurs", "con RPM de ventiladores", "可读风扇转速", "com RPM dos ventiladores", "с оборотами вентиляторов", "ファン回転数あり", "팬 RPM 지원", "可讀風扇轉速", "fan devri okunan", "đọc được tốc độ quạt", "dengan RPM kipas", "con giri ventole" };
+        m["mdl_n_people"]      = new[] { "people thanked", "osób w podziękowaniach", "Personen im Dank", "personnes remerciées", "personas agradecidas", "致谢人数", "pessoas agradecidas", "человек в благодарностях", "謝辞の人数", "감사 인원", "致謝人數", "teşekkür edilen kişi", "người được cảm ơn", "orang yang berjasa", "persone ringraziate" };
+        m["mdl_card_growth"]   = new[] { "Growth", "Przyrost", "Wachstum", "Progression", "Crecimiento", "增长", "Crescimento", "Рост", "推移", "성장", "成長", "Büyüme", "Tăng trưởng", "Pertumbuhan", "Crescita" };
+        m["mdl_growth_sub"]    = new[] { "since {0}", "od {0}", "seit {0}", "depuis le {0}", "desde {0}", "自 {0} 起", "desde {0}", "с {0}", "{0} から", "{0}부터", "自 {0} 起", "{0} tarihinden beri", "từ {0}", "sejak {0}", "dal {0}" };
+        m["mdl_growth_tested"] = new[] { "tested ({0})", "zweryfikowane ({0})", "getestet ({0})", "testés ({0})", "probados ({0})", "已测试（{0}）", "testados ({0})", "проверено ({0})", "テスト済み（{0}）", "테스트됨 ({0})", "已測試（{0}）", "test edildi ({0})", "đã kiểm thử ({0})", "teruji ({0})", "testati ({0})" };
+        m["mdl_growth_total"]  = new[] { "recognised ({0})", "rozpoznane ({0})", "erkannt ({0})", "reconnus ({0})", "reconocidos ({0})", "已识别（{0}）", "reconhecidos ({0})", "распознано ({0})", "認識済み（{0}）", "인식됨 ({0})", "已識別（{0}）", "tanınan ({0})", "được nhận diện ({0})", "dikenali ({0})", "riconosciuti ({0})" };
+        m["mdl_card_close"]    = new[] { "Closest to tested", "Najbliżej awansu", "Kurz vor „getestet“", "Presque testés", "Casi probados", "最接近通过测试", "Quase testados", "Ближе всего к проверке", "テスト済みまであと一歩", "테스트 완료에 가장 가까움", "最接近通過測試", "Teste en yakın", "Gần được kiểm thử nhất", "Paling dekat teruji", "Quasi testati" };
+        m["mdl_card_close_sub"] = new[] { "experimental models that miss the least", "eksperymentalne, którym brakuje najmniej", "experimentelle Modelle, denen am wenigsten fehlt", "modèles expérimentaux auxquels il manque le moins", "modelos experimentales a los que menos les falta", "差距最小的实验性机型", "modelos experimentais que menos faltam", "экспериментальные, которым не хватает меньше всего", "あと少しの実験的モデル", "부족한 점이 가장 적은 실험적 모델", "差距最小的實驗性機型", "en az eksiği olan deneysel modeller", "model thử nghiệm còn thiếu ít nhất", "model eksperimental yang paling sedikit kurangnya", "modelli sperimentali a cui manca meno" };
+        m["mdl_r_curve"]       = new[] { "fan curve confirmed", "krzywa potwierdzona", "Lüfterkurve bestätigt", "courbe confirmée", "curva confirmada", "风扇曲线已确认", "curva confirmada", "кривая подтверждена", "ファンカーブ確認済み", "팬 곡선 확인됨", "風扇曲線已確認", "fan eğrisi doğrulandı", "đường cong đã xác nhận", "kurva terkonfirmasi", "curva confermata" };
+        m["mdl_r_backup"]      = new[] { "backup path described", "ścieżka zapasowa opisana", "Ausweichweg beschrieben", "voie de secours décrite", "vía alternativa descrita", "已描述备用路径", "caminho alternativo descrito", "запасной путь описан", "予備ルート記載済み", "예비 경로 설명됨", "已描述備用路徑", "yedek yol tanımlandı", "đã mô tả đường dự phòng", "jalur cadangan dijelaskan", "percorso alternativo descritto" };
+        m["mdl_r_credit"]      = new[] { "partial report", "częściowe zgłoszenie", "Teilbericht", "rapport partiel", "informe parcial", "部分报告", "relatório parcial", "частичный отчёт", "部分的なレポート", "부분 보고", "部分回報", "kısmi rapor", "báo cáo một phần", "laporan sebagian", "segnalazione parziale" };
+        m["mdl_r_apex"]        = new[] { "fourth mode known", "czwarty tryb znany", "vierter Modus bekannt", "quatrième mode connu", "cuarto modo conocido", "已知第四模式", "quarto modo conhecido", "четвёртый режим известен", "第4モード判明", "네 번째 모드 확인됨", "已知第四模式", "dördüncü mod biliniyor", "đã biết chế độ thứ tư", "mode keempat diketahui", "quarta modalità nota" };
+        m["mdl_close_need"]    = new[] { "missing: the profile test", "brakuje: testu profili", "fehlt: der Profiltest", "manque : le test des profils", "falta: la prueba de perfiles", "缺少：配置测试", "falta: o teste de perfis", "не хватает: проверки профилей", "不足：プロファイルテスト", "부족: 프로필 테스트", "缺少：設定檔測試", "eksik: profil testi", "còn thiếu: kiểm thử hồ sơ", "kurang: tes profil", "manca: il test dei profili" };
+        m["mdl_card_recent"]   = new[] { "Recently in the database", "Ostatnio w bazie", "Zuletzt in der Datenbank", "Récemment dans la base", "Recientemente en la base", "数据库最新动态", "Recentemente na base", "Недавно в базе", "最近のデータベース", "최근 데이터베이스 변경", "資料庫最新動態", "Veritabanında son değişiklikler", "Gần đây trong cơ sở dữ liệu", "Terbaru di basis data", "Di recente nel database" };
+        m["mdl_all_timeline"]  = new[] { "Full timeline in Community", "Cała kronika w zakładce Społeczność", "Vollständige Chronik unter Community", "Chronologie complète dans Communauté", "Cronología completa en Comunidad", "完整时间线见“社区”", "Linha do tempo completa em Comunidade", "Полная хроника во вкладке «Сообщество»", "全履歴はコミュニティへ", "전체 연혁은 커뮤니티에서", "完整時間軸見「社群」", "Tüm zaman çizelgesi Topluluk'ta", "Toàn bộ dòng thời gian ở Cộng đồng", "Linimasa lengkap di Komunitas", "Cronologia completa in Community" };
+        m["mdl_ev_added"]      = new[] { "{0}: new in the database", "{0}: nowy w bazie", "{0}: neu in der Datenbank", "{0} : nouveau dans la base", "{0}: nuevo en la base", "{0}：新加入数据库", "{0}: novo na base", "{0}: новая в базе", "{0}：データベースに追加", "{0}: 데이터베이스에 추가됨", "{0}：新加入資料庫", "{0}: veritabanına eklendi", "{0}: mới trong cơ sở dữ liệu", "{0}: baru di basis data", "{0}: nuovo nel database" };
+        m["mdl_ev_tested"]     = new[] { "{0}: confirmed as tested", "{0}: zweryfikowany", "{0}: als getestet bestätigt", "{0} : confirmé comme testé", "{0}: confirmado como probado", "{0}：确认已测试", "{0}: confirmado como testado", "{0}: подтверждена проверкой", "{0}：テスト済みとして確認", "{0}: 테스트 완료로 확인됨", "{0}：確認已測試", "{0}: test edildi olarak onaylandı", "{0}: đã xác nhận kiểm thử", "{0}: dikonfirmasi teruji", "{0}: confermato come testato" };
+        m["mdl_ev_batch"]      = new[] { "{0} models added from register maps", "{0} modeli dodanych z map rejestrów", "{0} Modelle aus Registerkarten hinzugefügt", "{0} modèles ajoutés depuis les cartes de registres", "{0} modelos añadidos desde mapas de registros", "从寄存器映射添加了 {0} 个机型", "{0} modelos adicionados de mapas de registradores", "{0} моделей добавлено из карт регистров", "レジスタマップから {0} モデルを追加", "레지스터 맵에서 모델 {0}개 추가", "從暫存器對照表加入 {0} 個機型", "yazmaç haritalarından {0} model eklendi", "đã thêm {0} model từ bản đồ thanh ghi", "{0} model ditambahkan dari peta register", "{0} modelli aggiunti dalle mappe dei registri" };
+        m["mdl_fl_tested"]     = new[] { "Tested", "Zweryfikowane", "Getestet", "Testés", "Probados", "已测试", "Testados", "Проверенные", "テスト済み", "테스트됨", "已測試", "Test edilmiş", "Đã kiểm thử", "Teruji", "Testati" };
+        m["mdl_fl_exp"]        = new[] { "Experimental", "Eksperymentalne", "Experimentell", "Expérimentaux", "Experimentales", "实验性", "Experimentais", "Экспериментальные", "実験的", "실험적", "實驗性", "Deneysel", "Thử nghiệm", "Eksperimental", "Sperimentali" };
+        m["mdl_fl_curve"]      = new[] { "With fan curve", "Z krzywą", "Mit Lüfterkurve", "Avec courbe", "Con curva", "有风扇曲线", "Com curva", "С кривой", "ファンカーブあり", "팬 곡선 있음", "有風扇曲線", "Fan eğrili", "Có đường cong", "Dengan kurva", "Con curva" };
+        m["mdl_fl_rpm"]        = new[] { "With fan RPM", "Z obrotami", "Mit Drehzahl", "Avec régime", "Con RPM", "有转速", "Com RPM", "С оборотами", "回転数あり", "RPM 있음", "有轉速", "Fan devirli", "Có tốc độ quạt", "Dengan RPM", "Con giri" };
+        m["mdl_fl_new"]        = new[] { "New", "Nowe", "Neu", "Nouveaux", "Nuevos", "新增", "Novos", "Новые", "新規", "새 항목", "新增", "Yeni", "Mới", "Baru", "Nuovi" };
+        m["mdl_badge_new"]     = new[] { "NEW", "NOWY", "NEU", "NOUVEAU", "NUEVO", "新", "NOVO", "НОВОЕ", "新規", "새로움", "新", "YENİ", "MỚI", "BARU", "NUOVO" };
+        m["mdl_count"]         = new[] { "{0} of {1}", "{0} z {1}", "{0} von {1}", "{0} sur {1}", "{0} de {1}", "{0} / {1}", "{0} de {1}", "{0} из {1}", "{0} / {1}", "{0} / {1}", "{0} / {1}", "{0} / {1}", "{0} / {1}", "{0} dari {1}", "{0} di {1}" };
+        m["mdl_missing"]       = new[] { "Your laptop is not on the list? The report already carries its firmware ID and register readings, there is nothing to type in.", "Nie ma Twojego laptopa na liście? Zgłoszenie zawiera już identyfikator firmware i odczyt rejestrów, nic nie trzeba przepisywać.", "Dein Laptop fehlt in der Liste? Der Bericht enthält bereits Firmware-Kennung und Registerwerte, nichts abzutippen.", "Votre portable n'est pas dans la liste ? Le rapport contient déjà l'identifiant du firmware et les relevés de registres, rien à recopier.", "¿Tu portátil no está en la lista? El informe ya incluye el identificador de firmware y las lecturas de registros, no hay que escribir nada.", "列表中没有你的笔记本？报告已包含固件标识和寄存器读数，无需手动输入。", "Seu notebook não está na lista? O relatório já leva o ID do firmware e as leituras dos registradores, nada para digitar.", "Вашего ноутбука нет в списке? Отчёт уже содержит идентификатор прошивки и показания регистров, ничего вводить не нужно.", "一覧にノートPCがありませんか？レポートにはファームウェア ID とレジスタ値が含まれるので、入力は不要です。", "목록에 내 노트북이 없나요? 보고서에 펌웨어 ID와 레지스터 값이 이미 담겨 있어 입력할 것이 없습니다.", "清單中沒有你的筆電？回報已包含韌體識別碼與暫存器讀值，無需手動輸入。", "Dizüstünüz listede yok mu? Rapor firmware kimliğini ve yazmaç okumalarını zaten içerir, yazacak bir şey yok.", "Laptop của bạn không có trong danh sách? Báo cáo đã có mã firmware và số liệu thanh ghi, không cần gõ gì.", "Laptop Anda tidak ada di daftar? Laporan sudah memuat ID firmware dan pembacaan register, tidak perlu mengetik apa pun.", "Il tuo portatile non è nell'elenco? Il report contiene già l'ID del firmware e le letture dei registri, non c'è nulla da scrivere." };
+        m["mdl_d_prefixes"]    = new[] { "Firmware prefixes", "Prefiksy firmware", "Firmware-Präfixe", "Préfixes firmware", "Prefijos de firmware", "固件前缀", "Prefixos de firmware", "Префиксы прошивки", "ファームウェア接頭辞", "펌웨어 접두사", "韌體前綴", "Firmware önekleri", "Tiền tố firmware", "Prefiks firmware", "Prefissi firmware" };
+        m["mdl_d_added"]       = new[] { "Added", "Dodano", "Hinzugefügt", "Ajouté", "Añadido", "加入时间", "Adicionado", "Добавлена", "追加日", "추가됨", "加入時間", "Eklendi", "Đã thêm", "Ditambahkan", "Aggiunto" };
+        m["mdl_d_testedon"]    = new[] { "Tested since", "Zweryfikowany od", "Getestet seit", "Testé depuis", "Probado desde", "测试通过于", "Testado desde", "Проверена с", "テスト済み日", "테스트 완료일", "測試通過於", "Test tarihi", "Kiểm thử từ", "Teruji sejak", "Testato dal" };
+        m["mdl_d_known"]       = new[] { "known", "znany", "bekannt", "connu", "conocido", "已知", "conhecido", "известен", "判明", "확인됨", "已知", "biliniyor", "đã biết", "diketahui", "noto" };
+        m["mdl_d_none"]        = new[] { "none", "brak", "keiner", "aucun", "ninguno", "无", "nenhum", "нет", "なし", "없음", "無", "yok", "không có", "tidak ada", "nessuno" };
+        m["mdl_d_backup_yes"]  = new[] { "described in the database", "opisana w bazie", "in der Datenbank beschrieben", "décrite dans la base", "descrita en la base", "数据库中已描述", "descrito na base", "описан в базе", "データベースに記載", "데이터베이스에 설명됨", "資料庫中已描述", "veritabanında tanımlı", "đã mô tả trong cơ sở dữ liệu", "dijelaskan di basis data", "descritto nel database" };
+        m["mdl_d_issue"]       = new[] { "Report", "Zgłoszenie", "Meldung", "Rapport", "Informe", "报告", "Relatório", "Отчёт", "レポート", "보고", "回報", "Rapor", "Báo cáo", "Laporan", "Segnalazione" };
+        m["mdl_d_noissue"]     = new[] { "none yet, you can report this model", "jeszcze brak, możesz zgłosić ten model", "noch keine, du kannst dieses Modell melden", "aucun pour l'instant, vous pouvez signaler ce modèle", "aún ninguno, puedes reportar este modelo", "暂无，你可以报告此机型", "nenhum ainda, você pode reportar este modelo", "пока нет, вы можете сообщить об этой модели", "まだありません。このモデルを報告できます", "아직 없음, 이 모델을 보고할 수 있습니다", "尚無，你可以回報此機型", "henüz yok, bu modeli bildirebilirsiniz", "chưa có, bạn có thể báo cáo model này", "belum ada, Anda bisa melaporkan model ini", "ancora nessuna, puoi segnalare questo modello" };
+        m["mdl_d_copy"]        = new[] { "Copy row", "Kopiuj wiersz", "Zeile kopieren", "Copier la ligne", "Copiar fila", "复制此行", "Copiar linha", "Копировать строку", "行をコピー", "행 복사", "複製此列", "Satırı kopyala", "Sao chép dòng", "Salin baris", "Copia riga" };
+        m["mdl_d_click"]       = new[] { "Click for details", "Kliknij, aby zobaczyć szczegóły", "Klicken für Details", "Cliquez pour les détails", "Haz clic para ver detalles", "点击查看详情", "Clique para ver detalhes", "Нажмите для подробностей", "クリックで詳細", "클릭하면 상세 정보", "點擊查看詳情", "Ayrıntılar için tıklayın", "Nhấn để xem chi tiết", "Klik untuk detail", "Fai clic per i dettagli" };
+        m["mdl_series_intro"]  = new[] { "A series is the first word of the model name. The bar shows how many of its models an owner has tested. Click a series to see its models in the List.", "Seria to pierwsze słowo nazwy modelu. Pasek pokazuje, ile jej modeli przetestował właściciel. Kliknij serię, żeby zobaczyć jej modele na Liście.", "Eine Serie ist das erste Wort des Modellnamens. Der Balken zeigt, wie viele ihrer Modelle ein Besitzer getestet hat. Klicke auf eine Serie, um ihre Modelle in der Liste zu sehen.", "Une série est le premier mot du nom du modèle. La barre indique combien de ses modèles un propriétaire a testés. Cliquez sur une série pour voir ses modèles dans la Liste.", "Una serie es la primera palabra del nombre del modelo. La barra muestra cuántos de sus modelos ha probado un propietario. Haz clic en una serie para ver sus modelos en la Lista.", "系列即机型名称的第一个词。进度条显示其中有多少机型经过机主测试。点击系列可在列表中查看其机型。", "Uma série é a primeira palavra do nome do modelo. A barra mostra quantos dos seus modelos um dono testou. Clique numa série para ver seus modelos na Lista.", "Серия это первое слово названия модели. Полоса показывает, сколько её моделей проверили владельцы. Нажмите на серию, чтобы увидеть её модели в Списке.", "シリーズはモデル名の最初の単語です。バーは所有者がテストしたモデルの数を示します。シリーズをクリックするとリストにそのモデルが表示されます。", "시리즈는 모델 이름의 첫 단어입니다. 막대는 소유자가 테스트한 모델 수를 보여 줍니다. 시리즈를 클릭하면 목록에서 해당 모델을 볼 수 있습니다.", "系列即機型名稱的第一個詞。進度條顯示其中有多少機型經機主測試。點擊系列可在清單中查看其機型。", "Seri, model adının ilk kelimesidir. Çubuk, modellerinden kaçının bir sahip tarafından test edildiğini gösterir. Listede modellerini görmek için bir seriye tıklayın.", "Dòng máy là từ đầu tiên trong tên model. Thanh cho biết bao nhiêu model của dòng đã được chủ máy kiểm thử. Nhấn vào dòng để xem các model trong Danh sách.", "Seri adalah kata pertama nama model. Bilah menunjukkan berapa modelnya yang sudah diuji pemilik. Klik seri untuk melihat modelnya di Daftar.", "Una serie è la prima parola del nome del modello. La barra mostra quanti dei suoi modelli un proprietario ha testato. Fai clic su una serie per vederne i modelli nell'Elenco." };
+        m["mdl_series_count"]  = new[] { "{0} of {1} tested", "{0} z {1} zweryfikowanych", "{0} von {1} getestet", "{0} sur {1} testés", "{0} de {1} probados", "{1} 个中 {0} 个已测试", "{0} de {1} testados", "проверено {0} из {1}", "{1} 中 {0} がテスト済み", "{1}개 중 {0}개 테스트됨", "{1} 個中 {0} 個已測試", "{1} modelden {0} test edildi", "{0} / {1} đã kiểm thử", "{0} dari {1} teruji", "{0} di {1} testati" };
+        m["mdl_card_people"]   = new[] { "Thanks", "Podziękowania", "Dank", "Remerciements", "Agradecimientos", "致谢", "Agradecimentos", "Благодарности", "謝辞", "감사", "致謝", "Teşekkürler", "Cảm ơn", "Terima kasih", "Ringraziamenti" };
+        m["mdl_people_sub"]    = new[] { "{0} people helped with {1} models · click a name to open the profile", "{0} osób pomogło przy {1} modelach · kliknij nick, żeby otworzyć profil", "{0} Personen halfen bei {1} Modellen · Name anklicken öffnet das Profil", "{0} personnes ont aidé pour {1} modèles · cliquez sur un nom pour ouvrir le profil", "{0} personas ayudaron con {1} modelos · haz clic en un nombre para abrir el perfil", "{0} 人帮助了 {1} 个机型 · 点击名字打开主页", "{0} pessoas ajudaram com {1} modelos · clique num nome para abrir o perfil", "{0} человек помогли с {1} моделями · нажмите на имя, чтобы открыть профиль", "{0} 人が {1} モデルに協力 · 名前をクリックでプロフィール", "{0}명이 모델 {1}개를 도왔습니다 · 이름을 클릭하면 프로필이 열립니다", "{0} 人幫助了 {1} 個機型 · 點擊名字開啟個人頁面", "{0} kişi {1} modele yardım etti · profili açmak için bir ada tıklayın", "{0} người đã giúp {1} model · nhấn vào tên để mở hồ sơ", "{0} orang membantu {1} model · klik nama untuk membuka profil", "{0} persone hanno aiutato con {1} modelli · fai clic su un nome per aprire il profilo" };
+        m["mdl_card_timeline"] = new[] { "Timeline", "Kronika", "Chronik", "Chronologie", "Cronología", "时间线", "Linha do tempo", "Хроника", "履歴", "연혁", "時間軸", "Zaman çizelgesi", "Dòng thời gian", "Linimasa", "Cronologia" };
+        m["mdl_timeline_sub"]  = new[] { "new models and promotions to tested, newest first", "nowe modele i awanse na zweryfikowane, od najnowszych", "neue Modelle und Aufstiege zu „getestet“, neueste zuerst", "nouveaux modèles et passages à « testé », du plus récent", "modelos nuevos y ascensos a probado, del más reciente", "新机型和晋升为已测试，按时间倒序", "novos modelos e promoções a testado, mais recentes primeiro", "новые модели и переходы в проверенные, сначала новые", "新しいモデルとテスト済みへの昇格、新しい順", "새 모델과 테스트 완료 승격, 최신순", "新機型與晉升為已測試，依時間倒序", "yeni modeller ve test edildi terfileri, en yeniden", "model mới và các lần nâng lên đã kiểm thử, mới nhất trước", "model baru dan kenaikan ke teruji, terbaru dulu", "nuovi modelli e promozioni a testato, dal più recente" };
+        m["mdl_legend_start"]  = new[] { "Everything on this tab is counted from the model database and changes with it. The database updates without an app release.", "Wszystko na tej zakładce jest liczone z bazy modeli i zmienia się razem z nią. Baza aktualizuje się bez wydania aplikacji.", "Alles auf diesem Tab wird aus der Modelldatenbank berechnet und ändert sich mit ihr. Die Datenbank aktualisiert sich ohne App-Release.", "Tout ce qui figure ici est calculé depuis la base de modèles et évolue avec elle. La base se met à jour sans nouvelle version de l'application.", "Todo en esta pestaña se calcula a partir de la base de modelos y cambia con ella. La base se actualiza sin una nueva versión de la app.", "此页内容均由机型数据库计算并随之更新。数据库无需发布新版应用即可更新。", "Tudo nesta aba é calculado a partir da base de modelos e muda com ela. A base se atualiza sem nova versão do app.", "Всё на этой вкладке считается по базе моделей и меняется вместе с ней. База обновляется без выпуска новой версии приложения.", "このタブの内容はすべてモデルデータベースから算出され、共に更新されます。データベースはアプリのリリースなしで更新されます。", "이 탭의 모든 내용은 모델 데이터베이스에서 계산되며 함께 바뀝니다. 데이터베이스는 앱 출시 없이 업데이트됩니다.", "此頁內容皆由機型資料庫計算並隨之更新。資料庫無需發布新版應用程式即可更新。", "Bu sekmedeki her şey model veritabanından hesaplanır ve onunla değişir. Veritabanı uygulama sürümü olmadan güncellenir.", "Mọi thứ trên thẻ này được tính từ cơ sở dữ liệu model và thay đổi theo nó. Cơ sở dữ liệu cập nhật mà không cần phát hành ứng dụng.", "Semua di tab ini dihitung dari basis data model dan berubah bersamanya. Basis data diperbarui tanpa rilis aplikasi.", "Tutto in questa scheda è calcolato dal database dei modelli e cambia con esso. Il database si aggiorna senza una nuova versione dell'app." };
+        m["mdl_legend_features"] = new[] { "Green dot: works on this model   ·   ring: addresses from register maps, not confirmed yet   ·   empty: not available. Click a row to open it in the List.", "Zielona kropka: działa na tym modelu   ·   pierścień: adresy z map rejestrów, jeszcze niepotwierdzone   ·   pusta: niedostępne. Kliknij wiersz, żeby otworzyć go na Liście.", "Grüner Punkt: funktioniert auf diesem Modell   ·   Ring: Adressen aus Registerkarten, noch unbestätigt   ·   leer: nicht verfügbar. Zeile anklicken öffnet sie in der Liste.", "Point vert : fonctionne sur ce modèle   ·   anneau : adresses issues des cartes, pas encore confirmées   ·   vide : indisponible. Cliquez sur une ligne pour l'ouvrir dans la Liste.", "Punto verde: funciona en este modelo   ·   anillo: direcciones de mapas de registros, aún sin confirmar   ·   vacío: no disponible. Haz clic en una fila para abrirla en la Lista.", "绿点：此机型可用   ·   圆环：地址来自寄存器映射，尚未确认   ·   空心：不可用。点击一行可在列表中打开。", "Ponto verde: funciona neste modelo   ·   anel: endereços de mapas, ainda não confirmados   ·   vazio: indisponível. Clique numa linha para abri-la na Lista.", "Зелёная точка: работает на этой модели   ·   кольцо: адреса из карт регистров, ещё не подтверждены   ·   пустая: недоступно. Нажмите на строку, чтобы открыть её в Списке.", "緑の点：このモデルで動作   ·   リング：レジスタマップ由来で未確認   ·   空：利用不可。行をクリックするとリストで開きます。", "녹색 점: 이 모델에서 작동   ·   고리: 레지스터 맵 주소, 아직 미확인   ·   빈 원: 사용 불가. 행을 클릭하면 목록에서 열립니다.", "綠點：此機型可用   ·   圓環：位址來自暫存器對照表，尚未確認   ·   空心：不可用。點擊一列可在清單中開啟。", "Yeşil nokta: bu modelde çalışıyor   ·   halka: yazmaç haritası adresleri, henüz doğrulanmadı   ·   boş: kullanılamıyor. Listede açmak için bir satıra tıklayın.", "Chấm xanh: hoạt động trên model này   ·   vòng: địa chỉ từ bản đồ thanh ghi, chưa xác nhận   ·   rỗng: không có. Nhấn vào dòng để mở trong Danh sách.", "Titik hijau: berfungsi di model ini   ·   cincin: alamat dari peta register, belum dikonfirmasi   ·   kosong: tidak tersedia. Klik baris untuk membukanya di Daftar.", "Punto verde: funziona su questo modello   ·   anello: indirizzi dalle mappe, non ancora confermati   ·   vuoto: non disponibile. Fai clic su una riga per aprirla nell'Elenco." };
+        m["mdl_legend_series"] = new[] { "Series with a short bar are where one owner's test helps the most. Older names (GF63, GS66) count as their own series.", "Serie z krótkim paskiem to miejsca, gdzie test jednego właściciela daje najwięcej. Starsze nazwy (GF63, GS66) liczą się jako osobne serie.", "Serien mit kurzem Balken sind die, bei denen der Test eines Besitzers am meisten bringt. Ältere Namen (GF63, GS66) zählen als eigene Serien.", "Les séries à barre courte sont celles où le test d'un propriétaire aide le plus. Les anciens noms (GF63, GS66) comptent comme séries à part.", "Las series con barra corta son donde la prueba de un propietario ayuda más. Los nombres antiguos (GF63, GS66) cuentan como series propias.", "进度条短的系列，最需要机主测试。旧名称（GF63、GS66）单独算作系列。", "Séries com barra curta são onde o teste de um dono ajuda mais. Nomes antigos (GF63, GS66) contam como séries próprias.", "Серии с короткой полосой это места, где тест одного владельца даёт больше всего. Старые названия (GF63, GS66) считаются отдельными сериями.", "バーが短いシリーズほど、所有者のテストが役立ちます。古い名前（GF63、GS66）は別シリーズとして数えます。", "막대가 짧은 시리즈일수록 소유자 한 명의 테스트가 가장 도움이 됩니다. 이전 이름(GF63, GS66)은 별도 시리즈로 셉니다.", "進度條短的系列，最需要機主測試。舊名稱（GF63、GS66）單獨算作系列。", "Kısa çubuklu seriler, bir sahibin testinin en çok işe yaradığı yerlerdir. Eski adlar (GF63, GS66) ayrı seri sayılır.", "Dòng có thanh ngắn là nơi một lần kiểm thử của chủ máy giúp nhiều nhất. Tên cũ (GF63, GS66) được tính là dòng riêng.", "Seri dengan bilah pendek adalah tempat tes satu pemilik paling membantu. Nama lama (GF63, GS66) dihitung sebagai seri tersendiri.", "Le serie con barra corta sono quelle dove il test di un proprietario aiuta di più. I nomi più vecchi (GF63, GS66) contano come serie a sé." };
+        m["mdl_legend_community"] = new[] { "Every tested model in the database names the people who ran the test. Dates come from the history of the model database.", "Każdy zweryfikowany model w bazie ma nazwiska osób, które wykonały test. Daty pochodzą z historii bazy modeli.", "Jedes getestete Modell in der Datenbank nennt die Personen, die den Test gemacht haben. Die Daten stammen aus der Geschichte der Modelldatenbank.", "Chaque modèle testé de la base nomme les personnes qui ont fait le test. Les dates viennent de l'historique de la base de modèles.", "Cada modelo probado de la base nombra a las personas que hicieron la prueba. Las fechas provienen del historial de la base de modelos.", "数据库中每个已测试机型都列出了完成测试的人。日期来自机型数据库的历史记录。", "Cada modelo testado na base cita as pessoas que fizeram o teste. As datas vêm do histórico da base de modelos.", "У каждой проверенной модели в базе указаны люди, выполнившие тест. Даты взяты из истории базы моделей.", "データベースのテスト済みモデルには、テストした人の名前が記載されています。日付はモデルデータベースの履歴によるものです。", "데이터베이스의 테스트된 모든 모델에는 테스트한 사람이 기록되어 있습니다. 날짜는 모델 데이터베이스 기록에서 가져옵니다.", "資料庫中每個已測試機型都列出了完成測試的人。日期來自機型資料庫的歷史紀錄。", "Veritabanındaki her test edilmiş model, testi yapan kişileri anar. Tarihler model veritabanının geçmişinden gelir.", "Mỗi model đã kiểm thử trong cơ sở dữ liệu đều ghi tên người thực hiện. Ngày tháng lấy từ lịch sử cơ sở dữ liệu model.", "Setiap model teruji di basis data mencantumkan orang yang menjalankan tes. Tanggal berasal dari riwayat basis data model.", "Ogni modello testato nel database cita le persone che hanno fatto il test. Le date provengono dalla cronologia del database dei modelli." };
+        m["mdl_people_reports"] = new[] { "Tested by (with their reports)", "Przetestowali (z ich zgłoszeniami)", "Getestet von (mit ihren Meldungen)", "Testé par (avec leurs rapports)", "Probado por (con sus informes)", "测试者（及其报告）", "Testado por (com seus relatórios)", "Проверили (с их отчётами)", "テスト担当（レポート付き）", "테스트한 사람 (보고 포함)", "測試者（及其回報）", "Test edenler (raporlarıyla)", "Kiểm thử bởi (kèm báo cáo)", "Diuji oleh (beserta laporannya)", "Testato da (con le loro segnalazioni)" };
+        m["mdl_d_people"]      = new[] { "Thanks and reports", "Podziękowania i zgłoszenia", "Dank und Meldungen", "Remerciements et rapports", "Agradecimientos e informes", "致谢与报告", "Agradecimentos e relatórios", "Благодарности и отчёты", "謝辞とレポート", "감사 및 보고", "致謝與回報", "Teşekkürler ve raporlar", "Cảm ơn và báo cáo", "Terima kasih dan laporan", "Ringraziamenti e segnalazioni" };
+        m["mdl_d_copied"]      = new[] { "Copied", "Skopiowano", "Kopiert", "Copié", "Copiado", "已复制", "Copiado", "Скопировано", "コピーしました", "복사됨", "已複製", "Kopyalandı", "Đã sao chép", "Disalin", "Copiato" };
+        m["mdl_d_copy_failed"] = new[] { "Clipboard busy, try again", "Schowek zajęty, spróbuj ponownie", "Zwischenablage belegt, erneut versuchen", "Presse-papiers occupé, réessayez", "Portapapeles ocupado, inténtalo de nuevo", "剪贴板被占用，请重试", "Área de transferência ocupada, tente de novo", "Буфер обмена занят, попробуйте ещё раз", "クリップボード使用中、再試行してください", "클립보드 사용 중, 다시 시도하세요", "剪貼簿被占用，請重試", "Pano meşgul, tekrar deneyin", "Bộ nhớ tạm đang bận, hãy thử lại", "Papan klip sibuk, coba lagi", "Appunti occupati, riprova" };
+        // ---- hardware readings unavailable (TECHNICAL §83) ----
+        m["log_hw_lost"] = new[] { "Hardware readings unavailable (Windows not answering)", "Odczyty sprzętu niedostępne (Windows nie odpowiada)", "Hardware-Werte nicht verfügbar (Windows antwortet nicht)", "Mesures matérielles indisponibles (Windows ne répond pas)", "Lecturas de hardware no disponibles (Windows no responde)", "硬件读数不可用（Windows 无响应）", "Leituras de hardware indisponíveis (o Windows não responde)", "Показания оборудования недоступны (Windows не отвечает)", "ハードウェアの読み取り不可（Windows が応答しません）", "하드웨어 판독 불가 (Windows 응답 없음)", "硬體讀數無法取得（Windows 沒有回應）", "Donanım okumaları kullanılamıyor (Windows yanıt vermiyor)", "Không đọc được số liệu phần cứng (Windows không phản hồi)", "Pembacaan perangkat keras tidak tersedia (Windows tidak menjawab)", "Letture hardware non disponibili (Windows non risponde)" };
+        m["log_hw_back"] = new[] { "Hardware readings are back", "Odczyty sprzętu wróciły", "Hardware-Werte sind wieder da", "Les mesures matérielles sont de retour", "Las lecturas de hardware han vuelto", "硬件读数已恢复", "As leituras de hardware voltaram", "Показания оборудования снова доступны", "ハードウェアの読み取りが復帰しました", "하드웨어 판독이 복구되었습니다", "硬體讀數已恢復", "Donanım okumaları geri geldi", "Đã đọc lại được số liệu phần cứng", "Pembacaan perangkat keras sudah kembali", "Le letture hardware sono tornate" };
+        m["hw_lost_note"] = new[] {
+            "Hardware readings are unavailable right now: Windows has not answered the temperature and fan readings for a while (this can happen after sleep or when a Windows service restarts). The values come back on their own once Windows answers again; nothing else is affected.",
+            "Odczyty sprzętu są teraz niedostępne: Windows od dłuższej chwili nie odpowiada na odczyty temperatur i wentylatorów (może się to zdarzyć po uśpieniu albo restarcie usługi Windows). Wartości wrócą same, gdy Windows znów odpowie; nic więcej się nie zmienia.",
+            "Hardware-Werte sind gerade nicht verfügbar: Windows beantwortet die Temperatur- und Lüfterabfragen seit einer Weile nicht (das kann nach dem Ruhezustand oder einem Neustart eines Windows-Dienstes passieren). Die Werte kommen von selbst zurück, sobald Windows wieder antwortet; sonst ändert sich nichts.",
+            "Les mesures matérielles sont indisponibles pour le moment : Windows ne répond plus depuis un moment aux lectures de température et de ventilateurs (cela peut arriver après une mise en veille ou le redémarrage d'un service Windows). Les valeurs reviendront d'elles-mêmes dès que Windows répondra ; rien d'autre n'est affecté.",
+            "Las lecturas de hardware no están disponibles ahora: Windows lleva un rato sin responder a las lecturas de temperatura y ventiladores (puede pasar tras la suspensión o al reiniciarse un servicio de Windows). Los valores volverán solos en cuanto Windows responda; nada más se ve afectado.",
+            "硬件读数暂时不可用：Windows 已有一段时间未响应温度和风扇读取（可能发生在睡眠唤醒后或某个 Windows 服务重启时）。Windows 恢复响应后数值会自动回来，其他功能不受影响。",
+            "As leituras de hardware estão indisponíveis agora: o Windows não responde há algum tempo às leituras de temperatura e ventoinhas (pode acontecer após a suspensão ou quando um serviço do Windows reinicia). Os valores voltam sozinhos quando o Windows responder de novo; nada mais é afetado.",
+            "Показания оборудования сейчас недоступны: Windows уже некоторое время не отвечает на чтение температур и вентиляторов (так бывает после сна или перезапуска службы Windows). Значения вернутся сами, как только Windows снова ответит; больше ничего не затронуто.",
+            "現在ハードウェアの読み取りができません。Windows がしばらく温度とファンの読み取りに応答していません（スリープ復帰後や Windows サービスの再起動時に起こることがあります）。Windows が再び応答すれば値は自動的に戻り、それ以外に影響はありません。",
+            "현재 하드웨어 판독을 사용할 수 없습니다. Windows가 한동안 온도와 팬 판독에 응답하지 않았습니다(절전 모드 해제 후나 Windows 서비스가 다시 시작될 때 발생할 수 있음). Windows가 다시 응답하면 값은 자동으로 돌아오며 다른 기능에는 영향이 없습니다.",
+            "硬體讀數暫時無法取得：Windows 已有一段時間未回應溫度與風扇讀取（可能發生在睡眠喚醒後或某個 Windows 服務重新啟動時）。Windows 恢復回應後數值會自動回來，其他功能不受影響。",
+            "Donanım okumaları şu anda kullanılamıyor: Windows bir süredir sıcaklık ve fan okumalarına yanıt vermiyor (uykudan sonra ya da bir Windows hizmeti yeniden başladığında olabilir). Windows yeniden yanıt verdiğinde değerler kendiliğinden geri gelir; başka hiçbir şey etkilenmez.",
+            "Hiện không đọc được số liệu phần cứng: Windows đã lâu không phản hồi việc đọc nhiệt độ và quạt (có thể xảy ra sau khi ngủ hoặc khi một dịch vụ Windows khởi động lại). Các giá trị sẽ tự quay lại khi Windows phản hồi trở lại; ngoài ra không có gì bị ảnh hưởng.",
+            "Pembacaan perangkat keras saat ini tidak tersedia: Windows sudah beberapa saat tidak menjawab pembacaan suhu dan kipas (bisa terjadi setelah tidur atau saat layanan Windows dimulai ulang). Nilai akan kembali sendiri begitu Windows menjawab lagi; tidak ada hal lain yang terpengaruh.",
+            "Le letture hardware non sono disponibili al momento: Windows da un po' non risponde alle letture di temperatura e ventole (può succedere dopo la sospensione o quando un servizio di Windows si riavvia). I valori torneranno da soli appena Windows risponderà di nuovo; nient'altro è interessato."
+            };
         m["set_grp_look"]   = new[] { "Appearance", "Wygląd", "Darstellung", "Apparence", "Apariencia", "外观", "Aparência", "Вид", "外観", "외관", "外觀", "Görünüm", "Diện mạo", "Tampilan", "Aspetto" };
         m["set_grp_power"]  = new[] { "Power", "Zasilanie", "Energie", "Alimentation", "Energía", "电源", "Energia", "Питание", "電源", "전원", "電源", "Güç", "Nguồn", "Daya", "Alimentazione" };
         m["set_grp_start"]  = new[] { "Startup & tray", "Start i zasobnik", "Start & Infobereich", "Démarrage", "Inicio", "启动与托盘", "Inicialização", "Запуск", "起動とトレイ", "시작 및 트레이", "啟動與系統匣", "Başlangıç ve tepsi", "Khởi động & khay", "Startup & tray", "Avvio e tray" };
@@ -1960,6 +2058,7 @@ public static class Lang
             "Le impostazioni si aprono sempre sulla dashboard Inizio invece che sull'ultima sotto-scheda usata. Fare clic sulla scheda Impostazioni quando è già aperta riporta sempre a Inizio."
         };
         m["set_modeldb"]    = new[] { "Model database", "Baza modeli", "Modell-Datenbank", "Base de modèles", "Base de modelos", "型号数据库", "Base de modelos", "База моделей", "モデルデータベース", "모델 데이터베이스", "機型資料庫", "Model veritabanı", "Cơ sở dữ liệu model", "Basis data model", "Database modelli" };
+        m["set_modeldb_sub"] = new[] { "Version {0}  ·  {1} models, {2} tested", "Wersja {0}  ·  {1} modeli, {2} zweryfikowanych", "Version {0}  ·  {1} Modelle, {2} getestet", "Version {0}  ·  {1} modèles, {2} testés", "Versión {0}  ·  {1} modelos, {2} probados", "版本 {0}  ·  {1} 个机型，{2} 个已测试", "Versão {0}  ·  {1} modelos, {2} testados", "Версия {0}  ·  {1} моделей, проверено {2}", "バージョン {0}  ·  {1} モデル、テスト済み {2}", "버전 {0}  ·  모델 {1}개, 테스트됨 {2}개", "版本 {0}  ·  {1} 個機型，{2} 個已測試", "Sürüm {0}  ·  {1} model, {2} test edildi", "Phiên bản {0}  ·  {1} model, {2} đã kiểm thử", "Versi {0}  ·  {1} model, {2} teruji", "Versione {0}  ·  {1} modelli, {2} testati" };
         m["modeldb_downloaded"] = new[] { "updated", "zaktualizowana", "aktualisiert", "mise à jour", "actualizada", "已更新", "atualizada", "обновлена", "更新済み", "업데이트됨", "已更新", "güncellendi", "đã cập nhật", "diperbarui", "aggiornato" };
         m["modeldb_pending"] = new[] { "{0} waiting", "{0} czeka", "{0} wartet", "{0} en attente", "{0} en espera", "{0} 等待中", "{0} aguardando", "{0} ожидает", "{0} 待機中", "{0} 대기 중", "{0} 等待中", "{0} bekliyor", "{0} đang chờ", "{0} menunggu", "{0} in attesa" };
         m["log_modeldb"]    = new[] { "Model database updated to {0}", "Baza modeli zaktualizowana do {0}", "Modell-Datenbank auf {0} aktualisiert", "Base de modèles mise à jour vers {0}", "Base de modelos actualizada a {0}", "型号数据库已更新到 {0}", "Base de modelos atualizada para {0}", "База моделей обновлена до {0}", "モデルデータベースを {0} に更新しました", "모델 데이터베이스가 {0}(으)로 업데이트됨", "機型資料庫已更新至 {0}", "Model veritabanı {0} sürümüne güncellendi", "Cơ sở dữ liệu model đã cập nhật lên {0}", "Basis data model diperbarui ke {0}", "Database modelli aggiornato a {0}" };
@@ -1968,6 +2067,9 @@ public static class Lang
         m["modeldb_current"] = new[] { "Already up to date", "Już aktualna", "Bereits aktuell", "Déjà à jour", "Ya actualizada", "已是最新", "Já atualizada", "Уже актуальна", "最新です", "이미 최신 상태", "已是最新", "Zaten güncel", "Đã là mới nhất", "Sudah yang terbaru", "Già aggiornato" };
         m["modeldb_applied"] = new[] { "Updated to {0}", "Zaktualizowano do {0}", "Auf {0} aktualisiert", "Mis à jour vers {0}", "Actualizada a {0}", "已更新到 {0}", "Atualizada para {0}", "Обновлена до {0}", "{0} に更新しました", "{0}(으)로 업데이트됨", "已更新至 {0}", "{0} sürümüne güncellendi", "Đã cập nhật lên {0}", "Diperbarui ke {0}", "Aggiornato a {0}" };
         m["modeldb_failed"] = new[] { "Could not check", "Nie udało się sprawdzić", "Prüfung fehlgeschlagen", "Vérification impossible", "No se pudo comprobar", "检查失败", "Não foi possível verificar", "Не удалось проверить", "確認できません", "확인할 수 없음", "無法檢查", "Denetlenemedi", "Không kiểm tra được", "Tidak dapat memeriksa", "Controllo non riuscito" };
+        m["modeldb_got"] = new[] { "Downloaded", "Pobrano", "Geladen", "Téléchargée", "Descargada", "已下载", "Baixada", "Загружена", "ダウンロード済み", "다운로드됨", "已下載", "İndirildi", "Đã tải về", "Diunduh", "Scaricata" };
+        m["modeldb_failed_short"] = new[] { "Check failed", "Nie udało się", "Fehlgeschlagen", "Échec", "Falló", "检查失败", "Falhou", "Ошибка", "確認失敗", "확인 실패", "檢查失敗", "Başarısız", "Thất bại", "Gagal", "Non riuscito" };
+        m["modeldb_updated_short"] = new[] { "Updated", "Zaktualizowana", "Aktualisiert", "Mise à jour", "Actualizada", "已更新", "Atualizada", "Обновлена", "更新しました", "업데이트됨", "已更新", "Güncellendi", "Đã cập nhật", "Diperbarui", "Aggiornata" };
         m["modeldb_deferred"] = new[] { "Downloaded - applies when the fan-curve editor is closed", "Pobrano - zadziała po zamknięciu edytora krzywej", "Geladen - wirkt, sobald der Lüfterkurven-Editor geschlossen ist", "Téléchargée - active à la fermeture de l'éditeur de courbe", "Descargada - se aplica al cerrar el editor de curva", "已下载 - 关闭风扇曲线编辑器后生效", "Baixada - aplica ao fechar o editor de curva", "Загружена - применится после закрытия редактора кривой", "ダウンロード済み - ファンカーブエディターを閉じると適用", "다운로드됨 - 팬 곡선 편집기를 닫으면 적용됩니다", "已下載 - 關閉風扇曲線編輯器後生效", "İndirildi - fan eğrisi düzenleyicisi kapatılınca uygulanır", "Đã tải - áp dụng khi đóng trình sửa đường cong quạt", "Diunduh - diterapkan saat editor kurva kipas ditutup", "Scaricato - si applica alla chiusura dell'editor curva ventole" };
         // Windows-key lock (software hook)
         m["winlock_title"]  = new[] { "Windows key lock", "Blokada klawisza Windows", "Windows-Taste sperren", "Verrou touche Windows", "Bloqueo tecla Windows", "Windows 键锁定", "Bloqueio da tecla Windows", "Блокировка клавиши Windows", "Windows キーロック", "Windows 키 잠금", "Windows 鍵鎖定", "Windows tuşu kilidi", "Khóa phím Windows", "Kunci tombol Windows", "Blocco tasto Windows" };
@@ -2719,7 +2821,6 @@ public static class Lang
         m["pw_mapping"] = new[] { "Profile mapping", "Mapowanie profili", "Profil-Zuordnung", "Correspondance des profils", "Asignación de perfiles", "模式对应", "Mapeamento de perfis", "Соответствие профилей", "プロファイル対応表", "프로필 매핑", "模式對應", "Profil eşlemesi", "Ánh xạ hồ sơ", "Pemetaan profil", "Mappatura dei profili" };
         m["pw_now"] = new[] { "Now", "Teraz", "Jetzt", "Actuellement", "Ahora", "当前", "Agora", "Сейчас", "現在", "현재", "目前", "Şu an", "Hiện tại", "Sekarang", "Ora" };
         m["pw_saved"] = new[] { "Saved", "Zapisane", "Gespeichert", "Enregistré", "Guardado", "已保存", "Salvo", "Сохранено", "保存済み", "저장됨", "已儲存", "Kaydedilen", "Đã lưu", "Tersimpan", "Salvato" };
-        m["pw_per_source"] = new[] { "Control separately", "Steruj osobno", "Getrennt steuern", "Régler séparément", "Controlar por separado", "分别控制", "Controlar separadamente", "Управлять по отдельности", "個別に制御", "개별 제어", "分別控制", "Ayrı ayrı kontrol et", "Điều khiển riêng", "Kontrol terpisah", "Controllo separato" };
         m["pw_ac"] = new[] { "Plugged in", "Zasilacz", "Netzbetrieb", "Sur secteur", "Enchufado", "交流电源", "Na tomada", "От сети", "電源接続", "전원 연결", "交流電源", "Prizde", "Cắm điện", "Listrik", "Alimentazione" };
         m["pw_dc"] = new[] { "Battery", "Bateria", "Akku", "Batterie", "Batería", "电池", "Bateria", "Батарея", "バッテリー", "배터리", "電池", "Pil", "Pin", "Baterai", "Batteria" };
         m["pw_auto_seg"] = new[] { "Auto: profile", "Auto: profil", "Auto: Profil", "Auto : profil", "Auto: perfil", "自动：按配置", "Auto: perfil", "Авто: профиль", "自動：プロファイル", "자동: 프로필", "自動：按設定檔", "Oto: profil", "Tự động: hồ sơ", "Auto: profil", "Auto: profilo" };
@@ -2752,7 +2853,7 @@ public static class Lang
         m["po_power"] = new[] { "By power", "Według mocy", "Nach Leistung", "Par puissance", "Por potencia", "按性能", "Por potência", "По мощности", "パワー順", "성능순", "依效能", "Güce göre", "Theo công suất", "Menurut daya", "Per potenza" };
         m["po_custom"] = new[] { "You are using your own order.", "Używasz własnej kolejności.", "Du verwendest eine eigene Reihenfolge.", "Vous utilisez votre propre ordre.", "Estás usando tu propio orden.", "当前使用的是自定义顺序。", "Você está usando sua própria ordem.", "Используется ваш собственный порядок.", "独自の順序を使用しています。", "사용자 지정 순서를 사용 중입니다.", "目前使用的是自訂順序。", "Kendi sıralamanızı kullanıyorsunuz.", "Bạn đang dùng thứ tự riêng.", "Anda memakai urutan sendiri.", "Stai usando un ordine personalizzato." };
         m["po_edit_tip"] = new[] { "Change the order of the profiles", "Zmień kolejność profili", "Reihenfolge der Profile ändern", "Changer l'ordre des profils", "Cambiar el orden de los perfiles", "更改情景模式顺序", "Alterar a ordem dos perfis", "Изменить порядок профилей", "プロファイルの順序を変更", "프로필 순서 변경", "變更設定檔順序", "Profil sırasını değiştir", "Đổi thứ tự hồ sơ", "Ubah urutan profil", "Cambia l'ordine dei profili" };
-        // graphics mode (TECHNICAL §82) - order: en pl de fr es zh pt ru ja ko zh-TW tr vi id it
+        // graphics mode (TECHNICAL §84) - order: en pl de fr es zh pt ru ja ko zh-TW tr vi id it
         m["gpu_title"] = new[] { "Graphics mode", "Tryb grafiki", "Grafikmodus", "Mode graphique", "Modo gráfico", "显卡模式", "Modo gráfico", "Режим графики", "グラフィックモード", "그래픽 모드", "顯示卡模式", "Grafik modu", "Chế độ đồ họa", "Mode grafis", "Modalità grafica" };
         m["gpu_hybrid"] = new[] { "Hybrid", "Hybrydowy", "Hybrid", "Hybride", "Híbrido", "混合", "Híbrido", "Гибридный", "ハイブリッド", "하이브리드", "混合", "Hibrit", "Lai", "Hibrida", "Ibrida" };
         m["gpu_integrated"] = new[] { "Integrated only", "Tylko zintegrowana", "Nur integriert", "Intégré seul", "Solo integrada", "仅集成显卡", "Só integrada", "Только встроенная", "内蔵のみ", "내장 그래픽만", "僅內建顯示卡", "Yalnızca dahili", "Chỉ tích hợp", "Hanya terintegrasi", "Solo integrata" };
@@ -2877,24 +2978,6 @@ public static class Lang
             "Membisukan dan mengaktifkan kembali perangkat perekam bawaan Windows untuk semua aplikasi sekaligus. Berfungsi di laptop mana pun; sakelar juga mengikuti pembisuan yang dilakukan di tempat lain.",
             "Disattiva e riattiva il dispositivo di registrazione predefinito di Windows, per tutte le app insieme. Funziona su qualsiasi portatile; l'interruttore riflette anche un silenziamento fatto altrove.",
         };
-        m["pw_map_body"] = new[]
-        {
-            "Choose the Windows power mode for each profile. The mapping applies while \"{0}\" is selected.",
-            "Wybierz tryb zasilania Windows dla każdego profilu. Mapowanie działa, gdy wybrany jest „{0}”.",
-            "Wähle für jedes Profil den Windows-Energiemodus. Die Zuordnung gilt, solange „{0}“ ausgewählt ist.",
-            "Choisissez le mode d'alimentation Windows pour chaque profil. La correspondance s'applique tant que « {0} » est sélectionné.",
-            "Elige el modo de energía de Windows para cada perfil. La asignación se aplica mientras esté seleccionado «{0}».",
-            "为每个配置选择 Windows 电源模式。选中“{0}”时，此对应关系生效。",
-            "Escolha o modo de energia do Windows para cada perfil. O mapeamento vale enquanto \"{0}\" estiver selecionado.",
-            "Выберите режим питания Windows для каждого профиля. Соответствие действует, пока выбран «{0}».",
-            "プロファイルごとに Windows の電源モードを選択します。「{0}」が選択されている間、この対応が適用されます。",
-            "각 프로필에 사용할 Windows 전원 모드를 선택하세요. \"{0}\"이(가) 선택된 동안 매핑이 적용됩니다.",
-            "為每個設定檔選擇 Windows 電源模式。選取「{0}」時，此對應關係生效。",
-            "Her profil için Windows güç modunu seçin. Eşleme, \"{0}\" seçiliyken geçerlidir.",
-            "Chọn chế độ nguồn Windows cho từng hồ sơ. Ánh xạ có hiệu lực khi \"{0}\" đang được chọn.",
-            "Pilih mode daya Windows untuk setiap profil. Pemetaan berlaku selama \"{0}\" dipilih.",
-            "Scegli la modalità energetica di Windows per ogni profilo. La mappatura vale finché è selezionato \"{0}\".",
-        };
         m["pw_map_reset_confirm"] = new[]
         {
             "The profile mapping goes back to the defaults: Silent and Super Battery - best power efficiency, Balanced - balanced, Extreme - best performance. Continue?",
@@ -2965,24 +3048,6 @@ public static class Lang
             "Il turbo è disattivato nel piano Windows attivo. GhostDeck non ha valori precedenti salvati: all'attivazione userà il valore predefinito di GhostDeck: {0}.",
         };
         m["pw_turbo_mixed_fmt"] = new[] { "Mixed: {0} (plugged in) / {1} (battery).", "Mieszany: {0} (zasilacz) / {1} (bateria).", "Gemischt: {0} (Netz) / {1} (Akku).", "Mixte : {0} (secteur) / {1} (batterie).", "Mixto: {0} (red) / {1} (batería).", "混合：{0}（交流电源）/ {1}（电池）。", "Misto: {0} (tomada) / {1} (bateria).", "Смешанный: {0} (сеть) / {1} (батарея).", "混在: {0}（電源接続）/ {1}（バッテリー）。", "혼합: {0} (전원 연결) / {1} (배터리).", "混合：{0}（交流電源）/ {1}（電池）。", "Karışık: {0} (prizde) / {1} (pilde).", "Hỗn hợp: {0} (cắm điện) / {1} (pin).", "Campuran: {0} (listrik) / {1} (baterai).", "Misto: {0} (alimentazione) / {1} (batteria)." };
-        m["pw_turbo_help"] = new[]
-        {
-            "Turns the processor's turbo boost on or off by editing the \"Processor performance boost mode\" setting of the active Windows power plan. Unlike the app's EC writes, this change is persistent until it is changed back, so the previous values are saved per plan and shown here before you switch. Windows hides this setting in its own power options by default.",
-            "Włącza lub wyłącza turbo boost procesora, edytując ustawienie \"Tryb zwiększania wydajności procesorów\" aktywnego planu zasilania Windows. Inaczej niż zapisy EC aplikacji, ta zmiana jest trwała do odwołania, więc poprzednie wartości są zapisywane per plan i pokazywane tutaj, zanim przełączysz. Windows domyślnie ukrywa to ustawienie we własnych opcjach zasilania.",
-            "Schaltet den Turbo-Boost des Prozessors ein oder aus, indem die Einstellung \"Leistungssteigerungsmodus für Prozessoren\" des aktiven Windows-Energieplans geändert wird. Anders als die EC-Schreibvorgänge der App bleibt diese Änderung bestehen, bis sie zurückgenommen wird - die vorherigen Werte werden daher pro Plan gespeichert und hier vor dem Umschalten angezeigt. Windows blendet diese Einstellung standardmäßig aus.",
-            "Active ou désactive le turbo boost du processeur en modifiant le réglage \"Mode d'amplification des performances du processeur\" du plan d'alimentation Windows actif. Contrairement aux écritures EC de l'application, ce changement persiste jusqu'à modification - les valeurs précédentes sont donc enregistrées par plan et affichées ici avant de basculer. Windows masque ce réglage par défaut.",
-            "Activa o desactiva el turbo boost del procesador editando el ajuste \"Modo de aumento de rendimiento del procesador\" del plan de energía activo de Windows. A diferencia de las escrituras EC de la aplicación, este cambio persiste hasta que se revierta: los valores anteriores se guardan por plan y se muestran aquí antes de cambiar. Windows oculta este ajuste de forma predeterminada.",
-            "通过编辑当前 Windows 电源计划的\"处理器性能提升模式\"设置来开关处理器睿频。与应用的 EC 写入不同，此更改在改回之前一直有效，因此先前的值会按计划保存并在切换前显示在这里。Windows 默认在其电源选项中隐藏此设置。",
-            "Liga ou desliga o turbo boost do processador editando a configuração \"Modo de aumento de desempenho do processador\" do plano de energia ativo do Windows. Ao contrário das gravações EC do app, esta mudança persiste até ser revertida - os valores anteriores são salvos por plano e mostrados aqui antes de alternar. O Windows oculta essa configuração por padrão.",
-            "Включает или выключает турбобуст процессора, изменяя параметр \"Режим повышения производительности процессора\" активного плана питания Windows. В отличие от записей EC, это изменение сохраняется, пока его не отменить, поэтому прежние значения сохраняются для каждого плана и показываются здесь до переключения. Windows по умолчанию скрывает этот параметр.",
-            "アクティブな Windows 電源プランの「プロセッサ パフォーマンスの向上モード」設定を編集して、プロセッサのターボブーストをオン/オフします。アプリの EC 書き込みと異なり、この変更は元に戻すまで持続するため、以前の値はプランごとに保存され、切り替える前にここに表示されます。Windows は既定でこの設定を非表示にしています。",
-            "활성 Windows 전원 관리 옵션의 \"프로세서 성능 향상 모드\" 설정을 편집해 프로세서 터보 부스트를 켜거나 끕니다. 앱의 EC 쓰기와 달리 이 변경은 되돌릴 때까지 유지되므로, 이전 값은 옵션별로 저장되고 전환 전에 여기에 표시됩니다. Windows는 기본적으로 이 설정을 숨깁니다.",
-            "透過編輯使用中 Windows 電源計畫的「處理器效能提升模式」設定來開關處理器睿頻。與應用程式的 EC 寫入不同，此變更在改回之前一直有效，因此先前的值會按計畫儲存並在切換前顯示於此。Windows 預設會隱藏此設定。",
-            "Etkin Windows güç planının \"İşlemci performans artırma modu\" ayarını düzenleyerek işlemcinin turbo boost özelliğini açar veya kapatır. Uygulamanın EC yazmalarından farklı olarak bu değişiklik geri alınana dek kalıcıdır - önceki değerler plan başına kaydedilir ve geçmeden önce burada gösterilir. Windows bu ayarı varsayılan olarak gizler.",
-            "Bật hoặc tắt turbo boost của bộ xử lý bằng cách sửa cài đặt \"Chế độ tăng hiệu năng bộ xử lý\" của kế hoạch nguồn Windows hiện hoạt. Khác với ghi EC của ứng dụng, thay đổi này tồn tại cho đến khi được đổi lại, nên các giá trị trước đó được lưu theo từng kế hoạch và hiển thị ở đây trước khi bạn chuyển. Windows mặc định ẩn cài đặt này.",
-            "Menyalakan atau mematikan turbo boost prosesor dengan menyunting setelan \"Mode peningkatan performa prosesor\" pada rencana daya Windows aktif. Berbeda dengan penulisan EC aplikasi, perubahan ini bertahan sampai diubah kembali - nilai sebelumnya disimpan per rencana dan ditampilkan di sini sebelum beralih. Windows menyembunyikan setelan ini secara default.",
-            "Attiva o disattiva il turbo boost del processore modificando l'impostazione \"Modalità aumento prestazioni processore\" del piano energetico Windows attivo. A differenza delle scritture EC dell'app, questa modifica persiste finché non viene annullata: i valori precedenti vengono salvati per piano e mostrati qui prima di cambiare. Windows nasconde questa impostazione per impostazione predefinita.",
-        };
         m["pw_sync_label"] = new[] { "Windows power mode follows the profile", "Tryb zasilania Windows podąża za profilem", "Windows-Energiemodus folgt dem Profil", "Le mode d'alimentation Windows suit le profil", "El modo de energía de Windows sigue al perfil", "Windows 电源模式跟随配置文件", "O modo de energia do Windows segue o perfil", "Режим питания Windows следует за профилем", "Windows の電源モードをプロファイルに追従", "Windows 전원 모드가 프로필을 따름", "Windows 電源模式跟隨設定檔", "Windows güç modu profili izler", "Chế độ nguồn Windows theo hồ sơ", "Mode daya Windows mengikuti profil", "La modalità energetica di Windows segue il profilo" };
         m["pw_sync_desc"] = new[]
         {
@@ -3080,6 +3145,1068 @@ public static class Lang
         m["pw_restore_result_fmt"] = new[] { "Restored plans: {0}. Plans that no longer exist: {1}. Failed writes: {2}.", "Przywrócone plany: {0}. Plany, które już nie istnieją: {1}. Nieudane zapisy: {2}.", "Wiederhergestellte Pläne: {0}. Nicht mehr vorhandene Pläne: {1}. Fehlgeschlagene Schreibvorgänge: {2}.", "Plans restaurés : {0}. Plans qui n'existent plus : {1}. Écritures échouées : {2}.", "Planes restaurados: {0}. Planes que ya no existen: {1}. Escrituras fallidas: {2}.", "已还原的计划：{0}。已不存在的计划：{1}。写入失败：{2}。", "Planos restaurados: {0}. Planos que não existem mais: {1}. Gravações com falha: {2}.", "Восстановлено планов: {0}. Планов больше нет: {1}. Неудачных записей: {2}.", "復元したプラン: {0}。存在しないプラン: {1}。書き込み失敗: {2}。", "복원된 옵션: {0}. 더 이상 없는 옵션: {1}. 실패한 쓰기: {2}.", "已還原的計畫：{0}。已不存在的計畫：{1}。寫入失敗：{2}。", "Geri yüklenen planlar: {0}. Artık olmayan planlar: {1}. Başarısız yazmalar: {2}.", "Kế hoạch đã khôi phục: {0}. Kế hoạch không còn: {1}. Ghi thất bại: {2}.", "Rencana dipulihkan: {0}. Rencana yang sudah tidak ada: {1}. Penulisan gagal: {2}.", "Piani ripristinati: {0}. Piani che non esistono più: {1}. Scritture fallite: {2}." };
         m["pw_err_write"] = new[] { "Windows refused the change.", "Windows odrzucił zmianę.", "Windows hat die Änderung abgelehnt.", "Windows a refusé la modification.", "Windows rechazó el cambio.", "Windows 拒绝了此更改。", "O Windows recusou a alteração.", "Windows отклонил изменение.", "Windows が変更を拒否しました。", "Windows가 변경을 거부했습니다.", "Windows 拒絕了此變更。", "Windows değişikliği reddetti.", "Windows từ chối thay đổi.", "Windows menolak perubahan.", "Windows ha rifiutato la modifica." };
         m["pw_unavailable"] = new[] { "The power-plan read-out is not available on this Windows.", "Odczyt planu zasilania jest niedostępny w tym Windows.", "Das Auslesen des Energieplans ist unter diesem Windows nicht verfügbar.", "La lecture du plan d'alimentation n'est pas disponible sur ce Windows.", "La lectura del plan de energía no está disponible en este Windows.", "此 Windows 上无法读取电源计划。", "A leitura do plano de energia não está disponível neste Windows.", "Чтение плана питания недоступно в этой Windows.", "この Windows では電源プランの読み取りを利用できません。", "이 Windows에서는 전원 관리 옵션을 읽을 수 없습니다.", "此 Windows 上無法讀取電源計畫。", "Bu Windows'ta güç planı okuması kullanılamıyor.", "Không đọc được kế hoạch nguồn trên Windows này.", "Pembacaan rencana daya tidak tersedia di Windows ini.", "La lettura del piano energetico non è disponibile su questo Windows." };
+        m["pw_bm_0"] = new[]
+        {
+            "The processor stays at its base clock. Cooler and quieter, clearly slower. Besides Silent, the only mode that surely lowers power.",
+            "Procesor nie wychodzi ponad zegar bazowy. Chłodniej i ciszej, wyraźnie wolniej. Obok Silenta to jedyny tryb, który na pewno obniża moc.",
+            "Der Prozessor bleibt beim Basistakt. Kühler und leiser, deutlich langsamer. Neben Silent der einzige Modus, der die Leistung sicher senkt.",
+            "Le processeur reste à sa fréquence de base. Plus frais et plus silencieux, nettement plus lent. Avec Silent, le seul mode qui réduit sûrement la puissance.",
+            "El procesador se queda en su frecuencia base. Más fresco y silencioso, claramente más lento. Junto con Silent, el único modo que seguro reduce la potencia.",
+            "处理器保持在基础频率。更凉、更安静，但明显更慢。除 Silent 外，唯一确定能降低功耗的模式。",
+            "O processador fica na frequência base. Mais fresco e silencioso, claramente mais lento. Junto com o Silent, o único modo que com certeza reduz a potência.",
+            "Процессор остаётся на базовой частоте. Холоднее и тише, заметно медленнее. Кроме Silent, единственный режим, который точно снижает мощность.",
+            "プロセッサーはベースクロックのままです。より涼しく静かになりますが、明らかに遅くなります。Silent 以外で確実に電力を下げる唯一のモードです。",
+            "프로세서가 기본 클럭에 머뭅니다. 더 시원하고 조용하지만 확실히 느려집니다. Silent 외에 전력을 확실히 낮추는 유일한 모드입니다.",
+            "處理器維持在基礎頻率。更涼、更安靜，但明顯較慢。除了 Silent 之外，唯一確定能降低功耗的模式。",
+            "İşlemci temel saat hızında kalır. Daha serin ve sessiz, belirgin şekilde daha yavaş. Silent dışında gücü kesin olarak düşüren tek mod.",
+            "Bộ xử lý giữ ở xung nhịp cơ bản. Mát và êm hơn, chậm hơn rõ rệt. Ngoài Silent, đây là chế độ duy nhất chắc chắn giảm công suất.",
+            "Prosesor tetap di clock dasar. Lebih dingin dan senyap, jelas lebih lambat. Selain Silent, satu-satunya mode yang pasti menurunkan daya.",
+            "Il processore resta alla frequenza base. Più fresco e silenzioso, nettamente più lento. Oltre a Silent, l'unica modalità che riduce di sicuro la potenza.",
+        };
+        m["pw_bm_1"] = new[]
+        {
+            "The processor speeds up when it has work. Windows decides how much.",
+            "Procesor przyspiesza, gdy ma pracę. Windows decyduje, jak bardzo.",
+            "Der Prozessor beschleunigt, wenn er Arbeit hat. Windows entscheidet, wie stark.",
+            "Le processeur accélère quand il a du travail. Windows décide de combien.",
+            "El procesador acelera cuando tiene trabajo. Windows decide cuánto.",
+            "处理器在有负载时加速，加速多少由 Windows 决定。",
+            "O processador acelera quando tem trabalho. O Windows decide quanto.",
+            "Процессор ускоряется, когда есть работа. Насколько, решает Windows.",
+            "処理があるときにプロセッサーが加速します。どれだけ加速するかは Windows が決めます。",
+            "작업이 있을 때 프로세서가 가속합니다. 얼마나 가속할지는 Windows가 정합니다.",
+            "處理器在有工作時加速，加速多少由 Windows 決定。",
+            "İşlemci iş olduğunda hızlanır. Ne kadar hızlanacağına Windows karar verir.",
+            "Bộ xử lý tăng tốc khi có việc. Windows quyết định tăng bao nhiêu.",
+            "Prosesor mempercepat saat ada pekerjaan. Windows yang menentukan seberapa besar.",
+            "Il processore accelera quando ha lavoro. Windows decide quanto.",
+        };
+        m["pw_bm_2"] = new[]
+        {
+            "Speeds up whenever it can. On processors that manage their own clock, Microsoft says it works like \"{0}\".",
+            "Przyspiesza, kiedy tylko może. Według Microsoftu na procesorach, które same sterują zegarem, działa jak „{0}”.",
+            "Beschleunigt, wann immer es geht. Laut Microsoft wirkt der Modus auf Prozessoren, die ihren Takt selbst steuern, wie „{0}“.",
+            "Accélère dès que possible. Selon Microsoft, sur les processeurs qui gèrent eux-mêmes leur fréquence, il agit comme « {0} ».",
+            "Acelera siempre que puede. Según Microsoft, en procesadores que controlan su propia frecuencia funciona como «{0}».",
+            "只要可以就加速。据 Microsoft 说明，在自行控制频率的处理器上，其效果与“{0}”相同。",
+            "Acelera sempre que pode. Segundo a Microsoft, em processadores que controlam o próprio clock, funciona como \"{0}\".",
+            "Ускоряется всегда, когда может. По данным Microsoft, на процессорах, которые сами управляют частотой, работает как «{0}».",
+            "可能な限り加速します。Microsoft によると、自らクロックを制御するプロセッサーでは「{0}」と同じ動作です。",
+            "가능할 때마다 가속합니다. Microsoft에 따르면 클럭을 스스로 제어하는 프로세서에서는 '{0}'과(와) 같이 동작합니다.",
+            "只要可以就加速。依 Microsoft 說明，在自行控制頻率的處理器上，效果與「{0}」相同。",
+            "Her fırsatta hızlanır. Microsoft'a göre saat hızını kendisi yöneten işlemcilerde \"{0}\" gibi çalışır.",
+            "Tăng tốc bất cứ khi nào có thể. Theo Microsoft, trên bộ xử lý tự điều khiển xung nhịp, chế độ này hoạt động như \"{0}\".",
+            "Mempercepat kapan pun bisa. Menurut Microsoft, pada prosesor yang mengatur clock-nya sendiri, mode ini bekerja seperti \"{0}\".",
+            "Accelera ogni volta che può. Secondo Microsoft, sui processori che gestiscono da sé la frequenza, funziona come \"{0}\".",
+        };
+        m["pw_bm_3"] = new[]
+        {
+            "Microsoft says it works like \"{0}\". The name suggests saving energy, but the documentation does not confirm it.",
+            "Według Microsoftu działa jak „{0}”. Nazwa sugeruje oszczędzanie energii, ale dokumentacja tego nie potwierdza.",
+            "Laut Microsoft wirkt der Modus wie „{0}“. Der Name deutet auf Energiesparen hin, die Dokumentation bestätigt das aber nicht.",
+            "Selon Microsoft, il agit comme « {0} ». Le nom suggère une économie d'énergie, mais la documentation ne le confirme pas.",
+            "Según Microsoft, funciona como «{0}». El nombre sugiere ahorro de energía, pero la documentación no lo confirma.",
+            "据 Microsoft 说明，其效果与“{0}”相同。名称暗示节能，但文档并未证实这一点。",
+            "Segundo a Microsoft, funciona como \"{0}\". O nome sugere economia de energia, mas a documentação não confirma isso.",
+            "По данным Microsoft, работает как «{0}». Название намекает на экономию энергии, но документация этого не подтверждает.",
+            "Microsoft によると「{0}」と同じ動作です。名前は省電力を思わせますが、ドキュメントでは確認されていません。",
+            "Microsoft에 따르면 '{0}'과(와) 같이 동작합니다. 이름은 절전을 암시하지만 문서에서는 확인되지 않습니다.",
+            "依 Microsoft 說明，效果與「{0}」相同。名稱暗示節能，但文件並未證實這一點。",
+            "Microsoft'a göre \"{0}\" gibi çalışır. Adı enerji tasarrufu çağrıştırsa da belgeler bunu doğrulamıyor.",
+            "Theo Microsoft, chế độ này hoạt động như \"{0}\". Tên gọi gợi ý tiết kiệm điện, nhưng tài liệu không xác nhận điều đó.",
+            "Menurut Microsoft, mode ini bekerja seperti \"{0}\". Namanya mengesankan hemat energi, tetapi dokumentasi tidak mengonfirmasinya.",
+            "Secondo Microsoft, funziona come \"{0}\". Il nome fa pensare al risparmio energetico, ma la documentazione non lo conferma.",
+        };
+        m["pw_bm_4"] = new[]
+        {
+            "Microsoft says it works like \"{0}\".",
+            "Według Microsoftu działa jak „{0}”.",
+            "Laut Microsoft wirkt der Modus wie „{0}“.",
+            "Selon Microsoft, il agit comme « {0} ».",
+            "Según Microsoft, funciona como «{0}».",
+            "据 Microsoft 说明，其效果与“{0}”相同。",
+            "Segundo a Microsoft, funciona como \"{0}\".",
+            "По данным Microsoft, работает как «{0}».",
+            "Microsoft によると「{0}」と同じ動作です。",
+            "Microsoft에 따르면 '{0}'과(와) 같이 동작합니다.",
+            "依 Microsoft 說明，效果與「{0}」相同。",
+            "Microsoft'a göre \"{0}\" gibi çalışır.",
+            "Theo Microsoft, chế độ này hoạt động như \"{0}\".",
+            "Menurut Microsoft, mode ini bekerja seperti \"{0}\".",
+            "Secondo Microsoft, funziona come \"{0}\".",
+        };
+        m["pw_bm_5"] = new[]
+        {
+            "Windows works out how much extra speed above the processor's guaranteed level is needed and asks for exactly that.",
+            "Windows wylicza, ile dodatkowej wydajności ponad poziom gwarantowany procesora potrzeba, i prosi dokładnie o tyle.",
+            "Windows berechnet, wie viel zusätzliche Leistung über dem garantierten Niveau des Prozessors nötig ist, und fordert genau diese an.",
+            "Windows calcule le surplus de performances nécessaire au-delà du niveau garanti du processeur et demande exactement ce niveau.",
+            "Windows calcula cuánto rendimiento adicional por encima del nivel garantizado del procesador hace falta y pide exactamente eso.",
+            "Windows 计算需要在处理器保证性能水平之上额外提升多少，并请求恰好该水平。",
+            "O Windows calcula quanto desempenho extra acima do nível garantido do processador é necessário e pede exatamente isso.",
+            "Windows вычисляет, сколько дополнительной производительности сверх гарантированного уровня процессора нужно, и запрашивает ровно столько.",
+            "Windows はプロセッサの保証性能レベルを超えて必要な追加性能を計算し、その分だけを要求します。",
+            "Windows가 프로세서 보장 성능 수준 이상으로 필요한 추가 성능을 계산해 정확히 그만큼 요청합니다.",
+            "Windows 計算需要在處理器保證效能水準之上額外提升多少，並請求恰好該水準。",
+            "Windows, işlemcinin garanti edilen seviyesinin üstünde ne kadar ek performans gerektiğini hesaplar ve tam olarak onu ister.",
+            "Windows tính mức hiệu năng cần thêm trên mức bảo đảm của bộ xử lý và yêu cầu đúng mức đó.",
+            "Windows menghitung berapa performa tambahan di atas tingkat terjamin prosesor yang dibutuhkan dan meminta tepat sebesar itu.",
+            "Windows calcola quante prestazioni in più servono oltre il livello garantito del processore e chiede esattamente quelle.",
+        };
+        m["pw_bm_6"] = new[]
+        {
+            "Windows always asks for the highest speed above the processor's guaranteed level.",
+            "Windows zawsze prosi o najwyższą możliwą wydajność ponad poziom gwarantowany procesora.",
+            "Windows fordert immer die höchstmögliche Leistung über dem garantierten Niveau des Prozessors an.",
+            "Windows demande toujours les performances les plus élevées possibles au-delà du niveau garanti du processeur.",
+            "Windows siempre pide el máximo rendimiento posible por encima del nivel garantizado del procesador.",
+            "Windows 始终请求处理器保证性能水平之上的最高性能。",
+            "O Windows sempre pede o maior desempenho possível acima do nível garantido do processador.",
+            "Windows всегда запрашивает максимально возможную производительность сверх гарантированного уровня процессора.",
+            "Windows は常に、プロセッサの保証性能レベルを超える最高の性能を要求します。",
+            "Windows가 항상 프로세서 보장 성능 수준 이상의 최고 성능을 요청합니다.",
+            "Windows 一律請求處理器保證效能水準之上的最高效能。",
+            "Windows her zaman işlemcinin garanti edilen seviyesinin üstündeki en yüksek performansı ister.",
+            "Windows luôn yêu cầu hiệu năng cao nhất có thể trên mức bảo đảm của bộ xử lý.",
+            "Windows selalu meminta performa tertinggi yang mungkin di atas tingkat terjamin prosesor.",
+            "Windows chiede sempre le prestazioni più alte possibili oltre il livello garantito del processore.",
+        };
+        m["pw_bm_unknown"] = new[]
+        {
+            "GhostDeck does not know this mode.",
+            "GhostDeck nie zna tego trybu.",
+            "GhostDeck kennt diesen Modus nicht.",
+            "GhostDeck ne connaît pas ce mode.",
+            "GhostDeck no conoce este modo.",
+            "GhostDeck 不认识此模式。",
+            "O GhostDeck não conhece este modo.",
+            "GhostDeck не знает этот режим.",
+            "GhostDeck はこのモードを認識していません。",
+            "GhostDeck가 알지 못하는 모드입니다.",
+            "GhostDeck 不認識此模式。",
+            "GhostDeck bu modu tanımıyor.",
+            "GhostDeck không biết chế độ này.",
+            "GhostDeck tidak mengenal mode ini.",
+            "GhostDeck non conosce questa modalità.",
+        };
+        m["pw_turbo_mode"] = new[]
+        {
+            "Turbo mode",
+            "Tryb turbo",
+            "Turbo-Modus",
+            "Mode turbo",
+            "Modo turbo",
+            "睿频模式",
+            "Modo turbo",
+            "Режим турбо",
+            "ターボモード",
+            "터보 모드",
+            "睿頻模式",
+            "Turbo modu",
+            "Chế độ turbo",
+            "Mode turbo",
+            "Modalità turbo",
+        };
+        m["pw_mode_lbl"] = new[]
+        {
+            "Mode",
+            "Tryb",
+            "Modus",
+            "Mode",
+            "Modo",
+            "模式",
+            "Modo",
+            "Режим",
+            "モード",
+            "모드",
+            "模式",
+            "Mod",
+            "Chế độ",
+            "Mode",
+            "Modalità",
+        };
+        m["pw_toggle_hint"] = new[]
+        {
+            "The switch moves between \"{0}\" and the modes chosen below. It also works from a hotkey, a scene and the turbo command.",
+            "Wyłącznik przełącza między „{0}” a trybami wybranymi niżej. Działa też ze skrótu klawiszowego, ze sceny i z komendy turbo.",
+            "Der Schalter wechselt zwischen „{0}“ und den unten gewählten Modi. Er funktioniert auch per Tastenkürzel, Szene und turbo-Befehl.",
+            "L'interrupteur bascule entre « {0} » et les modes choisis ci-dessous. Il fonctionne aussi par raccourci clavier, scène et commande turbo.",
+            "El interruptor cambia entre «{0}» y los modos elegidos abajo. También funciona con un atajo de teclado, una escena y el comando turbo.",
+            "开关在“{0}”与下方所选模式之间切换。也可通过快捷键、场景和 turbo 命令使用。",
+            "O interruptor alterna entre \"{0}\" e os modos escolhidos abaixo. Também funciona por atalho de teclado, cena e comando turbo.",
+            "Переключатель переходит между «{0}» и режимами, выбранными ниже. Работает также с горячей клавиши, из сцены и командой turbo.",
+            "スイッチは「{0}」と下で選んだモードを切り替えます。ショートカットキー、シーン、turbo コマンドからも使えます。",
+            "스위치는 '{0}'과(와) 아래에서 고른 모드 사이를 전환합니다. 단축키, 장면, turbo 명령으로도 작동합니다.",
+            "開關在「{0}」與下方所選模式之間切換。也可透過快速鍵、場景與 turbo 指令使用。",
+            "Anahtar \"{0}\" ile aşağıda seçilen modlar arasında geçiş yapar. Kısayol tuşu, sahne ve turbo komutuyla da çalışır.",
+            "Công tắc chuyển giữa \"{0}\" và các chế độ chọn bên dưới. Cũng dùng được qua phím tắt, cảnh và lệnh turbo.",
+            "Sakelar beralih antara \"{0}\" dan mode yang dipilih di bawah. Juga bekerja lewat pintasan keyboard, scene, dan perintah turbo.",
+            "L'interruttore passa tra \"{0}\" e le modalità scelte sotto. Funziona anche da scorciatoia, scena e comando turbo.",
+        };
+        m["pw_unchanged"] = new[]
+        {
+            "no change",
+            "bez zmian",
+            "keine Änderung",
+            "sans changement",
+            "sin cambios",
+            "不变",
+            "sem alteração",
+            "без изменений",
+            "変更なし",
+            "변경 없음",
+            "不變",
+            "değişiklik yok",
+            "không đổi",
+            "tanpa perubahan",
+            "nessuna modifica",
+        };
+        m["pw_grp_profile"] = new[]
+        {
+            "By profile",
+            "Za profilem",
+            "Nach Profil",
+            "Selon le profil",
+            "Según el perfil",
+            "按配置",
+            "Por perfil",
+            "По профилю",
+            "プロファイル別",
+            "프로필별",
+            "依設定檔",
+            "Profile göre",
+            "Theo hồ sơ",
+            "Menurut profil",
+            "Per profilo",
+        };
+        m["pw_map_profile"] = new[]
+        {
+            "Profile",
+            "Profil",
+            "Profil",
+            "Profil",
+            "Perfil",
+            "配置",
+            "Perfil",
+            "Профиль",
+            "プロファイル",
+            "프로필",
+            "設定檔",
+            "Profil",
+            "Hồ sơ",
+            "Profil",
+            "Profilo",
+        };
+        m["pw_map_turbo_ac"] = new[]
+        {
+            "Turbo, plugged in",
+            "Turbo, zasilacz",
+            "Turbo, Netz",
+            "Turbo, secteur",
+            "Turbo, red",
+            "睿频，交流电源",
+            "Turbo, tomada",
+            "Турбо, сеть",
+            "ターボ（電源接続）",
+            "터보, 전원 연결",
+            "睿頻，交流電源",
+            "Turbo, prizde",
+            "Turbo, cắm điện",
+            "Turbo, listrik",
+            "Turbo, alimentazione",
+        };
+        m["pw_map_turbo_dc"] = new[]
+        {
+            "Turbo, battery",
+            "Turbo, bateria",
+            "Turbo, Akku",
+            "Turbo, batterie",
+            "Turbo, batería",
+            "睿频，电池",
+            "Turbo, bateria",
+            "Турбо, батарея",
+            "ターボ（バッテリー）",
+            "터보, 배터리",
+            "睿頻，電池",
+            "Turbo, pil",
+            "Turbo, pin",
+            "Turbo, baterai",
+            "Turbo, batteria",
+        };
+        m["pw_map_note"] = new[]
+        {
+            "The power mode follows this table while \"{0}\" is selected. Turbo changes on a profile switch only where a mode is set; \"{1}\" = GhostDeck leaves it alone. A change made on this card holds until the next switch.",
+            "Tryb zasilania podąża za tą tabelą, gdy wybrane jest „{0}”. Turbo zmienia się przy przełączeniu profilu tylko tam, gdzie wybrano tryb; „{1}” = GhostDeck tego nie dotyka. Zmiana zrobiona w tej karcie obowiązuje do następnego przełączenia.",
+            "Der Energiemodus folgt dieser Tabelle, solange „{0}“ ausgewählt ist. Turbo ändert sich beim Profilwechsel nur dort, wo ein Modus gesetzt ist; „{1}“ = GhostDeck rührt es nicht an. Eine Änderung auf dieser Karte gilt bis zum nächsten Wechsel.",
+            "Le mode d'alimentation suit ce tableau tant que « {0} » est sélectionné. Le turbo ne change au changement de profil que là où un mode est défini ; « {1} » = GhostDeck n'y touche pas. Un changement fait sur cette carte tient jusqu'au prochain changement.",
+            "El modo de energía sigue esta tabla mientras «{0}» está seleccionado. El turbo cambia al cambiar de perfil solo donde hay un modo elegido; «{1}» = GhostDeck no lo toca. Un cambio hecho en esta tarjeta dura hasta el siguiente cambio.",
+            "选择“{0}”时，电源模式按此表切换。切换配置时，只有设置了模式的地方才会改变睿频；“{1}”= GhostDeck 不改动。在此卡片上所做的更改保持到下次切换。",
+            "O modo de energia segue esta tabela enquanto \"{0}\" estiver selecionado. O turbo muda na troca de perfil só onde há um modo definido; \"{1}\" = o GhostDeck não mexe. Uma alteração feita neste cartão vale até a próxima troca.",
+            "Режим питания следует этой таблице, пока выбрано «{0}». Турбо меняется при смене профиля только там, где задан режим; «{1}» = GhostDeck его не трогает. Изменение на этой карточке действует до следующей смены.",
+            "「{0}」を選んでいる間、電源モードはこの表に従います。ターボはモードを設定した所だけプロファイル切り替え時に変わります。「{1}」= GhostDeck は変更しません。このカードでの変更は次の切り替えまで有効です。",
+            "'{0}'을(를) 선택한 동안 전원 모드는 이 표를 따릅니다. 터보는 모드가 지정된 곳만 프로필 전환 시 바뀝니다. '{1}' = GhostDeck가 건드리지 않음. 이 카드에서 바꾼 값은 다음 전환까지 유지됩니다.",
+            "選擇「{0}」時，電源模式依此表切換。切換設定檔時，只有設定了模式的地方才會改變睿頻；「{1}」= GhostDeck 不改動。在此卡片上所做的變更保持到下次切換。",
+            "\"{0}\" seçiliyken güç modu bu tabloyu izler. Turbo, profil değişince yalnızca mod seçilen yerde değişir; \"{1}\" = GhostDeck dokunmaz. Bu kartta yapılan değişiklik bir sonraki geçişe kadar geçerlidir.",
+            "Chế độ nguồn theo bảng này khi \"{0}\" được chọn. Turbo chỉ đổi khi chuyển hồ sơ ở nơi có chọn chế độ; \"{1}\" = GhostDeck không đụng tới. Thay đổi trên thẻ này giữ đến lần chuyển tiếp theo.",
+            "Mode daya mengikuti tabel ini selama \"{0}\" dipilih. Turbo berubah saat ganti profil hanya di tempat yang diberi mode; \"{1}\" = GhostDeck tidak mengubahnya. Perubahan di kartu ini berlaku sampai pergantian berikutnya.",
+            "La modalità di alimentazione segue questa tabella finché è selezionato \"{0}\". Il turbo cambia al cambio di profilo solo dove è impostata una modalità; \"{1}\" = GhostDeck non lo tocca. Una modifica fatta su questa scheda vale fino al cambio successivo.",
+        };
+        m["pw_map_body2"] = new[]
+        {
+            "Pick a profile, then what GhostDeck sets in Windows when that profile switches on. The power mode applies while \"{0}\" is selected.",
+            "Wybierz profil, a potem co GhostDeck ma ustawić w Windows, gdy ten profil się włącza. Tryb zasilania działa, gdy wybrane jest „{0}”.",
+            "Wähle ein Profil und dann, was GhostDeck in Windows einstellt, wenn dieses Profil aktiv wird. Der Energiemodus gilt, solange „{0}“ ausgewählt ist.",
+            "Choisissez un profil, puis ce que GhostDeck règle dans Windows quand ce profil s'active. Le mode d'alimentation s'applique tant que « {0} » est sélectionné.",
+            "Elige un perfil y luego lo que GhostDeck ajusta en Windows cuando ese perfil se activa. El modo de energía se aplica mientras «{0}» está seleccionado.",
+            "先选择一个配置，再选择该配置启用时 GhostDeck 在 Windows 中设置的内容。电源模式在选择“{0}”时生效。",
+            "Escolha um perfil e depois o que o GhostDeck define no Windows quando esse perfil é ativado. O modo de energia vale enquanto \"{0}\" estiver selecionado.",
+            "Выберите профиль, а затем то, что GhostDeck установит в Windows при его включении. Режим питания действует, пока выбрано «{0}».",
+            "プロファイルを選び、そのプロファイルに切り替えたとき GhostDeck が Windows に設定する内容を選びます。電源モードは「{0}」を選んでいる間有効です。",
+            "프로필을 고른 뒤, 그 프로필이 켜질 때 GhostDeck가 Windows에 설정할 내용을 고르세요. 전원 모드는 '{0}'을(를) 선택한 동안 적용됩니다.",
+            "先選擇一個設定檔，再選擇該設定檔啟用時 GhostDeck 在 Windows 中設定的內容。電源模式在選擇「{0}」時生效。",
+            "Bir profil seçin, ardından o profil açıldığında GhostDeck'in Windows'ta neyi ayarlayacağını seçin. Güç modu \"{0}\" seçiliyken uygulanır.",
+            "Chọn một hồ sơ, rồi chọn những gì GhostDeck đặt trong Windows khi hồ sơ đó bật. Chế độ nguồn áp dụng khi \"{0}\" được chọn.",
+            "Pilih profil, lalu apa yang diatur GhostDeck di Windows saat profil itu aktif. Mode daya berlaku selama \"{0}\" dipilih.",
+            "Scegli un profilo, poi cosa imposta GhostDeck in Windows quando quel profilo si attiva. La modalità di alimentazione vale finché è selezionato \"{0}\".",
+        };
+        m["pw_help_intro"] = new[]
+        {
+            "This card changes Windows settings, not the laptop's controller (EC), so it works on any Windows laptop. The changes are lasting: they stay after a restart and after GhostDeck is closed. GhostDeck remembers what was there before and can put it back.",
+            "Ta karta zmienia ustawienia Windows, a nie sterownik laptopa (EC), więc działa na każdym laptopie z Windows. Zmiany są trwałe: zostają po restarcie i po zamknięciu GhostDecka. GhostDeck pamięta, co było wcześniej, i umie to przywrócić.",
+            "Diese Karte ändert Windows-Einstellungen, nicht den Controller des Laptops (EC), und funktioniert daher auf jedem Windows-Laptop. Die Änderungen bleiben bestehen: auch nach einem Neustart und wenn GhostDeck geschlossen ist. GhostDeck merkt sich den vorherigen Stand und kann ihn wiederherstellen.",
+            "Cette carte modifie des réglages de Windows, pas le contrôleur du portable (EC) : elle fonctionne donc sur tout portable Windows. Les changements sont durables : ils restent après un redémarrage et quand GhostDeck est fermé. GhostDeck retient l'état précédent et sait le rétablir.",
+            "Esta tarjeta cambia ajustes de Windows, no el controlador del portátil (EC), así que funciona en cualquier portátil con Windows. Los cambios son duraderos: siguen tras reiniciar y con GhostDeck cerrado. GhostDeck recuerda lo que había antes y puede restaurarlo.",
+            "此卡片修改的是 Windows 设置，而不是笔记本的控制器（EC），因此适用于任何 Windows 笔记本。更改会一直保留：重启后、关闭 GhostDeck 后依然有效。GhostDeck 会记住之前的设置，并可以恢复。",
+            "Este cartão altera configurações do Windows, não o controlador do notebook (EC), por isso funciona em qualquer notebook com Windows. As alterações são duradouras: continuam após reiniciar e com o GhostDeck fechado. O GhostDeck lembra o que havia antes e pode restaurar.",
+            "Эта карточка меняет настройки Windows, а не контроллер ноутбука (EC), поэтому работает на любом ноутбуке с Windows. Изменения постоянные: они сохраняются после перезагрузки и при закрытом GhostDeck. GhostDeck запоминает прежнее состояние и умеет его вернуть.",
+            "このカードはノート PC のコントローラー（EC）ではなく Windows の設定を変更するため、どの Windows ノート PC でも動作します。変更は保持され、再起動後も GhostDeck を閉じた後も残ります。GhostDeck は以前の状態を記憶し、元に戻せます。",
+            "이 카드는 노트북 컨트롤러(EC)가 아니라 Windows 설정을 바꾸므로 모든 Windows 노트북에서 작동합니다. 변경 사항은 유지되어 재시작 후에도, GhostDeck를 닫아도 남습니다. GhostDeck는 이전 상태를 기억하고 되돌릴 수 있습니다.",
+            "此卡片修改的是 Windows 設定，而不是筆電的控制器（EC），因此適用於任何 Windows 筆電。變更會一直保留：重新開機後、關閉 GhostDeck 後依然有效。GhostDeck 會記住先前的設定，並可以還原。",
+            "Bu kart dizüstünün denetleyicisini (EC) değil Windows ayarlarını değiştirir, bu yüzden her Windows dizüstünde çalışır. Değişiklikler kalıcıdır: yeniden başlatmadan sonra ve GhostDeck kapalıyken de geçerlidir. GhostDeck önceki durumu hatırlar ve geri yükleyebilir.",
+            "Thẻ này thay đổi cài đặt của Windows, không phải bộ điều khiển của laptop (EC), nên hoạt động trên mọi laptop Windows. Thay đổi được giữ lại: vẫn còn sau khi khởi động lại và khi đã đóng GhostDeck. GhostDeck ghi nhớ trạng thái trước đó và có thể khôi phục.",
+            "Kartu ini mengubah pengaturan Windows, bukan pengontrol laptop (EC), jadi bekerja di laptop Windows mana pun. Perubahannya menetap: tetap ada setelah restart dan saat GhostDeck ditutup. GhostDeck mengingat keadaan sebelumnya dan bisa mengembalikannya.",
+            "Questa scheda cambia impostazioni di Windows, non il controller del portatile (EC), quindi funziona su qualsiasi portatile Windows. Le modifiche restano: anche dopo un riavvio e con GhostDeck chiuso. GhostDeck ricorda lo stato precedente e può ripristinarlo.",
+        };
+        m["pw_help_tab_turbo"] = new[]
+        {
+            "Turbo",
+            "Turbo",
+            "Turbo",
+            "Turbo",
+            "Turbo",
+            "睿频",
+            "Turbo",
+            "Турбо",
+            "ターボ",
+            "터보",
+            "睿頻",
+            "Turbo",
+            "Turbo",
+            "Turbo",
+            "Turbo",
+        };
+        m["pw_help_tab_modes"] = new[]
+        {
+            "Turbo modes",
+            "Tryby turbo",
+            "Turbo-Modi",
+            "Modes turbo",
+            "Modos turbo",
+            "睿频模式",
+            "Modos turbo",
+            "Режимы турбо",
+            "ターボモード",
+            "터보 모드",
+            "睿頻模式",
+            "Turbo modları",
+            "Các chế độ turbo",
+            "Mode turbo",
+            "Modalità turbo",
+        };
+        m["pw_help_tab_profile"] = new[]
+        {
+            "Power mode and profiles",
+            "Tryb zasilania i profile",
+            "Energiemodus und Profile",
+            "Mode d'alimentation et profils",
+            "Modo de energía y perfiles",
+            "电源模式与配置",
+            "Modo de energia e perfis",
+            "Режим питания и профили",
+            "電源モードとプロファイル",
+            "전원 모드와 프로필",
+            "電源模式與設定檔",
+            "Güç modu ve profiller",
+            "Chế độ nguồn và hồ sơ",
+            "Mode daya dan profil",
+            "Modalità di alimentazione e profili",
+        };
+        m["pw_help_tab_restore"] = new[]
+        {
+            "Restore and Windows",
+            "Przywracanie i Windows",
+            "Wiederherstellen und Windows",
+            "Restauration et Windows",
+            "Restaurar y Windows",
+            "恢复与 Windows",
+            "Restaurar e Windows",
+            "Восстановление и Windows",
+            "復元と Windows",
+            "복원과 Windows",
+            "還原與 Windows",
+            "Geri yükleme ve Windows",
+            "Khôi phục và Windows",
+            "Pemulihan dan Windows",
+            "Ripristino e Windows",
+        };
+        m["pw_help_switch_h"] = new[]
+        {
+            "The switch and the two lists",
+            "Wyłącznik i dwie listy",
+            "Der Schalter und die zwei Listen",
+            "L'interrupteur et les deux listes",
+            "El interruptor y las dos listas",
+            "开关与两个列表",
+            "O interruptor e as duas listas",
+            "Переключатель и два списка",
+            "スイッチと 2 つのリスト",
+            "스위치와 두 목록",
+            "開關與兩個清單",
+            "Anahtar ve iki liste",
+            "Công tắc và hai danh sách",
+            "Sakelar dan dua daftar",
+            "L'interruttore e le due liste",
+        };
+        m["pw_help_switch"] = new[]
+        {
+            "The CPU turbo boost switch stops the processor from speeding up above its base clock, and lets it again. The two lists under it pick the turbo mode separately plugged in and on battery. Choosing \"{0}\" in one column turns turbo off for that source only, for example only on battery. Choosing a mode while turbo is off turns it on for that column.",
+            "Wyłącznik CPU turbo boost zabrania procesorowi przyspieszać ponad zegar bazowy i znów na to pozwala. Dwie listy pod nim wybierają tryb turbo osobno na zasilaczu i na baterii. Wybór „{0}” w jednej kolumnie wyłącza turbo tylko dla tego źródła, na przykład tylko na baterii. Wybór trybu, gdy turbo jest wyłączone, włącza je dla tej kolumny.",
+            "Der Schalter CPU-Turbo-Boost verhindert, dass der Prozessor über den Basistakt beschleunigt, und erlaubt es wieder. Die zwei Listen darunter wählen den Turbo-Modus getrennt für Netz und Akku. „{0}“ in einer Spalte schaltet Turbo nur für diese Quelle aus, zum Beispiel nur im Akkubetrieb. Ein Modus, der bei ausgeschaltetem Turbo gewählt wird, schaltet ihn für diese Spalte ein.",
+            "L'interrupteur Turbo boost du CPU empêche le processeur d'accélérer au-delà de sa fréquence de base, puis l'y autorise de nouveau. Les deux listes en dessous choisissent le mode turbo séparément sur secteur et sur batterie. Choisir « {0} » dans une colonne coupe le turbo pour cette source seulement, par exemple seulement sur batterie. Choisir un mode quand le turbo est coupé le rallume pour cette colonne.",
+            "El interruptor Turbo boost de la CPU impide que el procesador acelere por encima de su frecuencia base, y vuelve a permitirlo. Las dos listas de abajo eligen el modo turbo por separado con la red y con batería. Elegir «{0}» en una columna apaga el turbo solo para esa fuente, por ejemplo solo con batería. Elegir un modo con el turbo apagado lo enciende para esa columna.",
+            "CPU 睿频加速开关可以禁止处理器超过基础频率加速，也可以重新允许。下方两个列表分别为交流电源和电池选择睿频模式。在某一列选择“{0}”只会关闭该电源下的睿频，例如仅在电池下关闭。睿频关闭时在某一列选择一个模式，会为该列重新开启睿频。",
+            "O interruptor Turbo boost da CPU impede o processador de acelerar acima da frequência base e volta a permitir. As duas listas abaixo escolhem o modo turbo separadamente na tomada e na bateria. Escolher \"{0}\" em uma coluna desliga o turbo só para essa fonte, por exemplo só na bateria. Escolher um modo com o turbo desligado liga-o para essa coluna.",
+            "Переключатель «Турбобуст CPU» запрещает процессору разгоняться выше базовой частоты и снова разрешает это. Два списка под ним выбирают режим турбо отдельно от сети и от батареи. Выбор «{0}» в одном столбце выключает турбо только для этого источника, например только на батарее. Выбор режима при выключенном турбо включает его для этого столбца.",
+            "CPU ターボブーストのスイッチは、プロセッサーがベースクロックを超えて加速するのを止め、また許可します。その下の 2 つのリストで、電源接続時とバッテリー時のターボモードを別々に選びます。片方の列で「{0}」を選ぶと、その電源だけターボがオフになります（例：バッテリー時のみ）。ターボがオフのときにモードを選ぶと、その列のターボがオンになります。",
+            "CPU 터보 부스트 스위치는 프로세서가 기본 클럭 이상으로 가속하지 못하게 하고, 다시 허용합니다. 아래 두 목록은 전원 연결 시와 배터리 사용 시의 터보 모드를 따로 고릅니다. 한 열에서 '{0}'을(를) 고르면 그 전원에서만 터보가 꺼집니다(예: 배터리에서만). 터보가 꺼져 있을 때 모드를 고르면 그 열의 터보가 켜집니다.",
+            "CPU 睿頻加速開關可以禁止處理器超過基礎頻率加速，也可以重新允許。下方兩個清單分別為交流電源與電池選擇睿頻模式。在某一欄選擇「{0}」只會關閉該電源下的睿頻，例如僅在電池下關閉。睿頻關閉時在某一欄選擇模式，會為該欄重新開啟睿頻。",
+            "CPU turbo boost anahtarı işlemcinin temel saat hızının üzerine çıkmasını engeller ve yeniden izin verir. Altındaki iki liste turbo modunu prizde ve pilde ayrı ayrı seçer. Bir sütunda \"{0}\" seçmek turboyu yalnızca o kaynak için kapatır, örneğin yalnızca pilde. Turbo kapalıyken bir mod seçmek o sütun için turboyu açar.",
+            "Công tắc Turbo boost CPU ngăn bộ xử lý tăng tốc vượt xung nhịp cơ bản, và cho phép lại. Hai danh sách bên dưới chọn chế độ turbo riêng khi cắm điện và khi dùng pin. Chọn \"{0}\" ở một cột chỉ tắt turbo cho nguồn đó, ví dụ chỉ khi dùng pin. Chọn một chế độ khi turbo đang tắt sẽ bật turbo cho cột đó.",
+            "Sakelar Turbo boost CPU mencegah prosesor mempercepat di atas clock dasarnya, dan mengizinkannya lagi. Dua daftar di bawahnya memilih mode turbo terpisah saat terhubung listrik dan saat baterai. Memilih \"{0}\" di satu kolom mematikan turbo hanya untuk sumber itu, misalnya hanya saat baterai. Memilih mode saat turbo mati akan menyalakannya untuk kolom itu.",
+            "L'interruttore Turbo boost della CPU impedisce al processore di accelerare oltre la frequenza base e lo consente di nuovo. Le due liste sotto scelgono la modalità turbo separatamente con alimentazione e a batteria. Scegliere \"{0}\" in una colonna spegne il turbo solo per quella fonte, per esempio solo a batteria. Scegliere una modalità con il turbo spento lo accende per quella colonna.",
+        };
+        m["pw_help_less_h"] = new[]
+        {
+            "How to really lower power",
+            "Jak naprawdę zmniejszyć moc",
+            "So senkst du die Leistung wirklich",
+            "Comment vraiment réduire la puissance",
+            "Cómo reducir de verdad la potencia",
+            "如何真正降低功耗",
+            "Como realmente reduzir a potência",
+            "Как действительно снизить мощность",
+            "本当に電力を下げるには",
+            "전력을 실제로 낮추는 방법",
+            "如何真正降低功耗",
+            "Gücü gerçekten nasıl düşürürsünüz",
+            "Cách thực sự giảm công suất",
+            "Cara benar-benar menurunkan daya",
+            "Come ridurre davvero la potenza",
+        };
+        m["pw_help_less"] = new[]
+        {
+            "On new processors several turbo modes work the same. The sure ways to less power are \"{0}\" or the Silent profile. Wattage limits are held by the laptop's firmware, and no turbo mode changes them.",
+            "Na nowych procesorach kilka trybów turbo działa tak samo. Pewne sposoby na mniejszą moc to „{0}” albo profil Silent. Limity w watach trzyma firmware laptopa i żaden tryb turbo ich nie zmienia.",
+            "Auf neuen Prozessoren verhalten sich mehrere Turbo-Modi gleich. Sichere Wege zu weniger Leistung sind „{0}“ oder das Profil Silent. Watt-Grenzen hält die Firmware des Laptops, und kein Turbo-Modus ändert sie.",
+            "Sur les processeurs récents, plusieurs modes turbo agissent de la même façon. Les moyens sûrs de réduire la puissance sont « {0} » ou le profil Silent. Les limites en watts sont tenues par le firmware du portable, et aucun mode turbo ne les change.",
+            "En los procesadores nuevos varios modos turbo funcionan igual. Las formas seguras de reducir la potencia son «{0}» o el perfil Silent. Los límites en vatios los fija el firmware del portátil, y ningún modo turbo los cambia.",
+            "在新处理器上，几种睿频模式的效果相同。确定能降低功耗的方法是“{0}”或 Silent 配置。功耗瓦数上限由笔记本固件控制，任何睿频模式都不会改变它。",
+            "Em processadores novos, vários modos turbo funcionam igual. As formas seguras de reduzir a potência são \"{0}\" ou o perfil Silent. Os limites em watts ficam no firmware do notebook, e nenhum modo turbo os altera.",
+            "На новых процессорах несколько режимов турбо работают одинаково. Надёжные способы снизить мощность: «{0}» или профиль Silent. Лимиты в ваттах задаёт прошивка ноутбука, и ни один режим турбо их не меняет.",
+            "新しいプロセッサーでは、いくつかのターボモードが同じ動作をします。確実に電力を下げる方法は「{0}」か Silent プロファイルです。ワット数の上限はノート PC のファームウェアが決めており、どのターボモードでも変わりません。",
+            "새 프로세서에서는 여러 터보 모드가 똑같이 동작합니다. 전력을 확실히 낮추는 방법은 '{0}' 또는 Silent 프로필입니다. 와트 한도는 노트북 펌웨어가 정하며 어떤 터보 모드도 이를 바꾸지 않습니다.",
+            "在新處理器上，幾種睿頻模式的效果相同。確定能降低功耗的方法是「{0}」或 Silent 設定檔。瓦數上限由筆電韌體控制，任何睿頻模式都不會改變它。",
+            "Yeni işlemcilerde birkaç turbo modu aynı şekilde çalışır. Gücü kesin olarak düşürmenin yolları \"{0}\" ya da Silent profilidir. Watt sınırlarını dizüstünün yazılımı (firmware) tutar ve hiçbir turbo modu bunları değiştirmez.",
+            "Trên bộ xử lý mới, nhiều chế độ turbo hoạt động giống nhau. Cách chắc chắn để giảm công suất là \"{0}\" hoặc hồ sơ Silent. Giới hạn công suất (watt) do firmware của laptop giữ, và không chế độ turbo nào thay đổi được.",
+            "Pada prosesor baru, beberapa mode turbo bekerja sama. Cara pasti untuk menurunkan daya adalah \"{0}\" atau profil Silent. Batas watt dipegang firmware laptop, dan tidak ada mode turbo yang mengubahnya.",
+            "Sui processori recenti diverse modalità turbo funzionano allo stesso modo. I modi sicuri per ridurre la potenza sono \"{0}\" o il profilo Silent. I limiti in watt li tiene il firmware del portatile, e nessuna modalità turbo li cambia.",
+        };
+        m["pw_help_col_value"] = new[]
+        {
+            "Value",
+            "Wartość",
+            "Wert",
+            "Valeur",
+            "Valor",
+            "值",
+            "Valor",
+            "Значение",
+            "値",
+            "값",
+            "值",
+            "Değer",
+            "Giá trị",
+            "Nilai",
+            "Valore",
+        };
+        m["pw_help_col_name"] = new[]
+        {
+            "Name in Windows",
+            "Nazwa w Windows",
+            "Name in Windows",
+            "Nom dans Windows",
+            "Nombre en Windows",
+            "Windows 中的名称",
+            "Nome no Windows",
+            "Название в Windows",
+            "Windows での名前",
+            "Windows 이름",
+            "Windows 中的名稱",
+            "Windows'taki adı",
+            "Tên trong Windows",
+            "Nama di Windows",
+            "Nome in Windows",
+        };
+        m["pw_help_col_desc"] = new[]
+        {
+            "What it does",
+            "Co robi",
+            "Was er tut",
+            "Ce qu'il fait",
+            "Qué hace",
+            "作用",
+            "O que faz",
+            "Что делает",
+            "動作",
+            "하는 일",
+            "作用",
+            "Ne yapar",
+            "Tác dụng",
+            "Fungsinya",
+            "Cosa fa",
+        };
+        m["pw_help_autonomous"] = new[]
+        {
+            "On this laptop Windows has autonomous mode switched on: the processor picks its own clock. Microsoft says modes 1 to 4 then work like \"{0}\"; the real difference comes from \"{1}\".",
+            "Na tym laptopie Windows ma włączony tryb autonomiczny: procesor sam dobiera zegar. Według Microsoftu tryby 1-4 działają wtedy tak samo jak „{0}”; realną różnicę daje „{1}”.",
+            "Auf diesem Laptop hat Windows den autonomen Modus eingeschaltet: Der Prozessor wählt seinen Takt selbst. Laut Microsoft wirken die Modi 1 bis 4 dann wie „{0}“; einen echten Unterschied macht „{1}“.",
+            "Sur ce portable, Windows a activé le mode autonome : le processeur choisit lui-même sa fréquence. Selon Microsoft, les modes 1 à 4 agissent alors comme « {0} » ; la vraie différence vient de « {1} ».",
+            "En este portátil Windows tiene activado el modo autónomo: el procesador elige su propia frecuencia. Según Microsoft, los modos 1 a 4 funcionan entonces como «{0}»; la diferencia real la da «{1}».",
+            "此笔记本的 Windows 已开启自主模式：处理器自行选择频率。据 Microsoft 说明，此时模式 1 到 4 的效果都与“{0}”相同；真正有区别的是“{1}”。",
+            "Neste notebook o Windows está com o modo autônomo ligado: o processador escolhe o próprio clock. Segundo a Microsoft, os modos 1 a 4 funcionam então como \"{0}\"; a diferença real vem de \"{1}\".",
+            "На этом ноутбуке в Windows включён автономный режим: процессор сам выбирает частоту. По данным Microsoft, режимы 1-4 тогда работают как «{0}»; реальную разницу даёт «{1}».",
+            "このノート PC の Windows では自律モードがオンです。プロセッサーが自らクロックを選びます。Microsoft によると、このときモード 1～4 はすべて「{0}」と同じ動作で、実際に違いが出るのは「{1}」です。",
+            "이 노트북의 Windows는 자율 모드가 켜져 있습니다. 프로세서가 클럭을 스스로 고릅니다. Microsoft에 따르면 이때 모드 1~4는 모두 '{0}'과(와) 같고, 실제 차이는 '{1}'에서 나옵니다.",
+            "此筆電的 Windows 已開啟自主模式：處理器自行選擇頻率。依 Microsoft 說明，此時模式 1 到 4 的效果都與「{0}」相同；真正有差別的是「{1}」。",
+            "Bu dizüstünde Windows'ta otonom mod açık: işlemci saat hızını kendisi seçer. Microsoft'a göre bu durumda mod 1-4 \"{0}\" gibi çalışır; gerçek farkı \"{1}\" yaratır.",
+            "Trên laptop này, Windows đang bật chế độ tự chủ: bộ xử lý tự chọn xung nhịp. Theo Microsoft, khi đó các chế độ 1 đến 4 đều hoạt động như \"{0}\"; khác biệt thực sự đến từ \"{1}\".",
+            "Di laptop ini Windows menyalakan mode otonom: prosesor memilih clock-nya sendiri. Menurut Microsoft, mode 1 sampai 4 lalu bekerja seperti \"{0}\"; perbedaan nyata datang dari \"{1}\".",
+            "Su questo portatile Windows ha attivato la modalità autonoma: il processore sceglie da sé la frequenza. Secondo Microsoft le modalità da 1 a 4 funzionano allora come \"{0}\"; la vera differenza la fa \"{1}\".",
+        };
+        m["pw_help_sources"] = new[]
+        {
+            "Sources: Microsoft, \"Processor performance boost mode\" (PERFBOOSTMODE), \"ProcessorPerformanceBoostMode\" and \"Processor performance autonomous mode\" (PERFAUTONOMOUS). The full guide is on GitHub.",
+            "Źródła: Microsoft, „Processor performance boost mode” (PERFBOOSTMODE), „ProcessorPerformanceBoostMode” i „Processor performance autonomous mode” (PERFAUTONOMOUS). Pełny przewodnik jest na GitHubie.",
+            "Quellen: Microsoft, „Processor performance boost mode“ (PERFBOOSTMODE), „ProcessorPerformanceBoostMode“ und „Processor performance autonomous mode“ (PERFAUTONOMOUS). Die vollständige Anleitung steht auf GitHub.",
+            "Sources : Microsoft, « Processor performance boost mode » (PERFBOOSTMODE), « ProcessorPerformanceBoostMode » et « Processor performance autonomous mode » (PERFAUTONOMOUS). Le guide complet est sur GitHub.",
+            "Fuentes: Microsoft, «Processor performance boost mode» (PERFBOOSTMODE), «ProcessorPerformanceBoostMode» y «Processor performance autonomous mode» (PERFAUTONOMOUS). La guía completa está en GitHub.",
+            "来源：Microsoft，“Processor performance boost mode”（PERFBOOSTMODE）、“ProcessorPerformanceBoostMode”和“Processor performance autonomous mode”（PERFAUTONOMOUS）。完整指南在 GitHub 上。",
+            "Fontes: Microsoft, \"Processor performance boost mode\" (PERFBOOSTMODE), \"ProcessorPerformanceBoostMode\" e \"Processor performance autonomous mode\" (PERFAUTONOMOUS). O guia completo está no GitHub.",
+            "Источники: Microsoft, «Processor performance boost mode» (PERFBOOSTMODE), «ProcessorPerformanceBoostMode» и «Processor performance autonomous mode» (PERFAUTONOMOUS). Полное руководство на GitHub.",
+            "出典：Microsoft「Processor performance boost mode」（PERFBOOSTMODE）、「ProcessorPerformanceBoostMode」、「Processor performance autonomous mode」（PERFAUTONOMOUS）。詳しいガイドは GitHub にあります。",
+            "출처: Microsoft 'Processor performance boost mode'(PERFBOOSTMODE), 'ProcessorPerformanceBoostMode', 'Processor performance autonomous mode'(PERFAUTONOMOUS). 전체 가이드는 GitHub에 있습니다.",
+            "來源：Microsoft「Processor performance boost mode」（PERFBOOSTMODE）、「ProcessorPerformanceBoostMode」與「Processor performance autonomous mode」（PERFAUTONOMOUS）。完整指南在 GitHub 上。",
+            "Kaynaklar: Microsoft, \"Processor performance boost mode\" (PERFBOOSTMODE), \"ProcessorPerformanceBoostMode\" ve \"Processor performance autonomous mode\" (PERFAUTONOMOUS). Tam rehber GitHub'da.",
+            "Nguồn: Microsoft, \"Processor performance boost mode\" (PERFBOOSTMODE), \"ProcessorPerformanceBoostMode\" và \"Processor performance autonomous mode\" (PERFAUTONOMOUS). Hướng dẫn đầy đủ có trên GitHub.",
+            "Sumber: Microsoft, \"Processor performance boost mode\" (PERFBOOSTMODE), \"ProcessorPerformanceBoostMode\" dan \"Processor performance autonomous mode\" (PERFAUTONOMOUS). Panduan lengkap ada di GitHub.",
+            "Fonti: Microsoft, \"Processor performance boost mode\" (PERFBOOSTMODE), \"ProcessorPerformanceBoostMode\" e \"Processor performance autonomous mode\" (PERFAUTONOMOUS). La guida completa è su GitHub.",
+        };
+        m["pw_help_mode"] = new[]
+        {
+            "The same choice as the power mode slider in Windows Settings: best power efficiency, balanced, best performance. \"{0}\" makes the mode follow the GhostDeck profile. Windows may override it for a while, for example while battery saver is on; the card then shows what Windows is applying.",
+            "To ten sam wybór co suwak trybu zasilania w Ustawieniach Windows: najlepsza efektywność, zrównoważony, najlepsza wydajność. „{0}” sprawia, że tryb zmienia się razem z profilem GhostDecka. Windows może go chwilowo nadpisać, na przykład przy oszczędzaniu baterii; karta pokazuje wtedy, co stosuje Windows.",
+            "Dieselbe Wahl wie der Energiemodus-Regler in den Windows-Einstellungen: beste Energieeffizienz, ausgewogen, beste Leistung. „{0}“ lässt den Modus dem GhostDeck-Profil folgen. Windows kann ihn zeitweise übersteuern, etwa im Energiesparmodus; die Karte zeigt dann, was Windows anwendet.",
+            "Le même choix que le curseur Mode d'alimentation des Paramètres Windows : meilleure efficacité énergétique, équilibré, meilleures performances. « {0} » fait suivre au mode le profil GhostDeck. Windows peut le remplacer un moment, par exemple avec l'économiseur de batterie ; la carte affiche alors ce que Windows applique.",
+            "La misma elección que el control Modo de energía de la Configuración de Windows: mejor eficiencia energética, equilibrado, mejor rendimiento. «{0}» hace que el modo siga al perfil de GhostDeck. Windows puede anularlo un tiempo, por ejemplo con el ahorro de batería; la tarjeta muestra entonces lo que aplica Windows.",
+            "与 Windows 设置中的电源模式滑块是同一个选择：最佳能效、平衡、最佳性能。“{0}”会让电源模式跟随 GhostDeck 配置。Windows 可能会暂时覆盖它，例如开启节电模式时；此时卡片会显示 Windows 正在使用的模式。",
+            "A mesma escolha do controle Modo de energia nas Configurações do Windows: melhor eficiência energética, equilibrado, melhor desempenho. \"{0}\" faz o modo seguir o perfil do GhostDeck. O Windows pode substituí-lo por um tempo, por exemplo com a economia de bateria; o cartão então mostra o que o Windows está aplicando.",
+            "Тот же выбор, что и ползунок режима питания в Параметрах Windows: лучшая энергоэффективность, сбалансированный, лучшая производительность. «{0}» заставляет режим следовать профилю GhostDeck. Windows может временно его переопределить, например в режиме экономии заряда; карточка тогда показывает, что применяет Windows.",
+            "Windows の設定にある電源モードのスライダーと同じ選択です：最適な電力効率、バランス、最適なパフォーマンス。「{0}」を選ぶと、モードが GhostDeck のプロファイルに合わせて変わります。Windows が一時的に上書きすることがあり（バッテリー節約機能のときなど）、その場合カードに Windows が適用中のモードが表示されます。",
+            "Windows 설정의 전원 모드 슬라이더와 같은 선택입니다: 최고의 전원 효율, 균형, 최고의 성능. '{0}'을(를) 고르면 모드가 GhostDeck 프로필을 따릅니다. Windows가 잠시 이를 덮어쓸 수 있으며(예: 배터리 절약 모드), 그때 카드에 Windows가 적용 중인 모드가 표시됩니다.",
+            "與 Windows 設定中的電源模式滑桿是同一個選擇：最佳電源效率、平衡、最佳效能。「{0}」會讓電源模式跟隨 GhostDeck 設定檔。Windows 可能會暫時覆寫它，例如開啟省電模式時；此時卡片會顯示 Windows 正在套用的模式。",
+            "Windows Ayarları'ndaki güç modu kaydırıcısıyla aynı seçim: en iyi güç verimliliği, dengeli, en iyi performans. \"{0}\" modun GhostDeck profilini izlemesini sağlar. Windows onu bir süre geçersiz kılabilir, örneğin pil tasarrufu açıkken; kart o zaman Windows'un uyguladığı modu gösterir.",
+            "Cùng lựa chọn với thanh trượt chế độ nguồn trong Cài đặt Windows: hiệu quả năng lượng tốt nhất, cân bằng, hiệu năng tốt nhất. \"{0}\" làm chế độ đi theo hồ sơ GhostDeck. Windows có thể tạm ghi đè, ví dụ khi bật tiết kiệm pin; khi đó thẻ hiển thị chế độ Windows đang áp dụng.",
+            "Pilihan yang sama dengan penggeser mode daya di Pengaturan Windows: efisiensi daya terbaik, seimbang, performa terbaik. \"{0}\" membuat mode mengikuti profil GhostDeck. Windows bisa menimpanya sementara, misalnya saat penghemat baterai aktif; kartu lalu menampilkan apa yang diterapkan Windows.",
+            "La stessa scelta del cursore Modalità di alimentazione nelle Impostazioni di Windows: massima efficienza energetica, bilanciato, massime prestazioni. \"{0}\" fa seguire alla modalità il profilo GhostDeck. Windows può sostituirla per un po', per esempio con il risparmio batteria; la scheda mostra allora cosa sta applicando Windows.",
+        };
+        m["pw_help_profile"] = new[]
+        {
+            "The table says what GhostDeck sets in Windows when a profile switches on: the power mode and the turbo mode for each power source. \"{0}\" means GhostDeck leaves it alone. A change made by hand on the card or in Windows holds until the next profile switch. The pencil opens the editor.",
+            "Tabela mówi, co GhostDeck ustawia w Windows, gdy włącza się dany profil: tryb zasilania i tryb turbo dla każdego źródła. „{0}” znaczy, że GhostDeck tego nie dotyka. Zmiana zrobiona ręcznie w karcie albo w Windows obowiązuje do następnego przełączenia profilu. Ołówek otwiera edytor.",
+            "Die Tabelle zeigt, was GhostDeck in Windows einstellt, wenn ein Profil aktiv wird: den Energiemodus und den Turbo-Modus für jede Stromquelle. „{0}“ heißt, GhostDeck rührt es nicht an. Eine Änderung von Hand auf der Karte oder in Windows gilt bis zum nächsten Profilwechsel. Der Stift öffnet den Editor.",
+            "Le tableau indique ce que GhostDeck règle dans Windows quand un profil s'active : le mode d'alimentation et le mode turbo pour chaque source. « {0} » signifie que GhostDeck n'y touche pas. Un changement fait à la main sur la carte ou dans Windows tient jusqu'au prochain changement de profil. Le crayon ouvre l'éditeur.",
+            "La tabla dice qué ajusta GhostDeck en Windows cuando se activa un perfil: el modo de energía y el modo turbo de cada fuente. «{0}» significa que GhostDeck no lo toca. Un cambio hecho a mano en la tarjeta o en Windows dura hasta el siguiente cambio de perfil. El lápiz abre el editor.",
+            "此表显示启用某个配置时 GhostDeck 在 Windows 中设置的内容：电源模式以及每种电源下的睿频模式。“{0}”表示 GhostDeck 不改动。在卡片上或 Windows 中手动做的更改会保持到下次切换配置。铅笔图标打开编辑器。",
+            "A tabela mostra o que o GhostDeck define no Windows quando um perfil é ativado: o modo de energia e o modo turbo de cada fonte. \"{0}\" significa que o GhostDeck não mexe. Uma alteração feita à mão no cartão ou no Windows vale até a próxima troca de perfil. O lápis abre o editor.",
+            "Таблица показывает, что GhostDeck устанавливает в Windows при включении профиля: режим питания и режим турбо для каждого источника. «{0}» значит, что GhostDeck это не трогает. Изменение вручную на карточке или в Windows действует до следующей смены профиля. Карандаш открывает редактор.",
+            "この表は、プロファイルに切り替えたとき GhostDeck が Windows に設定する内容（電源モードと、電源ごとのターボモード）を示します。「{0}」は GhostDeck が変更しないことを意味します。カードや Windows で手動で変えた内容は、次にプロファイルを切り替えるまで有効です。鉛筆アイコンでエディターが開きます。",
+            "이 표는 프로필이 켜질 때 GhostDeck가 Windows에 설정하는 내용(전원 모드와 전원별 터보 모드)을 보여 줍니다. '{0}'은(는) GhostDeck가 건드리지 않는다는 뜻입니다. 카드나 Windows에서 직접 바꾼 값은 다음 프로필 전환까지 유지됩니다. 연필 아이콘을 누르면 편집기가 열립니다.",
+            "此表顯示啟用某個設定檔時 GhostDeck 在 Windows 中設定的內容：電源模式以及每種電源下的睿頻模式。「{0}」表示 GhostDeck 不改動。在卡片上或 Windows 中手動做的變更會保持到下次切換設定檔。鉛筆圖示會開啟編輯器。",
+            "Tablo, bir profil açıldığında GhostDeck'in Windows'ta neyi ayarladığını gösterir: güç modu ve her güç kaynağı için turbo modu. \"{0}\", GhostDeck'in ona dokunmadığı anlamına gelir. Kartta ya da Windows'ta elle yapılan değişiklik bir sonraki profil geçişine kadar geçerlidir. Kalem düzenleyiciyi açar.",
+            "Bảng cho biết GhostDeck đặt gì trong Windows khi một hồ sơ bật: chế độ nguồn và chế độ turbo cho từng nguồn điện. \"{0}\" nghĩa là GhostDeck không đụng tới. Thay đổi thủ công trên thẻ hoặc trong Windows giữ đến lần chuyển hồ sơ tiếp theo. Biểu tượng bút mở trình chỉnh sửa.",
+            "Tabel menunjukkan apa yang diatur GhostDeck di Windows saat sebuah profil aktif: mode daya dan mode turbo untuk tiap sumber daya. \"{0}\" berarti GhostDeck tidak mengubahnya. Perubahan manual di kartu atau di Windows berlaku sampai pergantian profil berikutnya. Ikon pensil membuka editor.",
+            "La tabella dice cosa imposta GhostDeck in Windows quando si attiva un profilo: la modalità di alimentazione e la modalità turbo per ogni fonte. \"{0}\" significa che GhostDeck non la tocca. Una modifica fatta a mano sulla scheda o in Windows vale fino al cambio di profilo successivo. La matita apre l'editor.",
+        };
+        m["pw_help_restore"] = new[]
+        {
+            "GhostDeck remembers which turbo modes each power plan had before its first change, and which power mode was set. While anything is remembered, the bottom of the card has a \"{0}\" button. It lists what will come back and, after you confirm, writes it back.",
+            "GhostDeck pamięta, jakie tryby turbo miał każdy plan zasilania przed pierwszą zmianą, i jaki był tryb zasilania. Dopóki coś jest zapamiętane, na dole karty jest przycisk „{0}”. Pokazuje, co wróci, i po potwierdzeniu wpisuje to z powrotem.",
+            "GhostDeck merkt sich, welche Turbo-Modi jeder Energieplan vor der ersten Änderung hatte und welcher Energiemodus eingestellt war. Solange etwas gespeichert ist, steht unten auf der Karte die Schaltfläche „{0}“. Sie zeigt, was zurückkommt, und schreibt es nach deiner Bestätigung zurück.",
+            "GhostDeck retient les modes turbo de chaque mode de gestion de l'alimentation avant sa première modification, et le mode d'alimentation en place. Tant que quelque chose est retenu, le bas de la carte affiche un bouton « {0} ». Il liste ce qui reviendra et, après confirmation, le réécrit.",
+            "GhostDeck recuerda qué modos turbo tenía cada plan de energía antes de su primer cambio y qué modo de energía había. Mientras haya algo guardado, abajo en la tarjeta hay un botón «{0}». Muestra lo que volverá y, tras confirmar, lo vuelve a escribir.",
+            "GhostDeck 会记住每个电源计划在第一次更改前的睿频模式，以及当时的电源模式。只要有记录，卡片底部就会出现“{0}”按钮。它会列出将要恢复的内容，确认后写回。",
+            "O GhostDeck lembra quais modos turbo cada plano de energia tinha antes da primeira alteração e qual era o modo de energia. Enquanto houver algo guardado, a parte de baixo do cartão tem o botão \"{0}\". Ele mostra o que vai voltar e, após você confirmar, grava de volta.",
+            "GhostDeck запоминает, какие режимы турбо были у каждой схемы питания до первого изменения и какой был режим питания. Пока что-то запомнено, внизу карточки есть кнопка «{0}». Она показывает, что вернётся, и после подтверждения записывает это обратно.",
+            "GhostDeck は、各電源プランの最初の変更前のターボモードと、当時の電源モードを記憶します。記憶がある間はカードの下部に「{0}」ボタンが表示されます。元に戻る内容を一覧表示し、確認すると書き戻します。",
+            "GhostDeck는 각 전원 관리 옵션의 첫 변경 전 터보 모드와 당시 전원 모드를 기억합니다. 기억된 내용이 있는 동안 카드 아래에 '{0}' 버튼이 있습니다. 되돌아올 내용을 보여 주고, 확인하면 다시 기록합니다.",
+            "GhostDeck 會記住每個電源計畫在第一次變更前的睿頻模式，以及當時的電源模式。只要有記錄，卡片底部就會出現「{0}」按鈕。它會列出將要還原的內容，確認後寫回。",
+            "GhostDeck her güç planının ilk değişiklikten önceki turbo modlarını ve o anki güç modunu hatırlar. Hatırlanan bir şey olduğu sürece kartın altında \"{0}\" düğmesi bulunur. Neyin geri geleceğini listeler ve onayınızdan sonra geri yazar.",
+            "GhostDeck ghi nhớ chế độ turbo của từng gói nguồn trước lần thay đổi đầu tiên, và chế độ nguồn lúc đó. Khi còn điều gì được ghi nhớ, cuối thẻ có nút \"{0}\". Nút này liệt kê những gì sẽ quay lại và ghi lại sau khi bạn xác nhận.",
+            "GhostDeck mengingat mode turbo tiap rencana daya sebelum perubahan pertamanya, dan mode daya yang dipakai. Selama ada yang diingat, bagian bawah kartu memiliki tombol \"{0}\". Tombol itu menampilkan apa yang akan kembali dan, setelah Anda konfirmasi, menuliskannya kembali.",
+            "GhostDeck ricorda quali modalità turbo aveva ogni combinazione per il risparmio di energia prima della prima modifica, e quale modalità di alimentazione era impostata. Finché c'è qualcosa in memoria, in fondo alla scheda c'è il pulsante \"{0}\". Elenca cosa tornerà e, dopo la conferma, lo riscrive.",
+        };
+        m["pw_help_reveal_h"] = new[]
+        {
+            "Showing the setting in Windows",
+            "Ustawienie w Opcjach zasilania Windows",
+            "Die Einstellung in Windows anzeigen",
+            "Afficher le réglage dans Windows",
+            "Mostrar el ajuste en Windows",
+            "在 Windows 中显示此设置",
+            "Mostrar a configuração no Windows",
+            "Показ настройки в Windows",
+            "Windows で設定を表示する",
+            "Windows에서 설정 표시",
+            "在 Windows 中顯示此設定",
+            "Ayarı Windows'ta gösterme",
+            "Hiển thị cài đặt trong Windows",
+            "Menampilkan pengaturan di Windows",
+            "Mostrare l'impostazione in Windows",
+        };
+        m["pw_help_reveal"] = new[]
+        {
+            "Windows hides the turbo mode in its own power options. The link at the bottom of the card shows it there and hides it again. On laptops with Modern Standby, Windows needs an extra mark for that, and GhostDeck sets it. GhostDeck does not need this to work.",
+            "Windows ukrywa tryb turbo we własnych Opcjach zasilania. Link na dole karty go tam pokazuje i ukrywa z powrotem. Na laptopach z nowoczesnym czuwaniem (Modern Standby) Windows potrzebuje do tego dodatkowego znacznika i GhostDeck go ustawia. GhostDeck do działania tego nie potrzebuje.",
+            "Windows blendet den Turbo-Modus in den eigenen Energieoptionen aus. Der Link unten auf der Karte zeigt ihn dort an und blendet ihn wieder aus. Auf Laptops mit Modern Standby braucht Windows dafür eine zusätzliche Markierung, die GhostDeck setzt. GhostDeck selbst braucht das nicht.",
+            "Windows masque le mode turbo dans ses propres options d'alimentation. Le lien en bas de la carte l'y affiche et le masque de nouveau. Sur les portables avec Modern Standby, Windows a besoin d'une marque supplémentaire, que GhostDeck pose. GhostDeck n'en a pas besoin pour fonctionner.",
+            "Windows oculta el modo turbo en sus propias opciones de energía. El enlace al pie de la tarjeta lo muestra allí y lo vuelve a ocultar. En portátiles con Modern Standby Windows necesita una marca adicional, y GhostDeck la pone. GhostDeck no lo necesita para funcionar.",
+            "Windows 会在自己的电源选项中隐藏睿频模式。卡片底部的链接可以让它在那里显示，也可以再次隐藏。在支持现代待机（Modern Standby）的笔记本上，Windows 还需要一个额外标记，GhostDeck 会一并设置。GhostDeck 自身运行并不需要它。",
+            "O Windows esconde o modo turbo nas próprias opções de energia. O link no rodapé do cartão o mostra lá e o esconde de novo. Em notebooks com Modern Standby o Windows precisa de uma marca extra, e o GhostDeck a define. O GhostDeck não precisa disso para funcionar.",
+            "Windows скрывает режим турбо в своих настройках электропитания. Ссылка внизу карточки показывает его там и снова скрывает. На ноутбуках с современным ждущим режимом (Modern Standby) Windows нужна дополнительная отметка, и GhostDeck её ставит. Самому GhostDeck это не нужно.",
+            "Windows は自身の電源オプションでターボモードを非表示にしています。カード下部のリンクで表示と再非表示ができます。モダンスタンバイ（Modern Standby）対応のノート PC では追加の印が必要で、GhostDeck がそれも設定します。GhostDeck の動作にはこの設定は不要です。",
+            "Windows는 자체 전원 옵션에서 터보 모드를 숨깁니다. 카드 아래의 링크로 그곳에 표시하거나 다시 숨길 수 있습니다. 모던 대기(Modern Standby)를 쓰는 노트북에서는 Windows에 추가 표시가 필요하며 GhostDeck가 이를 설정합니다. GhostDeck가 작동하는 데는 필요하지 않습니다.",
+            "Windows 會在自己的電源選項中隱藏睿頻模式。卡片底部的連結可以讓它在那裡顯示，也可以再次隱藏。在支援新式待命（Modern Standby）的筆電上，Windows 還需要一個額外標記，GhostDeck 會一併設定。GhostDeck 本身運作並不需要它。",
+            "Windows turbo modunu kendi güç seçeneklerinde gizler. Kartın altındaki bağlantı onu orada gösterir ve yeniden gizler. Modern Standby'lı dizüstülerde Windows bunun için ek bir işarete ihtiyaç duyar ve GhostDeck bunu da ayarlar. GhostDeck'in çalışması için buna gerek yoktur.",
+            "Windows ẩn chế độ turbo trong tùy chọn nguồn của chính nó. Liên kết ở cuối thẻ hiển thị nó ở đó và ẩn lại. Trên laptop có Modern Standby, Windows cần thêm một dấu hiệu và GhostDeck đặt dấu đó. GhostDeck không cần điều này để hoạt động.",
+            "Windows menyembunyikan mode turbo di opsi dayanya sendiri. Tautan di bagian bawah kartu menampilkannya di sana dan menyembunyikannya lagi. Di laptop dengan Modern Standby, Windows memerlukan tanda tambahan, dan GhostDeck memasangnya. GhostDeck tidak memerlukan ini untuk bekerja.",
+            "Windows nasconde la modalità turbo nelle proprie opzioni risparmio energia. Il link in fondo alla scheda la mostra lì e la nasconde di nuovo. Sui portatili con Modern Standby Windows ha bisogno di un segno in più, e GhostDeck lo imposta. A GhostDeck non serve per funzionare.",
+        };
+        m["pw_help_guide"] = new[]
+        {
+            "Guide on GitHub",
+            "Przewodnik na GitHubie",
+            "Anleitung auf GitHub",
+            "Guide sur GitHub",
+            "Guía en GitHub",
+            "GitHub 上的指南",
+            "Guia no GitHub",
+            "Руководство на GitHub",
+            "GitHub のガイド",
+            "GitHub 가이드",
+            "GitHub 上的指南",
+            "GitHub'daki rehber",
+            "Hướng dẫn trên GitHub",
+            "Panduan di GitHub",
+            "Guida su GitHub",
+        };
+        m["pw_bg_less"] = new[]
+        {
+            "less power",
+            "mniej mocy",
+            "weniger Leistung",
+            "moins de puissance",
+            "menos potencia",
+            "降低功耗",
+            "menos potência",
+            "меньше мощности",
+            "省電力",
+            "전력 절감",
+            "降低功耗",
+            "daha az güç",
+            "ít công suất hơn",
+            "daya lebih rendah",
+            "meno potenza",
+        };
+        m["pw_bg_turbo"] = new[]
+        {
+            "turbo",
+            "turbo",
+            "Turbo",
+            "turbo",
+            "turbo",
+            "睿频",
+            "turbo",
+            "турбо",
+            "ターボ",
+            "터보",
+            "睿頻",
+            "turbo",
+            "turbo",
+            "turbo",
+            "turbo",
+        };
+        m["pw_bg_max"] = new[]
+        {
+            "max turbo",
+            "turbo maks.",
+            "Turbo max.",
+            "turbo max",
+            "turbo máx.",
+            "最大睿频",
+            "turbo máx.",
+            "макс. турбо",
+            "最大ターボ",
+            "최대 터보",
+            "最大睿頻",
+            "maks. turbo",
+            "turbo tối đa",
+            "turbo maks.",
+            "turbo max",
+        };
+        m["pw_bg_more"] = new[]
+        {
+            "asks for more",
+            "prosi o więcej",
+            "fordert mehr",
+            "demande plus",
+            "pide más",
+            "请求更多",
+            "pede mais",
+            "просит больше",
+            "より多くを要求",
+            "더 많이 요청",
+            "要求更多",
+            "daha fazlasını ister",
+            "yêu cầu nhiều hơn",
+            "meminta lebih",
+            "chiede di più",
+        };
+        m["pw_bg_unknown"] = new[]
+        {
+            "unknown",
+            "nieznany",
+            "unbekannt",
+            "inconnu",
+            "desconocido",
+            "未知",
+            "desconhecido",
+            "неизвестно",
+            "不明",
+            "알 수 없음",
+            "未知",
+            "bilinmiyor",
+            "không rõ",
+            "tidak dikenal",
+            "sconosciuto",
+        };
+        m["pw_bmshort_less"] = new[]
+        {
+            "No turbo: cooler, quieter, slower.",
+            "Bez turbo: chłodniej, ciszej, wolniej.",
+            "Kein Turbo: kühler, leiser, langsamer.",
+            "Sans turbo : plus frais, plus silencieux, plus lent.",
+            "Sin turbo: más fresco, más silencioso, más lento.",
+            "无睿频：更凉、更安静、更慢。",
+            "Sem turbo: mais fresco, mais silencioso, mais lento.",
+            "Без турбо: холоднее, тише, медленнее.",
+            "ターボなし：涼しく、静かに、遅くなります。",
+            "터보 없음: 더 시원하고 조용하며 느립니다.",
+            "無睿頻：更涼、更安靜、更慢。",
+            "Turbo yok: daha serin, daha sessiz, daha yavaş.",
+            "Không turbo: mát hơn, êm hơn, chậm hơn.",
+            "Tanpa turbo: lebih dingin, lebih senyap, lebih lambat.",
+            "Senza turbo: più fresco, più silenzioso, più lento.",
+        };
+        m["pw_bmshort_on"] = new[]
+        {
+            "Turbo works.",
+            "Turbo działa.",
+            "Turbo arbeitet.",
+            "Le turbo fonctionne.",
+            "El turbo funciona.",
+            "睿频工作。",
+            "O turbo funciona.",
+            "Турбо работает.",
+            "ターボが働きます。",
+            "터보가 작동합니다.",
+            "睿頻運作。",
+            "Turbo çalışır.",
+            "Turbo hoạt động.",
+            "Turbo bekerja.",
+            "Il turbo funziona.",
+        };
+        m["pw_bmshort_like"] = new[]
+        {
+            "Turbo works. On this laptop Microsoft says it acts like \"{0}\".",
+            "Turbo działa. Na tym laptopie według Microsoftu jak „{0}”.",
+            "Turbo arbeitet. Auf diesem Laptop wirkt er laut Microsoft wie „{0}“.",
+            "Le turbo fonctionne. Sur ce portable, selon Microsoft, il agit comme « {0} ».",
+            "El turbo funciona. En este portátil, según Microsoft, funciona como «{0}».",
+            "睿频工作。据 Microsoft 说明，在此笔记本上效果与“{0}”相同。",
+            "O turbo funciona. Neste notebook, segundo a Microsoft, funciona como \"{0}\".",
+            "Турбо работает. На этом ноутбуке, по данным Microsoft, как «{0}».",
+            "ターボが働きます。Microsoft によると、このノート PC では「{0}」と同じ動作です。",
+            "터보가 작동합니다. Microsoft에 따르면 이 노트북에서는 '{0}'과(와) 같습니다.",
+            "睿頻運作。依 Microsoft 說明，在此筆電上效果與「{0}」相同。",
+            "Turbo çalışır. Microsoft'a göre bu dizüstünde \"{0}\" gibi.",
+            "Turbo hoạt động. Theo Microsoft, trên laptop này giống \"{0}\".",
+            "Turbo bekerja. Menurut Microsoft, di laptop ini seperti \"{0}\".",
+            "Il turbo funziona. Secondo Microsoft, su questo portatile come \"{0}\".",
+        };
+        m["pw_bmshort_like_ms"] = new[]
+        {
+            "Turbo works. Microsoft says it acts like \"{0}\".",
+            "Turbo działa. Według Microsoftu jak „{0}”.",
+            "Turbo arbeitet. Laut Microsoft wie „{0}“.",
+            "Le turbo fonctionne. Selon Microsoft, comme « {0} ».",
+            "El turbo funciona. Según Microsoft, como «{0}».",
+            "睿频工作。据 Microsoft 说明，效果与“{0}”相同。",
+            "O turbo funciona. Segundo a Microsoft, como \"{0}\".",
+            "Турбо работает. По данным Microsoft, как «{0}».",
+            "ターボが働きます。Microsoft によると「{0}」と同じ動作です。",
+            "터보가 작동합니다. Microsoft에 따르면 '{0}'과(와) 같습니다.",
+            "睿頻運作。依 Microsoft 說明，效果與「{0}」相同。",
+            "Turbo çalışır. Microsoft'a göre \"{0}\" gibi.",
+            "Turbo hoạt động. Theo Microsoft, giống \"{0}\".",
+            "Turbo bekerja. Menurut Microsoft, seperti \"{0}\".",
+            "Il turbo funziona. Secondo Microsoft, come \"{0}\".",
+        };
+        m["pw_bmshort_max"] = new[]
+        {
+            "Speeds up whenever it can.",
+            "Przyspiesza, kiedy tylko może.",
+            "Beschleunigt, wann immer es geht.",
+            "Accélère dès que possible.",
+            "Acelera siempre que puede.",
+            "只要可以就加速。",
+            "Acelera sempre que pode.",
+            "Ускоряется всегда, когда может.",
+            "可能な限り加速します。",
+            "가능할 때마다 가속합니다.",
+            "只要可以就加速。",
+            "Her fırsatta hızlanır.",
+            "Tăng tốc bất cứ khi nào có thể.",
+            "Mempercepat kapan pun bisa.",
+            "Accelera ogni volta che può.",
+        };
+        m["pw_bmshort_more"] = new[]
+        {
+            "Asks for more than the guaranteed level.",
+            "Prosi o więcej niż poziom gwarantowany.",
+            "Fordert mehr als das garantierte Niveau.",
+            "Demande plus que le niveau garanti.",
+            "Pide más que el nivel garantizado.",
+            "请求高于保证水平的性能。",
+            "Pede mais do que o nível garantido.",
+            "Просит больше гарантированного уровня.",
+            "保証レベルを超える性能を要求します。",
+            "보장 수준보다 더 많이 요청합니다.",
+            "要求高於保證水準的效能。",
+            "Garanti edilen seviyeden fazlasını ister.",
+            "Yêu cầu cao hơn mức bảo đảm.",
+            "Meminta lebih dari tingkat yang dijamin.",
+            "Chiede più del livello garantito.",
+        };
+        m["pw_bmshort_both"] = new[]
+        {
+            "Both sources: {0}",
+            "Oba źródła: {0}",
+            "Beide Quellen: {0}",
+            "Les deux sources : {0}",
+            "Ambas fuentes: {0}",
+            "两种电源：{0}",
+            "Ambas as fontes: {0}",
+            "Оба источника: {0}",
+            "両方の電源：{0}",
+            "두 전원 모두: {0}",
+            "兩種電源：{0}",
+            "Her iki kaynak: {0}",
+            "Cả hai nguồn: {0}",
+            "Kedua sumber: {0}",
+            "Entrambe le fonti: {0}",
+        };
+        m["pw_lg_title"] = new[]
+        {
+            "Icons",
+            "Ikony",
+            "Symbole",
+            "Icônes",
+            "Iconos",
+            "图标",
+            "Ícones",
+            "Значки",
+            "アイコン",
+            "아이콘",
+            "圖示",
+            "Simgeler",
+            "Biểu tượng",
+            "Ikon",
+            "Icone",
+        };
+        m["pw_lg_other"] = new[]
+        {
+            "other",
+            "inne",
+            "andere",
+            "autres",
+            "otros",
+            "其他",
+            "outros",
+            "другие",
+            "その他",
+            "기타",
+            "其他",
+            "diğer",
+            "khác",
+            "lainnya",
+            "altri",
+        };
+        m["pw_lg_less"] = new[]
+        {
+            "The only sure way to less power, besides the Silent profile.",
+            "Obok profilu Silent jedyny pewny sposób na mniejszą moc.",
+            "Neben dem Profil Silent der einzige sichere Weg zu weniger Leistung.",
+            "Avec le profil Silent, le seul moyen sûr de réduire la puissance.",
+            "Junto con el perfil Silent, la única forma segura de reducir la potencia.",
+            "除 Silent 配置外，唯一确定能降低功耗的方式。",
+            "Junto com o perfil Silent, a única forma segura de reduzir a potência.",
+            "Кроме профиля Silent, единственный надёжный способ снизить мощность.",
+            "Silent プロファイル以外で、確実に電力を下げる唯一の方法です。",
+            "Silent 프로필 외에 전력을 확실히 낮추는 유일한 방법입니다.",
+            "除 Silent 設定檔外，唯一確定能降低功耗的方式。",
+            "Silent profili dışında gücü düşürmenin tek kesin yolu.",
+            "Ngoài hồ sơ Silent, đây là cách chắc chắn duy nhất để giảm công suất.",
+            "Selain profil Silent, satu-satunya cara pasti menurunkan daya.",
+            "Oltre al profilo Silent, l'unico modo sicuro per ridurre la potenza.",
+        };
+        m["pw_lg_turbo"] = new[]
+        {
+            "Turbo works the usual way.",
+            "Turbo działa zwyczajnie.",
+            "Turbo arbeitet wie gewohnt.",
+            "Le turbo fonctionne normalement.",
+            "El turbo funciona de forma normal.",
+            "睿频按常规方式工作。",
+            "O turbo funciona do jeito normal.",
+            "Турбо работает обычным образом.",
+            "ターボが通常どおり働きます。",
+            "터보가 평소처럼 작동합니다.",
+            "睿頻依一般方式運作。",
+            "Turbo olağan şekilde çalışır.",
+            "Turbo hoạt động bình thường.",
+            "Turbo bekerja seperti biasa.",
+            "Il turbo funziona normalmente.",
+        };
+        m["pw_lg_max"] = new[]
+        {
+            "Speeds up whenever it can. Microsoft describes these apart only when autonomous mode is off.",
+            "Przyspiesza, kiedy tylko może. Microsoft opisuje je osobno tylko przy wyłączonym trybie autonomicznym.",
+            "Beschleunigt, wann immer es geht. Microsoft beschreibt diese nur bei ausgeschaltetem autonomem Modus gesondert.",
+            "Accélère dès que possible. Microsoft ne les décrit à part que lorsque le mode autonome est désactivé.",
+            "Acelera siempre que puede. Microsoft solo los describe aparte con el modo autónomo apagado.",
+            "只要可以就加速。仅在自主模式关闭时，Microsoft 才对其单独说明。",
+            "Acelera sempre que pode. A Microsoft só os descreve à parte com o modo autônomo desligado.",
+            "Ускоряется всегда, когда может. Microsoft описывает их отдельно только при выключенном автономном режиме.",
+            "可能な限り加速します。Microsoft がこれらを別扱いするのは自律モードがオフのときだけです。",
+            "가능할 때마다 가속합니다. Microsoft는 자율 모드가 꺼져 있을 때만 이 모드를 따로 설명합니다.",
+            "只要可以就加速。僅在自主模式關閉時，Microsoft 才對其單獨說明。",
+            "Her fırsatta hızlanır. Microsoft bunları yalnızca otonom mod kapalıyken ayrı tanımlar.",
+            "Tăng tốc bất cứ khi nào có thể. Microsoft chỉ mô tả riêng các chế độ này khi chế độ tự chủ tắt.",
+            "Mempercepat kapan pun bisa. Microsoft hanya membedakannya saat mode otonom mati.",
+            "Accelera ogni volta che può. Microsoft le descrive a parte solo con la modalità autonoma spenta.",
+        };
+        m["pw_lg_more"] = new[]
+        {
+            "Asks for more than the processor's guaranteed level.",
+            "Prosi o więcej niż poziom gwarantowany procesora.",
+            "Fordert mehr als das garantierte Niveau des Prozessors.",
+            "Demande plus que le niveau garanti du processeur.",
+            "Pide más que el nivel garantizado del procesador.",
+            "请求高于处理器保证水平的性能。",
+            "Pede mais do que o nível garantido do processador.",
+            "Просит больше гарантированного уровня процессора.",
+            "プロセッサーの保証レベルを超える性能を要求します。",
+            "프로세서의 보장 수준보다 더 많이 요청합니다.",
+            "要求高於處理器保證水準的效能。",
+            "İşlemcinin garanti edilen seviyesinden fazlasını ister.",
+            "Yêu cầu cao hơn mức bảo đảm của bộ xử lý.",
+            "Meminta lebih dari tingkat yang dijamin prosesor.",
+            "Chiede più del livello garantito del processore.",
+        };
+        m["pw_lg_unknown"] = new[]
+        {
+            "A mode GhostDeck does not know.",
+            "Tryb, którego GhostDeck nie zna.",
+            "Ein Modus, den GhostDeck nicht kennt.",
+            "Un mode que GhostDeck ne connaît pas.",
+            "Un modo que GhostDeck no conoce.",
+            "GhostDeck 不认识的模式。",
+            "Um modo que o GhostDeck não conhece.",
+            "Режим, который GhostDeck не знает.",
+            "GhostDeck が認識していないモード。",
+            "GhostDeck가 모르는 모드.",
+            "GhostDeck 不認識的模式。",
+            "GhostDeck'in tanımadığı bir mod.",
+            "Một chế độ GhostDeck không biết.",
+            "Mode yang tidak dikenal GhostDeck.",
+            "Una modalità che GhostDeck non conosce.",
+        };
+        m["pw_lg_note"] = new[]
+        {
+            "With autonomous mode on, modes 1 to 4 are one group: turbo.",
+            "Przy włączonym trybie autonomicznym tryby 1-4 to jedna grupa: turbo.",
+            "Bei eingeschaltetem autonomem Modus sind die Modi 1 bis 4 eine Gruppe: Turbo.",
+            "Avec le mode autonome activé, les modes 1 à 4 forment un seul groupe : turbo.",
+            "Con el modo autónomo activado, los modos 1 a 4 son un solo grupo: turbo.",
+            "自主模式开启时，模式 1 到 4 属于同一组：睿频。",
+            "Com o modo autônomo ligado, os modos 1 a 4 são um só grupo: turbo.",
+            "При включённом автономном режиме режимы 1-4 составляют одну группу: турбо.",
+            "自律モードがオンのとき、モード 1～4 は 1 つのグループ（ターボ）です。",
+            "자율 모드가 켜져 있으면 모드 1~4는 하나의 그룹(터보)입니다.",
+            "自主模式開啟時，模式 1 到 4 屬於同一組：睿頻。",
+            "Otonom mod açıkken mod 1-4 tek bir gruptur: turbo.",
+            "Khi bật chế độ tự chủ, các chế độ 1 đến 4 là một nhóm: turbo.",
+            "Saat mode otonom menyala, mode 1 sampai 4 adalah satu grup: turbo.",
+            "Con la modalità autonoma attiva, le modalità da 1 a 4 sono un solo gruppo: turbo.",
+        };
+        m["pw_help_number"] = new[]
+        {
+            "The \"Value\" column is the number under which Windows stores the mode in the power plan.",
+            "Kolumna „Wartość” to numer, pod którym Windows zapisuje tryb w planie zasilania.",
+            "Die Spalte „Wert“ ist die Nummer, unter der Windows den Modus im Energieplan speichert.",
+            "La colonne « Valeur » est le numéro sous lequel Windows enregistre le mode dans le mode de gestion de l'alimentation.",
+            "La columna «Valor» es el número con el que Windows guarda el modo en el plan de energía.",
+            "“值”一列是 Windows 在电源计划中保存该模式时使用的编号。",
+            "A coluna \"Valor\" é o número com que o Windows grava o modo no plano de energia.",
+            "Столбец «Значение» это номер, под которым Windows хранит режим в схеме питания.",
+            "「値」の列は、Windows が電源プランにモードを保存するときの番号です。",
+            "'값' 열은 Windows가 전원 관리 옵션에 모드를 저장하는 번호입니다.",
+            "「值」一欄是 Windows 在電源計畫中儲存該模式時使用的編號。",
+            "\"Değer\" sütunu, Windows'un modu güç planında kaydettiği numaradır.",
+            "Cột \"Giá trị\" là số mà Windows dùng để lưu chế độ trong gói nguồn.",
+            "Kolom \"Nilai\" adalah nomor yang dipakai Windows untuk menyimpan mode di rencana daya.",
+            "La colonna \"Valore\" è il numero con cui Windows salva la modalità nella combinazione per il risparmio di energia.",
+        };
         m["pwm_req_eff"]  = new[] { "best power efficiency", "najlepsza efektywność energetyczna", "beste Energieeffizienz", "meilleure efficacité énergétique", "mejor eficiencia energética", "最佳能效", "melhor eficiência energética", "максимальная энергоэффективность", "最適な電力効率", "최고의 전력 효율", "最佳電源效率", "en iyi güç verimliliği", "hiệu quả năng lượng tốt nhất", "efisiensi daya terbaik", "massima efficienza energetica" };
         m["pwm_req_bal"]  = new[] { "balanced", "zrównoważony", "ausbalanciert", "équilibré", "equilibrado", "平衡", "equilibrado", "сбалансированный", "バランス", "균형", "平衡", "dengeli", "cân bằng", "seimbang", "bilanciato" };
         m["pwm_req_perf"] = new[] { "best performance", "najwyższa wydajność", "beste Leistung", "performances optimales", "máximo rendimiento", "最佳性能", "melhor desempenho", "максимальная производительность", "最適なパフォーマンス", "최고의 성능", "最佳效能", "en iyi performans", "hiệu năng tốt nhất", "performa terbaik", "massime prestazioni" };

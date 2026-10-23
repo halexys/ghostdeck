@@ -3,61 +3,91 @@ using System.Drawing.Drawing2D;
 namespace GhostDeck;
 
 // =====================================================================
-//  Models — full list of recognised firmware IDs (from Devices.All)
+//  Models - the database of recognised firmware IDs (from Devices.All)
 // =====================================================================
 /// <summary>
-/// Read-only catalogue of every <see cref="DeviceProfile"/> the app knows, rendered live from
-/// <see cref="Devices.All"/> so it never drifts from the code. A fixed header (title + detected
-/// model + search box) sits above a scrolling table; the user's detected model is highlighted.
-/// Mirrors docs/SUPPORTED_MODELS.md (same columns).
+/// Five sub-tabs over the database in effect (Devices.All), every one of them computed from it at
+/// runtime so a model change (new entry, promotion, curve, RPM, credit, a downloaded database)
+/// refreshes ALL of them in one go: Start (your laptop, numbers, growth, closest to tested,
+/// recent changes), List (the table with filters and expandable rows), Features (coverage and a
+/// dot matrix), Series (tested share per series) and Community (thanks and the timeline).
+/// A fixed header (title, detected model, database line, sub-tabs, search) sits above one
+/// scrolling view; the footer keeps the legend and the two actions. Every view is ONE drawn
+/// surface (ModelsViews.cs), never a control per row.
 /// </summary>
 public sealed class ModelsPage : ThemedPage
 {
-    private const int Pad = 28;
-    // Rebuilt by OnDeviceDbChanged: the page is created once and cached, and it is pre-warmed
-    // shortly after launch, so a database downloaded later would never show without this.
+    internal const int Pad = 28;
+    public const int TabStart = 0, TabList = 1, TabFeatures = 2, TabSeries = 3, TabCommunity = 4;
+
     private DeviceProfile? _detected;
     private List<DeviceProfile> _all;
     private List<DeviceProfile> _rows;
+    private ModelsStats? _stats;   // computed on first use (the page is built in the background, see ctor)
+    private HashSet<DeviceProfile> _new = new();
+    private static HashSet<string>? _seenAtStart;   // the "seen" list as it was when this app run started
 
+    private readonly SubTabs _subTabs;
     private readonly Panel _scrollHost = new() { AutoScroll = true };
-    private readonly Table _table;
-    private readonly TextBox _search = new();
+    private readonly ModelsView[] _views;
+    private int _tab = TabStart;
+    private readonly SearchBox _searchBox = new();
+    private readonly TextBox _search;
     private readonly Button _verify = new();
-    private readonly Button _dbCheck = new();   // fetch the signed model database now
+    private readonly Button _dbCheck = new();
     private readonly Panel _footer = new();
     private readonly ToolTip _tip = new() { InitialDelay = 250, AutoPopDelay = 8000 };
 
+    internal readonly HashSet<string> Filters = new();   // List chips: t e g1 g2 c r a n
+    internal DeviceProfile? Expanded;                    // List row opened for details
+
     public ModelsPage(MainDeps d) : base(d)
     {
-        AutoScroll = false;   // the inner _scrollHost scrolls the table; the header stays fixed
+        AutoScroll = false;   // the inner _scrollHost scrolls the view; the header stays fixed
         _detected = Devices.Detect(d.Firmware());
         _all = BuildCatalogue();
         _rows = _all;
+        UpdateNew();
+        // The statistics are the expensive part of building this page (first call includes .NET
+        // warm-up): MainForm pre-builds the page in the background, so they follow in a message of
+        // their own once the window exists, and no single step blocks the UI thread for long.
+        HandleCreated += (_, _) => BeginInvoke(() => { _ = Stats; });
 
-        _table = new Table(this);
-        _scrollHost.Controls.Add(_table);
+        _subTabs = new SubTabs(TabLabels(), new[] { "\uE80F", "\uE8FD", "\uE8A9", "\uE81E", "\uE716" });
+        _subTabs.Changed += i => ShowTab(i);
+        Controls.Add(_subTabs);
+
+        _views = new ModelsView[]
+        {
+            new ModelsStartView(this), new ModelsListView(this), new ModelsFeaturesView(this),
+            new ModelsSeriesView(this), new ModelsCommunityView(this),
+        };
+        foreach (var v in _views) { v.Visible = false; _scrollHost.Controls.Add(v); }
+        _views[_tab].Visible = true;
         Controls.Add(_scrollHost);
 
-        _search.BorderStyle = BorderStyle.FixedSingle;
-        _search.Font = new Font("Segoe UI", 10.5f);
-        _search.Width = 300;
+        _search = _searchBox.Box;
+        _searchBox.Width = 320;
         _search.PlaceholderText = Lang.T("mdl_search");
-        _search.TextChanged += (_, _) => ApplyFilter();
-        Controls.Add(_search);
-        _search.BringToFront();
+        _search.TextChanged += (_, _) =>
+        {
+            // typing anywhere means "find a model": the List shows the result (Features filters too)
+            if (_search.Text.Length > 0 && _tab != TabList && _tab != TabFeatures) ShowTab(TabList);
+            ApplyFilter();
+        };
+        Controls.Add(_searchBox);
+        _searchBox.BringToFront();
 
-        // Bottom footer bar (white): table legend on the left, "Verify my model" CTA on the right.
+        // Bottom footer: legend of the current sub-tab on the left, the two actions on the right.
         _footer.Paint += PaintFooter;
         Controls.Add(_footer);
         Ui.StylePrimary(_verify);
         _verify.Text = Lang.T("models_verify_btn");
         _verify.AutoSize = false;
-        _verify.Click += (_, _) => (FindForm() as MainForm)?.ShowReport(0);
+        _verify.Click += (_, _) => Verify();
         _tip.SetToolTip(_verify, Lang.T("models_verify_desc"));
         _footer.Controls.Add(_verify);
 
-        // The catalogue is exactly what this button refreshes, so it belongs next to it.
         Ui.StyleGhost(_dbCheck);
         _dbCheck.Text = Lang.T("modeldb_check");
         _dbCheck.AutoSize = false;
@@ -90,15 +120,28 @@ public sealed class ModelsPage : ThemedPage
         ClientSizeChanged += (_, _) => LayoutBits();
     }
 
-    private void PaintFooter(object? sender, PaintEventArgs e)
+    private static string[] TabLabels() => new[]
     {
-        var g = e.Graphics;
-        g.Clear(Theme.Surface);
-        using (var pen = new Pen(Theme.Border)) g.DrawLine(pen, 0, 0, _footer.Width, 0);
-        int legendRight = _dbCheck.Left - 20;
-        TextRenderer.DrawText(g, Lang.T("mdl_legend"), FLegend,
-            new Rectangle(Pad, 10, Math.Max(60, legendRight - Pad), _footer.Height - 16), Theme.Muted,
-            TextFormatFlags.Left | TextFormatFlags.Top | TextFormatFlags.WordBreak);
+        Lang.T("subtab_start"), Lang.T("mdl_tab_list"), Lang.T("mdl_tab_features"),
+        Lang.T("mdl_tab_series"), Lang.T("mdl_tab_community"),
+    };
+
+    // ---- state the views read ----
+    internal DeviceProfile? Detected => _detected;
+    internal IReadOnlyList<DeviceProfile> All => _all;
+    internal IReadOnlyList<DeviceProfile> Rows => _rows;
+    internal ModelsStats Stats => _stats ??= ModelsStats.Build(_all);
+    internal bool IsNew(DeviceProfile d) => _new.Contains(d);
+    internal int NewCount => _new.Count;
+    internal string Firmware => D.Firmware();
+    internal ToolTip Tip => _tip;
+
+    internal void Verify() => (FindForm() as MainForm)?.ShowReport(0);
+
+    internal static void OpenUrl(string url)
+    {
+        if (string.IsNullOrEmpty(url)) return;
+        try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(url) { UseShellExecute = true }); } catch { }
     }
 
     private static List<DeviceProfile> BuildCatalogue() =>
@@ -107,46 +150,140 @@ public sealed class ModelsPage : ThemedPage
             .ThenBy(x => x.Name, StringComparer.OrdinalIgnoreCase)
             .ToList();
 
+    // "New since your last visit": the list of first-prefix + tier keys seen on the previous run.
+    // The snapshot is taken once per app run, so the badges stay for the whole session and are
+    // gone on the next one; the very first run marks nothing (no history to compare with).
+    private static string Key(DeviceProfile d) => d.FirmwarePrefixes[0] + "|" + (d.Tier == Tier.Tested ? "T" : "E");
+    private void UpdateNew()
+    {
+        var keys = _all.Select(Key).ToList();
+        if (_seenAtStart == null)
+        {
+            _seenAtStart = new HashSet<string>(D.Settings.ModelsSeen, StringComparer.OrdinalIgnoreCase);
+            if (_seenAtStart.Count == 0) foreach (var k in keys) _seenAtStart.Add(k);
+        }
+        _new = _all.Where(d => !_seenAtStart.Contains(Key(d))).ToHashSet();
+        if (!D.Settings.ModelsSeen.SequenceEqual(keys))
+        {
+            D.Settings.ModelsSeen = keys;
+            D.SaveSettings();
+        }
+    }
+
     public override void OnEnter()
     {
         D.PollModelDb();               // debounced; the tab is where people look for this
-        StyleSearch(); LayoutBits(); Invalidate(); _table.Invalidate();
+        StyleSearch(); LayoutBits(); Invalidate(); _views[_tab].Invalidate();
+        if (_tab == TabStart) (_views[TabStart] as ModelsStartView)?.Animate();
     }
 
+    public override void OnReenter() => ShowTab(TabStart);
+
+    /// <summary>The database changed (download / button): rebuild EVERYTHING the tab shows.</summary>
     public override void OnDeviceDbChanged()
     {
         _detected = Devices.Detect(D.Firmware());
         _all = BuildCatalogue();
+        _stats = null;                 // rebuilt on the next paint
+        UpdateNew();
+        if (Expanded != null) Expanded = _all.FirstOrDefault(m => m.FirmwarePrefixes[0] == Expanded.FirmwarePrefixes[0]);
         ApplyFilter();                 // keeps whatever is typed in the search box
-        LayoutBits(); Invalidate(); _table.Invalidate();
+        LayoutBits(); Invalidate();
     }
+
+    public override void OnLanguageChanged()
+    {
+        _subTabs.SetLabels(TabLabels());
+        _stats = null;                 // candidate reasons are text: rebuilt on the next paint
+        _search.PlaceholderText = Lang.T("mdl_search");
+        _verify.Text = Lang.T("models_verify_btn");
+        _dbCheck.Text = Lang.T("modeldb_check");
+        LayoutBits(); Invalidate();
+    }
+
     public override void ApplyTheme()
     {
         base.ApplyTheme();
         _scrollHost.BackColor = Theme.Surface;
-        _table.BackColor = Theme.Surface;
+        foreach (var v in _views) v.BackColor = Theme.Surface;
         _footer.BackColor = Theme.Surface;
         StyleSearch();
         Ui.StylePrimary(_verify);
-        Invalidate(); _table.Invalidate(); _footer.Invalidate();
+        Invalidate(); _views[_tab].Invalidate(); _footer.Invalidate(); _subTabs.Invalidate();
     }
 
-    private void StyleSearch() { _search.BackColor = Theme.Card; _search.ForeColor = Theme.Text; }
+    private void StyleSearch() => _searchBox.ApplyTheme();
 
-    internal DeviceProfile? Detected => _detected;
-    internal IReadOnlyList<DeviceProfile> Rows => _rows;
-    internal ToolTip Tip => _tip;
+    // ---- navigation ----
+    internal int Tab => _tab;
+
+    internal void ShowTab(int tab)
+    {
+        tab = Math.Clamp(tab, 0, _views.Length - 1);
+        if (tab == _tab) { if (_subTabs.Active != tab) _subTabs.SetActive(tab); return; }
+        // one repaint for the switch: hide the old view and show the new one inside a layout batch
+        _scrollHost.SuspendLayout();
+        _views[_tab].Visible = false;
+        _tab = tab;
+        _subTabs.SetActive(tab);
+        _views[_tab].Visible = true;
+        _scrollHost.AutoScrollPosition = Point.Empty;
+        LayoutContent();
+        _scrollHost.ResumeLayout(true);
+        _footer.Invalidate();
+        if (tab == TabStart) (_views[TabStart] as ModelsStartView)?.Animate();
+    }
+
+    /// <summary>Open the List with the search box set (series cards, candidates, tiles).</summary>
+    internal void ShowListFor(string query, DeviceProfile? expand = null, string? filter = null)
+    {
+        Filters.Clear();
+        if (filter != null) Filters.Add(filter);
+        Expanded = expand;
+        if (_search.Text != query) _search.Text = query;   // TextChanged applies the filter
+        else ApplyFilter();
+        ShowTab(TabList);
+    }
+
+    internal void ToggleFilter(string f)
+    {
+        if (!Filters.Remove(f)) Filters.Add(f);
+        // tested/experimental and G1/G2 are pairs: picking one side drops the other
+        foreach (var (a, b) in new[] { ("t", "e"), ("g1", "g2") })
+            if (f == a) Filters.Remove(b); else if (f == b) Filters.Remove(a);
+        ApplyFilter();
+    }
+
+    internal void ToggleExpanded(DeviceProfile m)
+    {
+        Expanded = ReferenceEquals(Expanded, m) ? null : m;
+        LayoutContent();
+        _views[_tab].Invalidate();
+    }
 
     private void ApplyFilter()
     {
         string q = _search.Text.Trim();
-        _rows = string.IsNullOrEmpty(q)
-            ? _all
-            : _all.Where(x =>
-                x.Name.Contains(q, StringComparison.OrdinalIgnoreCase) ||
-                x.FirmwarePrefixes.Any(f => f.Contains(q, StringComparison.OrdinalIgnoreCase))).ToList();
-        LayoutTable();
-        _table.Invalidate();
+        IEnumerable<DeviceProfile> r = _all;
+        if (q.Length > 0)
+            r = r.Where(x => x.Name.Contains(q, StringComparison.OrdinalIgnoreCase) ||
+                             x.FirmwarePrefixes.Any(f => f.Contains(q, StringComparison.OrdinalIgnoreCase)));
+        foreach (var f in Filters)
+            r = f switch
+            {
+                "t"  => r.Where(x => x.Tier == Tier.Tested),
+                "e"  => r.Where(x => x.Tier != Tier.Tested),
+                "g1" => r.Where(x => x.ShiftMode == 0xF2),
+                "g2" => r.Where(x => x.ShiftMode != 0xF2),
+                "c"  => r.Where(x => x.FanCurve != null),
+                "r"  => r.Where(ModelsStats.HasRpm),
+                "a"  => r.Where(x => x.FourthMode != null),
+                "n"  => r.Where(IsNew),
+                _    => r,
+            };
+        _rows = r.ToList();
+        LayoutContent();
+        _views[_tab].Invalidate();
     }
 
     // ---- fonts / metrics ----
@@ -157,20 +294,23 @@ public sealed class ModelsPage : ThemedPage
     internal static readonly Font FCell = new("Segoe UI", 10.5f);
     internal static readonly Font FMono = new("Consolas", 10.5f);
     internal static readonly Font FLegend = new("Segoe UI", 9f);
-    internal static readonly Font FIcon = new("Segoe UI Symbol", 10.5f, FontStyle.Bold);
+    internal static readonly Font FSmall = new("Segoe UI", 9f);
+    internal static readonly Font FCardTitle = new("Segoe UI", 9.5f, FontStyle.Bold);
+    internal static readonly Font FName = new("Segoe UI", 12f, FontStyle.Bold);
+    internal static readonly Font FBig = new("Segoe UI", 18f, FontStyle.Bold);
+    internal static readonly Font FBold = new("Segoe UI", 10.5f, FontStyle.Bold);
+    internal static readonly Font FGlyph = new("Segoe MDL2 Assets", 10.5f);
 
-    internal const int HeadH = 34, RowH = 32;
-    internal static readonly float[] Lefts = { 0f, .26f, .42f, .49f, .58f, .70f, .77f, .855f };
-
-    private int HeaderBandH() => 24 + FTitle.Height + 14 + FSub.Height + 10 + FIntro.Height * 2 + 18;
+    private int S(int v) => (int)Math.Ceiling(v * DeviceDpi / 96f);
+    private int SubTop() => 24 + FTitle.Height + 12 + FSub.Height + 6 + FIntro.Height + 14;
+    private int HeaderBandH() => SubTop() + _subTabs.Height + S(14);
 
     private void LayoutBits()
     {
-        int hb = HeaderBandH();
-        // search box: top-right of the fixed header band
-        _search.Location = new Point(Math.Max(Pad, ClientSize.Width - Pad - _search.Width), 26);
+        _searchBox.Height = _searchBox.PreferredHeight;
+        _searchBox.Location = new Point(Math.Max(Pad, ClientSize.Width - Pad - _searchBox.Width), 22);
+        _subTabs.SetBounds(Pad, SubTop(), _subTabs.FitTo(ClientSize.Width - Pad * 2), _subTabs.Height);
 
-        // Fixed bottom footer: legend (left) + Verify CTA (right). The table scrolls between header and footer.
         int footerH = Math.Max(66, FLegend.Height * 3 + 26);
         _footer.SetBounds(0, ClientSize.Height - footerH, ClientSize.Width, footerH);
         int vw = TextRenderer.MeasureText(_verify.Text, _verify.Font).Width + 44, vh = 42;
@@ -178,16 +318,49 @@ public sealed class ModelsPage : ThemedPage
         int dw = TextRenderer.MeasureText(_dbCheck.Text, _dbCheck.Font).Width + 32;
         _dbCheck.SetBounds(_verify.Left - 12 - dw, (footerH - vh) / 2, dw, vh);
 
+        int hb = HeaderBandH();
         _scrollHost.SetBounds(0, hb, ClientSize.Width, Math.Max(0, ClientSize.Height - hb - footerH));
         _footer.Invalidate();
-        LayoutTable();
+        LayoutContent();
     }
 
-    private void LayoutTable()
+    /// <summary>Size the visible view to its content (the host scrolls it).</summary>
+    internal void LayoutContent()
     {
-        int w = _scrollHost.ClientSize.Width;
-        _table.Width = w;
-        _table.Height = Math.Max(_table.ContentHeight(w), _scrollHost.ClientSize.Height);
+        // The view's width is decided BEFORE the vertical scrollbar shows up: measure at the full
+        // width, and when the content is taller than the host, lay out again at the width that is
+        // left next to the bar. Sizing the child after the bar appeared left the panel with a
+        // horizontal bar it never recomputed (same trap as ThemedPage.LayoutAndSyncScroll).
+        var v = _views[_tab];
+        int full = _scrollHost.Width, hostH = _scrollHost.Height;
+        int h = v.ContentHeight(full);
+        int w = full;
+        if (h > hostH)
+        {
+            w = full - SystemInformation.VerticalScrollBarWidth;
+            h = v.ContentHeight(w);
+        }
+        v.SetBounds(v.Left, v.Top, w, Math.Max(h, hostH));
+        _scrollHost.PerformLayout();   // the panel recomputes its bars for the new child size
+    }
+
+    private void PaintFooter(object? sender, PaintEventArgs e)
+    {
+        var g = e.Graphics;
+        g.Clear(Theme.Surface);
+        using (var pen = new Pen(Theme.Border)) g.DrawLine(pen, 0, 0, _footer.Width, 0);
+        int legendRight = _dbCheck.Left - 20;
+        string legend = _tab switch
+        {
+            TabList => Lang.T("mdl_legend"),
+            TabFeatures => Lang.T("mdl_legend_features"),
+            TabSeries => Lang.T("mdl_legend_series"),
+            TabCommunity => Lang.T("mdl_legend_community"),
+            _ => Lang.T("mdl_legend_start"),
+        };
+        TextRenderer.DrawText(g, legend, FLegend,
+            new Rectangle(Pad, 10, Math.Max(60, legendRight - Pad), _footer.Height - 16), Theme.Muted,
+            TextFormatFlags.Left | TextFormatFlags.Top | TextFormatFlags.WordBreak | TextFormatFlags.NoPrefix);
     }
 
     protected override void OnPaint(PaintEventArgs e)
@@ -195,76 +368,84 @@ public sealed class ModelsPage : ThemedPage
         var g = e.Graphics;
         g.SmoothingMode = SmoothingMode.AntiAlias;
         int avail = ClientSize.Width - Pad * 2;
+        const TextFormatFlags One = TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPrefix;
 
         TextRenderer.DrawText(g, Lang.T("tab_models"), FTitle, new Point(Pad, 24), Theme.Text);
 
-        int y = 24 + FTitle.Height + 14;
+        int y = 24 + FTitle.Height + 12;
+        int lineW = avail - _searchBox.Width - 20;
         if (_detected is { } det)
         {
             string sub = Lang.T("mdl_you") + ":  " + det.Name + "   ·   " + D.Firmware();
-            TextRenderer.DrawText(g, sub, FSub, new Rectangle(Pad, y, avail - _search.Width - 20, FSub.Height), Theme.Text,
-                TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis);
+            TextRenderer.DrawText(g, sub, FSub, new Rectangle(Pad, y, lineW, FSub.Height), Theme.Text, One);
         }
         else
         {
             string sub = string.Format(Lang.T("mdl_unknown"), string.IsNullOrEmpty(D.Firmware()) ? "?" : D.Firmware());
-            TextRenderer.DrawText(g, sub, FSub, new Point(Pad, y), Color.FromArgb(0xB0, 0x4A, 0x3A));
+            TextRenderer.DrawText(g, sub, FSub, new Rectangle(Pad, y, avail, FSub.Height), Theme.Amber, One);
         }
-        y += FSub.Height + 10;
-        // tested count injected live from Devices.All - the old text hardcoded "1 tested" and went stale
-        string intro = string.Format(Lang.T("mdl_intro"), _all.Count(m => m.Tier == Tier.Tested));
-        TextRenderer.DrawText(g, intro, FIntro, new Rectangle(Pad, y, avail, FIntro.Height * 2 + 4),
-            Theme.Muted, TextFormatFlags.Left | TextFormatFlags.Top | TextFormatFlags.WordBreak | TextFormatFlags.WordEllipsis);
+        y += FSub.Height + 6;
+        // database line: version and what changed since the last visit
+        string db = string.Format(Lang.T("mdl_db_line"), Devices.EffectiveDataVersion, Stats.Total, Stats.Tested);
+        if (_new.Count > 0) db += "   ·   " + string.Format(Lang.T("mdl_new_since"), _new.Count);
+        TextRenderer.DrawText(g, db, FIntro, new Rectangle(Pad, y, avail, FIntro.Height), _new.Count > 0 ? Theme.Accent : Theme.Muted, One);
     }
 
     protected override void Dispose(bool disposing) { if (disposing) _tip.Dispose(); base.Dispose(disposing); }
 
-    // =================================================================
-    //  Inner scrolling table
-    // =================================================================
-    private sealed class Table : Control
+    /// <summary>
+    /// The search field: a borderless TextBox inside a drawn frame (app card colour, rounded,
+    /// accent border while focused) with a magnifier and inner padding - the plain FixedSingle
+    /// box put the text right against its border.
+    /// </summary>
+    private sealed class SearchBox : Control
     {
-        private readonly ModelsPage _p;
-        private Rectangle _sbHeaderRect;
-        private Rectangle _familyHeaderRect;
-        private readonly List<(Rectangle rect, string url)> _creditRects = new();
+        public readonly TextBox Box = new() { BorderStyle = BorderStyle.None, Font = new Font("Segoe UI", 10.5f) };
+        private static readonly Font Glyph = new("Segoe MDL2 Assets", 10.5f);
+        private static readonly Font ClearGlyph = new("Segoe MDL2 Assets", 8.5f);
 
-        public Table(ModelsPage p) { _p = p; DoubleBuffered = true; ResizeRedraw = true; BackColor = Theme.Surface; }
-
-        public int ContentHeight(int width)
+        public SearchBox()
         {
-            int rows = _p.Rows.Count;
-            return HeadH + rows * RowH + 10 + 14;   // legend moved to the page footer
+            DoubleBuffered = true;
+            ResizeRedraw = true;
+            Cursor = Cursors.IBeam;
+            Controls.Add(Box);
+            Box.GotFocus += (_, _) => Invalidate();
+            Box.LostFocus += (_, _) => Invalidate();
+            Box.TextChanged += (_, _) => { PerformLayout(); Invalidate(); };   // the X comes and goes
+            ApplyTheme();
         }
+
+        private int S(int v) => (int)Math.Ceiling(v * DeviceDpi / 96f);
+        public int PreferredHeight => Box.PreferredHeight + S(16);
+
+        public void ApplyTheme() { Box.BackColor = Theme.Card; Box.ForeColor = Theme.Text; BackColor = Theme.Surface; Invalidate(); }
+
+        private bool HasText => Box.TextLength > 0;
+        private Rectangle ClearRect => new(Width - S(30), (Height - S(22)) / 2, S(22), S(22));
+        private bool _overClear;
 
         protected override void OnMouseMove(MouseEventArgs e)
         {
-            Cursor = _sbHeaderRect.Contains(e.Location) || _familyHeaderRect.Contains(e.Location)
-                     || _creditRects.Any(c => c.rect.Contains(e.Location))
-                ? Cursors.Hand : Cursors.Default;
             base.OnMouseMove(e);
+            bool over = HasText && ClearRect.Contains(e.Location);
+            Cursor = over ? Cursors.Hand : Cursors.IBeam;
+            if (over != _overClear) { _overClear = over; Invalidate(); }
+        }
+        protected override void OnMouseLeave(EventArgs e) { base.OnMouseLeave(e); if (_overClear) { _overClear = false; Invalidate(); } }
+
+        protected override void OnMouseClick(MouseEventArgs e)
+        {
+            base.OnMouseClick(e);
+            if (HasText && ClearRect.Contains(e.Location)) Box.Clear();   // TextChanged re-filters
+            Box.Focus();
         }
 
-        protected override void OnMouseDown(MouseEventArgs e)
+        protected override void OnLayout(LayoutEventArgs levent)
         {
-            base.OnMouseDown(e);
-            if (e.Button != MouseButtons.Left) return;
-            if (_sbHeaderRect.Contains(e.Location))
-            {
-                HelpPopup.Toggle(this, _sbHeaderRect, Lang.T("mdl_sb_tip"), this);
-                return;
-            }
-            if (_familyHeaderRect.Contains(e.Location))
-            {
-                HelpPopup.Toggle(this, _familyHeaderRect, Lang.T("mdl_family_tip"), this);
-                return;
-            }
-            foreach (var (rect, url) in _creditRects)
-                if (rect.Contains(e.Location))
-                {
-                    try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(url) { UseShellExecute = true }); } catch { }
-                    return;
-                }
+            base.OnLayout(levent);
+            int left = S(34), right = HasText ? S(36) : S(12);
+            Box.SetBounds(left, (Height - Box.Height) / 2, Math.Max(10, Width - left - right), Box.Height);
         }
 
         protected override void OnPaint(PaintEventArgs e)
@@ -272,115 +453,23 @@ public sealed class ModelsPage : ThemedPage
             var g = e.Graphics;
             g.SmoothingMode = SmoothingMode.AntiAlias;
             g.Clear(Theme.Surface);
-            int width = Width;
-            int avail = width - Pad * 2;
-
-            int n = Lefts.Length;
-            int[] cx = new int[n + 1];
-            for (int i = 0; i < n; i++) cx[i] = Pad + 18 + (int)(Lefts[i] * (avail - 36));
-            cx[n] = Pad + avail - 14;
-            int ColW(int c) => cx[c + 1] - cx[c] - 10;
-
-            int rows = _p.Rows.Count;
-            int tableH = HeadH + rows * RowH + 10;
-            Ui.FillCard(g, new RectangleF(Pad, 0, avail, tableH));
-
-            var headers = new[]
+            bool focus = Box.Focused;
+            using (var path = Theme.RoundRect(new RectangleF(0.5f, 0.5f, Width - 1, Height - 1), 7))
             {
-                Lang.T("st_model"), Lang.T("st_firmware"), Lang.T("mdl_c_family"),
-                Lang.T("mdl_c_status"), Lang.T("mdl_c_curve"), Lang.T("mdl_c_sb"), Lang.T("mdl_c_rpm"),
-                Lang.T("mdl_c_thanks"),
-            };
-            _creditRects.Clear();
-            for (int c = 0; c < headers.Length; c++)
-                TextRenderer.DrawText(g, headers[c], FHead, new Rectangle(cx[c], 8, ColW(c), HeadH - 8), Theme.Muted,
-                    TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis);
-
-            // Two columns need a sentence of explanation, so they get the app's standard help dot:
-            // click to open the bubble, click again (or anywhere) to dismiss. Family is in there
-            // because G1 / G2 is msi-ec's grouping, not an MSI designation - worth saying out loud
-            // next to a column that otherwise reads like something the vendor prints on the box.
-            int famTextW = TextRenderer.MeasureText(headers[2], FHead).Width;
-            HelpDot.Render(g, new RectangleF(cx[2] + famTextW + 6, 8 + (HeadH - 8 - 18) / 2f, 18, 18));
-            _familyHeaderRect = new Rectangle(cx[2], 0, famTextW + 30, HeadH);
-
-            int sbTextW = TextRenderer.MeasureText(headers[5], FHead).Width;
-            HelpDot.Render(g, new RectangleF(cx[5] + sbTextW + 6, 8 + (HeadH - 8 - 18) / 2f, 18, 18));
-            _sbHeaderRect = new Rectangle(cx[5], 0, sbTextW + 30, HeadH);
-
-            int ry = HeadH;
-            foreach (var m in _p.Rows)
-            {
-                bool active = ReferenceEquals(m, _p.Detected);
-                if (active)
-                {
-                    using var b = new SolidBrush(Theme.AccentSoft);
-                    g.FillRectangle(b, Pad + 8, ry, avail - 16, RowH);
-                    using var bar = new SolidBrush(Theme.Accent);
-                    g.FillRectangle(bar, Pad + 8, ry, 4, RowH);
-                }
-                else
-                {
-                    using var pen = new Pen(Theme.Border);
-                    g.DrawLine(pen, cx[0], ry, Pad + avail - 14, ry);
-                }
-
-                bool tested = m.Tier == Tier.Tested;
-                string family = m.ShiftMode == 0xF2 ? "G1" : "G2";
-                string status = Lang.T(tested ? "tier_tested" : "tier_experimental");
-                var statusCol = tested ? Theme.Green : Theme.Amber;
-
-                string curve; Color curveCol;
-                if (m.FanCurve is { } fc)
-                {
-                    // Same distinction as docs/SUPPORTED_MODELS.md: a verified curve on a model
-                    // still awaiting its profile checks is editable only after the opt-in.
-                    if (fc.Verified) { curve = "✓ " + Lang.T(tested ? "mdl_curve_edit" : "mdl_curve_vopt"); curveCol = Theme.Green; }
-                    else { curve = "◉ " + Lang.T("mdl_curve_prev"); curveCol = Theme.Accent; }
-                }
-                else { curve = "—"; curveCol = Theme.Muted; }
-
-                bool sb = m.Recipes.TryGetValue(ProfileId.SuperBattery, out var sr) && sr.Any(x => x.val == 0x0F);
-                string sbStr = sb ? "✓" : "—";
-
-                string rpm = m.CpuRpmAddr16 != 0
-                    ? (m.GpuRpmAddr16 == 0 ? $"✓ 0x{m.CpuRpmAddr16:X2}:{m.CpuRpmAddr16 + 1:X2}"   // wide (16-bit) pairs
-                                           : $"✓ 0x{m.CpuRpmAddr16:X2}:{m.CpuRpmAddr16 + 1:X2}/{m.GpuRpmAddr16:X2}:{m.GpuRpmAddr16 + 1:X2}")
-                    : m.CpuRpmAddr == 0 ? "—"
-                    : m.GpuRpmAddr == 0 ? $"✓ 0x{m.CpuRpmAddr:X2}"   // single-tach boards (iGPU)
-                    : $"✓ 0x{m.CpuRpmAddr:X2}/0x{m.GpuRpmAddr:X2}";
-                string fw = string.Join(", ", m.FirmwarePrefixes);
-
-                Cell(g, cx, 0, ry, ColW(0), m.Name, FCell, Theme.Text);
-                Cell(g, cx, 1, ry, ColW(1), fw, FMono, Theme.Text);
-                Cell(g, cx, 2, ry, ColW(2), family, FCell, Theme.Muted);
-                Cell(g, cx, 3, ry, ColW(3), status, FCell, statusCol);
-                Cell(g, cx, 4, ry, ColW(4), curve, FCell, curveCol);
-                Cell(g, cx, 5, ry, ColW(5), sbStr, FCell, sb ? Theme.Text : Theme.Muted);
-                bool hasRpm = m.CpuRpmAddr != 0 || m.CpuRpmAddr16 != 0;
-                Cell(g, cx, 6, ry, ColW(6), rpm, hasRpm ? FMono : FCell, hasRpm ? Theme.Text : Theme.Muted);
-
-                // Thank-you column: the reporter's GitHub login, clickable -> their issue.
-                if (m.Credit.Length > 0)
-                {
-                    string nick = "@" + m.Credit;
-                    Cell(g, cx, 7, ry, ColW(7), nick, FCell, Theme.Accent);
-                    int nw = Math.Min(ColW(7), TextRenderer.MeasureText(nick, FCell).Width);
-                    if (m.CreditUrl.Length > 0)
-                        _creditRects.Add((new Rectangle(cx[7], ry, nw, RowH), m.CreditUrl));
-                }
-                else Cell(g, cx, 7, ry, ColW(7), "—", FCell, Theme.Muted);
-
-                ry += RowH;
+                using var b = new SolidBrush(Theme.Card); g.FillPath(b, path);
+                using var pen = new Pen(focus ? Theme.Accent : Theme.Border, focus ? 1.5f : 1f); g.DrawPath(pen, path);
             }
-
-            if (rows == 0)
-                TextRenderer.DrawText(g, "—", FCell, new Rectangle(cx[0], HeadH, avail, RowH), Theme.Muted,
-                    TextFormatFlags.Left | TextFormatFlags.VerticalCenter);
+            Ui.CenterGlyph(g, "\uE721", Glyph, focus ? Theme.Accent : Theme.Muted, new RectangleF(S(8), 0, S(20), Height));
+            if (HasText)
+            {
+                var cr = ClearRect;
+                if (_overClear)
+                {
+                    using var b = new SolidBrush(Color.FromArgb(Theme.Dark ? 30 : 20, Theme.Text));
+                    g.FillEllipse(b, cr);
+                }
+                Ui.CenterGlyph(g, "\uE711", ClearGlyph, _overClear ? Theme.Text : Theme.Muted, cr);
+            }
         }
-
-        private static void Cell(Graphics g, int[] cx, int c, int ry, int w, string text, Font font, Color color) =>
-            TextRenderer.DrawText(g, text, font, new Rectangle(cx[c], ry, w, RowH), color,
-                TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis);
     }
 }

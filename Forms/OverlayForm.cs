@@ -17,6 +17,7 @@ public readonly record struct OverlaySample(
     int SsdTemp = -1, int BattMinutes = -1,    // NVMe S.M.A.R.T. temp (disk 0); Windows' battery-time estimate
     int SsdTemp2 = -1,                         // second disk's temp (dual-SSD laptops), -1 = none
     int IgpuUsage = -1, string CpuName = "",   // integrated card's load (-1 = no such card); processor model
+    bool HwLost = false,                        // hardware readings unavailable (Ec.ReadsLost): EC values show "--"
     double CpuWatts = -1, double GpuWatts = -1);   // package W (RAPL), discrete-GPU W (NVML, -1 while it sleeps)
 
 /// <summary>
@@ -178,7 +179,7 @@ public sealed class OverlayForm : Form
             : _s.SsdTemp > 0 ? $"{_s.SsdTemp}°" : _s.SsdTemp2 > 0 ? $"{_s.SsdTemp2}°" : "--");
         Add(OverlayMetric.CpuRpm, IconKind.Fan, "CPU fan", _s.CpuRpm > 0 ? $"{_s.CpuRpm}" : "--");
         Add(OverlayMetric.GpuRpm, IconKind.Fan, "GPU fan", _s.GpuRpm > 0 ? $"{_s.GpuRpm}" : "--");
-        Add(OverlayMetric.FanPct, IconKind.Fan, "Curve target", $"{_s.CpuFanPct}/{_s.GpuFanPct}%");
+        Add(OverlayMetric.FanPct, IconKind.Fan, "Curve target", _s.HwLost ? "--" : $"{_s.CpuFanPct}/{_s.GpuFanPct}%");
         Add(OverlayMetric.CpuLoad, IconKind.Load, "CPU%", $"{_s.CpuLoad}%");
         Add(OverlayMetric.GpuUsage, IconKind.Gpu, "GPU%", _s.GpuUsage >= 0 ? $"{_s.GpuUsage}%" : "--");
         Add(OverlayMetric.IgpuUsage, IconKind.Gpu, "iGPU%", _s.IgpuUsage >= 0 ? $"{_s.IgpuUsage}%" : "--");
